@@ -4,7 +4,8 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
+import { ThrottlerGuard, type ThrottlerOptions } from '@nestjs/throttler';
+import type { ThrottlerModuleOptions } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { TenantContextService } from '../../tenant/tenant-context.service';
 import { RateLimitingService } from '../services/rate-limiting.service';
@@ -17,7 +18,7 @@ import { RequestUser } from '../../auth/interfaces/request-with-user.interface';
 @Injectable()
 export class TenantRateLimitGuard extends ThrottlerGuard {
   constructor(
-    options: ThrottlerOptions,
+    options: ThrottlerModuleOptions,
     storageService: any,
     reflector: Reflector,
     private readonly tenantContext?: TenantContextService,

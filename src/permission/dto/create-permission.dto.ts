@@ -3,19 +3,18 @@ import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreatePermissionDto {
   @ApiProperty({
-    description:
-      'Permission name in format action:resource (e.g., read:user, manage:project)',
-    example: 'manage:reports',
+    description: 'Permission action (e.g., create, read, update, delete)',
+    example: 'read',
   })
   @IsNotEmpty()
   @IsString()
-  name!: string;
+  action!: string;
 
   @ApiProperty({
-    description: 'Human-readable description of what this permission allows',
-    example: 'Can create, read, update, and delete reports',
+    description: 'Permission subject/resource (e.g., User, Project, Role)',
+    example: 'Project',
   })
   @IsNotEmpty()
   @IsString()
-  description!: string;
+  subject!: string;
 }

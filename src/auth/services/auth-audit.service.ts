@@ -23,7 +23,7 @@ export interface AuthAuditEvent {
 export class AuthAuditService {
   private readonly logger = new Logger(AuthAuditService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(protected readonly prisma: PrismaService) { }
 
   /**
    * Log authentication events to both database and application logs

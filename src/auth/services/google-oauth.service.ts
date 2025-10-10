@@ -1,14 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
-
-export interface GoogleProfile {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  picture?: string;
-}
+import { GoogleProfile } from '../interfaces/google-profile.interface';
 
 @Injectable()
 export class GoogleOAuthService {

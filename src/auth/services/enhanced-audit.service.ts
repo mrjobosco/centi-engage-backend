@@ -49,7 +49,7 @@ export interface AuditStatistics {
  */
 @Injectable()
 export class EnhancedAuditService extends AuthAuditService {
-  private readonly logger = new Logger(EnhancedAuditService.name);
+  private readonly enhancedLogger = new Logger(EnhancedAuditService.name);
 
   constructor(
     prisma: PrismaService,
@@ -77,7 +77,7 @@ export class EnhancedAuditService extends AuthAuditService {
       // Log structured data for analytics
       this.logStructuredEvent(enhancedEvent);
     } catch (error) {
-      this.logger.error('Failed to log enhanced auth event', {
+      this.enhancedLogger.error('Failed to log enhanced auth event', {
         error: error instanceof Error ? error.message : 'Unknown error',
         event: event.action,
         userId: event.userId,
@@ -160,14 +160,14 @@ export class EnhancedAuditService extends AuthAuditService {
       };
 
       // Log to structured logging system (could be sent to external systems)
-      this.logger.log(metrics, 'SecurityMetrics');
+      this.enhancedLogger.log(metrics, 'SecurityMetrics');
 
       // Store high-risk events for immediate attention
       if (event.riskScore && event.riskScore > 70) {
         await this.alertHighRiskEvent(event);
       }
     } catch (error) {
-      this.logger.error('Failed to log security metrics', error);
+      this.enhancedLogger.error('Failed to log security metrics', error);
     }
   }
 
@@ -206,7 +206,10 @@ export class EnhancedAuditService extends AuthAuditService {
         await this.checkRapidAccountChanges(event);
       }
     } catch (error) {
-      this.logger.error('Failed to check for suspicious activity', error);
+      this.enhancedLogger.error(
+        'Failed to check for suspicious activity',
+        error,
+      );
     }
   }
 
@@ -252,7 +255,7 @@ export class EnhancedAuditService extends AuthAuditService {
       metadata: event.metadata,
     };
 
-    this.logger.log(structuredEvent, 'StructuredAuditEvent');
+    this.enhancedLogger.log(structuredEvent, 'StructuredAuditEvent');
   }
 
   /**
@@ -282,7 +285,7 @@ export class EnhancedAuditService extends AuthAuditService {
 
       return count;
     } catch (error) {
-      this.logger.error('Failed to get recent failed attempts', error);
+      this.enhancedLogger.error('Failed to get recent failed attempts', error);
       return 0;
     }
   }
@@ -299,7 +302,7 @@ export class EnhancedAuditService extends AuthAuditService {
     // - Logins from new devices
     // - Multiple concurrent sessions
 
-    this.logger.debug('Checking unusual login patterns', {
+    this.enhancedLogger.debug('Checking unusual login patterns', {
       userId: event.userId,
       ipAddress: event.ipAddress,
       geolocation: event.geolocation,
@@ -339,7 +342,7 @@ export class EnhancedAuditService extends AuthAuditService {
    * Alert high-risk events
    */
   private async alertHighRiskEvent(event: EnhancedAuditEvent): Promise<void> {
-    this.logger.warn('High-risk authentication event detected', {
+    this.enhancedLogger.warn('High-risk authentication event detected', {
       userId: event.userId,
       tenantId: event.tenantId,
       action: event.action,
@@ -359,7 +362,10 @@ export class EnhancedAuditService extends AuthAuditService {
     activityType: string,
     details: Record<string, any>,
   ): Promise<void> {
-    this.logger.warn(`Suspicious activity detected: ${activityType}`, details);
+    this.enhancedLogger.warn(
+      `Suspicious activity detected: ${activityType}`,
+      details,
+    );
 
     // Could integrate with external alerting systems here
   }
@@ -416,7 +422,7 @@ export class EnhancedAuditService extends AuthAuditService {
         geographicDistribution: [], // Would implement with geolocation data
       };
     } catch (error) {
-      this.logger.error('Failed to get audit statistics', error);
+      this.enhancedLogger.error('Failed to get audit statistics', error);
       throw error;
     }
   }
