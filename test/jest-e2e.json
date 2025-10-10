@@ -1,0 +1,33 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts",
+    "tsx"
+  ],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest",
+    "^.+\\.(t|j)sx$": "ts-jest"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@react-email)/)"
+  ],
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "\\.(tsx)$": "<rootDir>/test/mocks/react-component.mock.js"
+  },
+  "globals": {
+    "ts-jest": {
+      "useESM": false,
+      "tsconfig": {
+        "jsx": "react-jsx",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
+      }
+    }
+  },
+  "maxWorkers": 1
+}

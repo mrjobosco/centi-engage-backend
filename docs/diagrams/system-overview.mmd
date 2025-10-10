@@ -1,0 +1,100 @@
+graph TB
+    subgraph "Client Layer"
+        WEB[Web Applications]
+        API[API Clients]
+        MOBILE[Mobile Apps]
+        WEBSOCKET[WebSocket Clients]
+    end
+
+    subgraph "API Gateway Layer"
+        GATEWAY[NestJS Application]
+        AUTH[Authentication Middleware]
+        TENANT[Tenant Identification]
+        RATELIMIT[Rate Limiting]
+        VALIDATION[Request Validation]
+    end
+
+    subgraph "Business Logic Layer"
+        subgraph "Core Modules"
+            USER[User Management]
+            ROLE[Role Management]
+            PERM[Permission System]
+            PROJ[Project Management]
+        end
+        
+        subgraph "Advanced Features"
+            NOTIF[Notification System]
+            AUDIT[Audit Logging]
+            METRICS[Metrics Collection]
+        end
+    end
+
+    subgraph "Data Layer"
+        PRISMA[Prisma ORM]
+        MIDDLEWARE[Tenant Middleware]
+        DB[(PostgreSQL)]
+    end
+
+    subgraph "Infrastructure Layer"
+        REDIS[(Redis Cache)]
+        QUEUE[BullMQ Queues]
+        PROMETHEUS[Prometheus Metrics]
+    end
+
+    subgraph "External Services"
+        GOOGLE[Google OAuth]
+        EMAIL[Email Providers]
+        SMS[SMS Providers]
+        SLACK[Slack Webhooks]
+    end
+
+    WEB --> GATEWAY
+    API --> GATEWAY
+    MOBILE --> GATEWAY
+    WEBSOCKET --> GATEWAY
+
+    GATEWAY --> AUTH
+    AUTH --> TENANT
+    TENANT --> RATELIMIT
+    RATELIMIT --> VALIDATION
+
+    VALIDATION --> USER
+    VALIDATION --> ROLE
+    VALIDATION --> PERM
+    VALIDATION --> PROJ
+    VALIDATION --> NOTIF
+    VALIDATION --> AUDIT
+
+    USER --> PRISMA
+    ROLE --> PRISMA
+    PERM --> PRISMA
+    PROJ --> PRISMA
+    NOTIF --> PRISMA
+    AUDIT --> PRISMA
+
+    PRISMA --> MIDDLEWARE
+    MIDDLEWARE --> DB
+
+    NOTIF --> REDIS
+    NOTIF --> QUEUE
+    QUEUE --> EMAIL
+    QUEUE --> SMS
+    
+    METRICS --> PROMETHEUS
+    NOTIF --> SLACK
+    
+    AUTH --> GOOGLE
+
+    classDef client fill:#e1f5fe
+    classDef gateway fill:#f3e5f5
+    classDef business fill:#e8f5e8
+    classDef data fill:#fff3e0
+    classDef infra fill:#fce4ec
+    classDef external fill:#ffebee
+
+    class WEB,API,MOBILE,WEBSOCKET client
+    class GATEWAY,AUTH,TENANT,RATELIMIT,VALIDATION gateway
+    class USER,ROLE,PERM,PROJ,NOTIF,AUDIT,METRICS business
+    class PRISMA,MIDDLEWARE,DB data
+    class REDIS,QUEUE,PROMETHEUS infra
+    class GOOGLE,EMAIL,SMS,SLACK external

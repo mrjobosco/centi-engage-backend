@@ -1,0 +1,75 @@
+{
+  "project": {
+    "name": "Multi-Tenant NestJS Application",
+    "version": "1.0.0",
+    "description": "Comprehensive documentation for the multi-tenant NestJS application",
+    "repository": "https://github.com/your-org/nestjs-multi-tenant-starter",
+    "documentation_url": "https://your-org.github.io/nestjs-multi-tenant-starter/api-docs"
+  },
+  "structure": {
+    "architecture": {
+      "path": "docs/architecture",
+      "files": [
+        "overview.md",
+        "module-relationships.md",
+        "data-flow-diagrams.md"
+      ]
+    },
+    "modules": {
+      "path": "docs/modules",
+      "directories": [
+        "auth",
+        "notifications",
+        "tenant",
+        "user",
+        "role",
+        "permission",
+        "project",
+        "database"
+      ]
+    },
+    "api": {
+      "path": "docs/api",
+      "files": [
+        "authentication.md",
+        "error-handling.md",
+        "rate-limiting.md",
+        "tenant-isolation.md"
+      ]
+    },
+    "development": {
+      "path": "docs/development",
+      "files": [
+        "setup.md",
+        "testing.md",
+        "deployment.md",
+        "contributing.md"
+      ]
+    },
+    "operations": {
+      "path": "docs/operations",
+      "files": [
+        "monitoring.md",
+        "troubleshooting.md",
+        "security.md"
+      ]
+    }
+  },
+  "validation": {
+    "markdown_lint": true,
+    "link_check": true,
+    "diagram_validation": true,
+    "coverage_threshold": 80
+  },
+  "generation": {
+    "compodoc": {
+      "enabled": true,
+      "theme": "material",
+      "coverage": true
+    },
+    "mermaid": {
+      "enabled": true,
+      "theme": "default"
+    }
+  }
+}

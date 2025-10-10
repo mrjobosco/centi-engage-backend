@@ -1,0 +1,316 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                   String   @id @default(cuid())
+  name                 String
+  subdomain            String?  @unique
+  googleSsoEnabled     Boolean  @default(false) @map("google_sso_enabled")
+  googleAutoProvision  Boolean  @default(false) @map("google_auto_provision")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  users                     User[]
+  roles                     Role[]
+  permissions               Permission[]
+  projects                  Project[]
+  notifications             Notification[]
+  notificationPreferences   NotificationPreference[]
+  notificationTemplates     NotificationTemplate[]
+  tenantNotificationConfig  TenantNotificationConfig?
+  notificationAuditLogs     NotificationAuditLog[]
+
+  @@index([googleSsoEnabled])
+  @@map("tenants")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String
+  password        String
+  firstName       String?
+  lastName        String?
+  tenantId        String
+  googleId        String?   @unique @map("google_id") @db.VarChar(255)
+  googleLinkedAt  DateTime? @map("google_linked_at")
+  authMethods     String[]  @default(["password"]) @map("auth_methods")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles                   UserRole[]
+  permissions             UserPermission[]
+  projects                Project[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  notificationAuditLogs   NotificationAuditLog[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@index([authMethods], type: Gin)
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@unique([name, tenantId])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model Permission {
+  id        String   @id @default(cuid())
+  action    String // e.g., "create", "read", "update", "delete"
+  subject   String // e.g., "Project", "User", "Role"
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles  RolePermission[]
+  users  UserPermission[]
+
+  @@unique([action, subject, tenantId])
+  @@index([tenantId])
+  @@map("permissions")
+}
+
+// Join table for User-Role many-to-many
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// Join table for Role-Permission many-to-many
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// Join table for User-Permission many-to-many (direct permissions)
+model UserPermission {
+  userId       String
+  permissionId String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+  @@map("user_permissions")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  tenantId    String
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner  User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([ownerId])
+  @@map("projects")
+}
+
+// Notification System Models
+
+model Notification {
+  id            String           @id @default(cuid())
+  tenantId      String
+  userId        String
+  type          NotificationType
+  category      String
+  title         String
+  message       String           @db.Text
+  data          Json?
+  channelsSent  String[]
+  readAt        DateTime?
+  createdAt     DateTime         @default(now())
+  expiresAt     DateTime?
+  deletedAt     DateTime?
+  deletedBy     String?
+  retentionDate DateTime?
+  sensitiveData Boolean          @default(false)
+
+  tenant       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryLogs NotificationDeliveryLog[]
+  auditLogs    NotificationAuditLog[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([retentionDate])
+  @@index([sensitiveData])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String
+  category     String
+  inAppEnabled Boolean  @default(true)
+  emailEnabled Boolean  @default(true)
+  smsEnabled   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, category])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+model NotificationDeliveryLog {
+  id                String                  @id @default(cuid())
+  notificationId    String
+  channel           NotificationChannelType
+  status            DeliveryStatus
+  provider          String?
+  providerMessageId String?
+  errorMessage      String?                 @db.Text
+  sentAt            DateTime?
+  createdAt         DateTime                @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([status])
+  @@map("notification_delivery_logs")
+}
+
+model NotificationTemplate {
+  id           String                  @id @default(cuid())
+  tenantId     String?
+  category     String
+  channel      NotificationChannelType
+  subject      String?
+  templateBody String                  @db.Text
+  variables    Json
+  isActive     Boolean                 @default(true)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([category])
+  @@index([channel])
+  @@map("notification_templates")
+}
+
+model TenantNotificationConfig {
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  emailProvider    String?
+  emailApiKey      String?
+  emailFromAddress String?
+  emailFromName    String?
+  smsProvider      String?
+  smsApiKey        String?
+  smsApiSecret     String?
+  smsFromNumber    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_notification_configs")
+}
+
+model NotificationAuditLog {
+  id             String   @id @default(cuid())
+  notificationId String
+  action         String
+  userId         String
+  tenantId       String
+  authMethod     String?  @map("auth_method") @db.VarChar(50)
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("notification_audit_logs")
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+enum NotificationChannelType {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
