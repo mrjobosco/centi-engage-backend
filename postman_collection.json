@@ -492,942 +492,1722 @@
                   }
                 }
               ]
+            },
+            {
+              "name": "Authentication Validation Suite",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Comprehensive authentication validation suite that tests multiple aspects of the login endpoint including token validation, response time, security headers, and proper error handling.\n\n**Validation Coverage:**\n- Response time performance\n- JWT token format validation\n- Security headers presence\n- Rate limiting compliance\n- Error response structure\n- Token expiration validation\n\n**Use Case:** Complete authentication system validation and security testing"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Comprehensive Authentication Validation Suite",
+                      "",
+                      "// Performance validation",
+                      "pm.test('Authentication response time is optimal', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "    if (pm.response.responseTime > 1000) {",
+                      "        console.log('⚠️ Warning: Authentication took longer than 1 second');",
+                      "    }",
+                      "});",
+                      "",
+                      "// Security headers validation",
+                      "pm.test('Security headers are present', function () {",
+                      "    // Check for common security headers",
+                      "    const headers = pm.response.headers;",
+                      "    ",
+                      "    // Content-Type should be JSON",
+                      "    pm.expect(headers.get('Content-Type')).to.include('application/json');",
+                      "    ",
+                      "    // Log security header status",
+                      "    console.log('🔒 Security headers check:');",
+                      "    console.log('  Content-Type:', headers.get('Content-Type') || 'Missing');",
+                      "    console.log('  X-Frame-Options:', headers.get('X-Frame-Options') || 'Not set');",
+                      "    console.log('  X-Content-Type-Options:', headers.get('X-Content-Type-Options') || 'Not set');",
+                      "});",
+                      "",
+                      "// JWT token format validation",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('JWT token has valid format', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        const token = responseJson.accessToken;",
+                      "        ",
+                      "        // JWT should have 3 parts separated by dots",
+                      "        const tokenParts = token.split('.');",
+                      "        pm.expect(tokenParts).to.have.lengthOf(3);",
+                      "        ",
+                      "        // Each part should be base64 encoded",
+                      "        tokenParts.forEach((part, index) => {",
+                      "            pm.expect(part.length).to.be.greaterThan(0);",
+                      "        });",
+                      "        ",
+                      "        console.log('✅ JWT token format validation passed');",
+                      "    });",
+                      "    ",
+                      "    pm.test('JWT token contains valid claims', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        const token = responseJson.accessToken;",
+                      "        ",
+                      "        try {",
+                      "            // Decode JWT payload (without verification for testing)",
+                      "            const payload = JSON.parse(atob(token.split('.')[1]));",
+                      "            ",
+                      "            // Check for required claims",
+                      "            pm.expect(payload).to.have.property('sub'); // Subject (user ID)",
+                      "            pm.expect(payload).to.have.property('iat'); // Issued at",
+                      "            pm.expect(payload).to.have.property('exp'); // Expiration",
+                      "            ",
+                      "            // Validate expiration is in the future",
+                      "            const now = Math.floor(Date.now() / 1000);",
+                      "            pm.expect(payload.exp).to.be.greaterThan(now);",
+                      "            ",
+                      "            console.log('✅ JWT claims validation passed');",
+                      "            console.log('  Subject:', payload.sub);",
+                      "            console.log('  Expires:', new Date(payload.exp * 1000).toISOString());",
+                      "        } catch (error) {",
+                      "            pm.expect.fail('Failed to decode JWT token: ' + error.message);",
+                      "        }",
+                      "    });",
+                      "}",
+                      "",
+                      "// Rate limiting awareness",
+                      "pm.test('Rate limiting headers check', function () {",
+                      "    const headers = pm.response.headers;",
+                      "    ",
+                      "    // Log rate limiting information if available",
+                      "    const rateLimitRemaining = headers.get('X-RateLimit-Remaining');",
+                      "    const rateLimitReset = headers.get('X-RateLimit-Reset');",
+                      "    ",
+                      "    if (rateLimitRemaining) {",
+                      "        console.log('🚦 Rate limit remaining:', rateLimitRemaining);",
+                      "        if (parseInt(rateLimitRemaining) < 2) {",
+                      "            console.log('⚠️ Warning: Rate limit nearly exceeded');",
+                      "        }",
+                      "    }",
+                      "    ",
+                      "    if (rateLimitReset) {",
+                      "        console.log('🕒 Rate limit resets at:', new Date(parseInt(rateLimitReset) * 1000).toISOString());",
+                      "    }",
+                      "});",
+                      "",
+                      "// Error response validation for non-200 responses",
+                      "if (pm.response.code !== 200) {",
+                      "    pm.test('Error response has proper structure', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        ",
+                      "        // Should have error message",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "        pm.expect(responseJson.message).to.be.a('string');",
+                      "        pm.expect(responseJson.message.length).to.be.greaterThan(0);",
+                      "        ",
+                      "        // Should not leak sensitive information",
+                      "        const sensitiveTerms = ['password', 'secret', 'key', 'token', 'hash'];",
+                      "        const message = responseJson.message.toLowerCase();",
+                      "        sensitiveTerms.forEach(term => {",
+                      "            pm.expect(message).to.not.include(term);",
+                      "        });",
+                      "        ",
+                      "        console.log('✅ Error response structure validated');",
+                      "    });",
+                      "}",
+                      "",
+                      "// Overall authentication status summary",
+                      "const statusMessages = {",
+                      "    200: '🔐 Authentication successful',",
+                      "    400: '❌ Bad request - Check request format and tenant ID',",
+                      "    401: '❌ Authentication failed - Invalid credentials',",
+                      "    429: '⚠️ Rate limit exceeded - Wait before retrying',",
+                      "    500: '🚨 Server error - Check system status'",
+                      "};",
+                      "",
+                      "console.log(statusMessages[pm.response.code] || `❓ Unexpected status: ${pm.response.code}`);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for comprehensive validation",
+                      "",
+                      "console.log('🧪 Running comprehensive authentication validation suite');",
+                      "",
+                      "// Log test environment",
+                      "console.log('📊 Test Environment:');",
+                      "console.log('  Base URL:', pm.collectionVariables.get('baseUrl'));",
+                      "console.log('  Tenant ID:', pm.collectionVariables.get('tenantId'));",
+                      "console.log('  Test Email:', pm.collectionVariables.get('testEmail'));",
+                      "",
+                      "// Clear any existing token for clean test",
+                      "pm.collectionVariables.set('accessToken', '');",
+                      "",
+                      "// Record test start time",
+                      "pm.collectionVariables.set('testStartTime', Date.now());"
+                    ]
+                  }
+                }
+              ]
             }
-          },
-          {
-            "name": "Authentication Validation Suite",
-            "request": {
-              "method": "POST",
-              "header": [
+          ]
+        },
+        {
+          "name": "Google OAuth Flow",
+          "description": "Google OAuth 2.0 authentication flow endpoints",
+          "item": [
+            {
+              "name": "1. Initiate Google OAuth",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required to verify Google SSO is enabled"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google"
+                  ]
+                },
+                "description": "Initiates Google OAuth authentication flow. Returns authorization URL and state parameter for CSRF protection.\n\n**Required Headers:**\n- `x-tenant-id`: Tenant identifier\n\n**Response:**\n- `authUrl`: Google OAuth authorization URL\n- `state`: CSRF protection state parameter\n\n**Rate Limiting:** 10 requests per minute\n\n**Prerequisites:**\n- Tenant must have Google SSO enabled\n- Valid tenant ID must be provided\n\n**Next Steps:**\n1. Copy the `authUrl` from response\n2. Open URL in browser to authenticate with Google\n3. After Google authentication, copy the `code` parameter from callback URL\n4. Use the `code` and `state` in the callback endpoint\n\n**Example Flow:**\n1. GET /auth/google → Returns authUrl and state\n2. User visits authUrl in browser\n3. User authenticates with Google\n4. Google redirects to callback with code\n5. POST /auth/google/callback with code and state"
+              },
+              "response": [],
+              "event": [
                 {
-                  "key": "Content-Type",
-                  "value": "application/json",
-                  "type": "text"
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Google OAuth initiation",
+                      "",
+                      "pm.test('OAuth initiation returns successful status', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains authorization URL', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('authUrl');",
+                      "    pm.expect(responseJson.authUrl).to.be.a('string');",
+                      "    pm.expect(responseJson.authUrl).to.include('accounts.google.com');",
+                      "});",
+                      "",
+                      "pm.test('Response contains state parameter', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('state');",
+                      "    pm.expect(responseJson.state).to.be.a('string');",
+                      "    pm.expect(responseJson.state.length).to.be.greaterThan(10);",
+                      "});",
+                      "",
+                      "// Capture OAuth parameters for callback",
+                      "pm.test('OAuth parameters captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.authUrl && responseJson.state) {",
+                      "        pm.collectionVariables.set('googleAuthUrl', responseJson.authUrl);",
+                      "        pm.collectionVariables.set('googleState', responseJson.state);",
+                      "        console.log('✅ Google OAuth URL and state captured');",
+                      "        console.log('🔗 Authorization URL:', responseJson.authUrl);",
+                      "        console.log('🔑 State parameter:', responseJson.state);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Instructions for manual OAuth flow",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    console.log('');",
+                      "    console.log('📋 NEXT STEPS FOR GOOGLE OAUTH:');",
+                      "    console.log('1. Copy this URL and open in browser:');",
+                      "    console.log('   ' + responseJson.authUrl);",
+                      "    console.log('2. Complete Google authentication');",
+                      "    console.log('3. Copy the \"code\" parameter from the callback URL');",
+                      "    console.log('4. Set the googleCode variable with that value');",
+                      "    console.log('5. Run the \"Complete Google OAuth\" request');",
+                      "}"
+                    ]
+                  }
                 },
                 {
-                  "key": "x-tenant-id",
-                  "value": "{{tenantId}}",
-                  "type": "text"
-                }
-              ],
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
-                "options": {
-                  "raw": {
-                    "language": "json"
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Google OAuth initiation",
+                      "",
+                      "// Ensure tenant ID is set",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Google OAuth requires a valid tenant.');",
+                      "    console.log('💡 Tip: Register a tenant first or set tenantId manually');",
+                      "}",
+                      "",
+                      "console.log('🔐 Initiating Google OAuth flow for tenant:', tenantId);"
+                    ]
                   }
                 }
-              },
-              "url": {
-                "raw": "{{baseUrl}}/auth/login",
-                "host": [
-                  "{{baseUrl}}"
-                ],
-                "path": [
-                  "auth",
-                  "login"
-                ]
-              },
-              "description": "Comprehensive authentication validation suite that tests multiple aspects of the login endpoint including token validation, response time, security headers, and proper error handling.\n\n**Validation Coverage:**\n- Response time performance\n- JWT token format validation\n- Security headers presence\n- Rate limiting compliance\n- Error response structure\n- Token expiration validation\n\n**Use Case:** Complete authentication system validation and security testing"
+              ]
             },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Comprehensive Authentication Validation Suite",
-                    "",
-                    "// Performance validation",
-                    "pm.test('Authentication response time is optimal', function () {",
-                    "    pm.expect(pm.response.responseTime).to.be.below(2000);",
-                    "    if (pm.response.responseTime > 1000) {",
-                    "        console.log('⚠️ Warning: Authentication took longer than 1 second');",
-                    "    }",
-                    "});",
-                    "",
-                    "// Security headers validation",
-                    "pm.test('Security headers are present', function () {",
-                    "    // Check for common security headers",
-                    "    const headers = pm.response.headers;",
-                    "    ",
-                    "    // Content-Type should be JSON",
-                    "    pm.expect(headers.get('Content-Type')).to.include('application/json');",
-                    "    ",
-                    "    // Log security header status",
-                    "    console.log('🔒 Security headers check:');",
-                    "    console.log('  Content-Type:', headers.get('Content-Type') || 'Missing');",
-                    "    console.log('  X-Frame-Options:', headers.get('X-Frame-Options') || 'Not set');",
-                    "    console.log('  X-Content-Type-Options:', headers.get('X-Content-Type-Options') || 'Not set');",
-                    "});",
-                    "",
-                    "// JWT token format validation",
-                    "if (pm.response.code === 200) {",
-                    "    pm.test('JWT token has valid format', function () {",
-                    "        const responseJson = pm.response.json();",
-                    "        const token = responseJson.accessToken;",
-                    "        ",
-                    "        // JWT should have 3 parts separated by dots",
-                    "        const tokenParts = token.split('.');",
-                    "        pm.expect(tokenParts).to.have.lengthOf(3);",
-                    "        ",
-                    "        // Each part should be base64 encoded",
-                    "        tokenParts.forEach((part, index) => {",
-                    "            pm.expect(part.length).to.be.greaterThan(0);",
-                    "        });",
-                    "        ",
-                    "        console.log('✅ JWT token format validation passed');",
-                    "    });",
-                    "    ",
-                    "    pm.test('JWT token contains valid claims', function () {",
-                    "        const responseJson = pm.response.json();",
-                    "        const token = responseJson.accessToken;",
-                    "        ",
-                    "        try {",
-                    "            // Decode JWT payload (without verification for testing)",
-                    "            const payload = JSON.parse(atob(token.split('.')[1]));",
-                    "            ",
-                    "            // Check for required claims",
-                    "            pm.expect(payload).to.have.property('sub'); // Subject (user ID)",
-                    "            pm.expect(payload).to.have.property('iat'); // Issued at",
-                    "            pm.expect(payload).to.have.property('exp'); // Expiration",
-                    "            ",
-                    "            // Validate expiration is in the future",
-                    "            const now = Math.floor(Date.now() / 1000);",
-                    "            pm.expect(payload.exp).to.be.greaterThan(now);",
-                    "            ",
-                    "            console.log('✅ JWT claims validation passed');",
-                    "            console.log('  Subject:', payload.sub);",
-                    "            console.log('  Expires:', new Date(payload.exp * 1000).toISOString());",
-                    "        } catch (error) {",
-                    "            pm.expect.fail('Failed to decode JWT token: ' + error.message);",
-                    "        }",
-                    "    });",
-                    "}",
-                    "",
-                    "// Rate limiting awareness",
-                    "pm.test('Rate limiting headers check', function () {",
-                    "    const headers = pm.response.headers;",
-                    "    ",
-                    "    // Log rate limiting information if available",
-                    "    const rateLimitRemaining = headers.get('X-RateLimit-Remaining');",
-                    "    const rateLimitReset = headers.get('X-RateLimit-Reset');",
-                    "    ",
-                    "    if (rateLimitRemaining) {",
-                    "        console.log('🚦 Rate limit remaining:', rateLimitRemaining);",
-                    "        if (parseInt(rateLimitRemaining) < 2) {",
-                    "            console.log('⚠️ Warning: Rate limit nearly exceeded');",
-                    "        }",
-                    "    }",
-                    "    ",
-                    "    if (rateLimitReset) {",
-                    "        console.log('🕒 Rate limit resets at:', new Date(parseInt(rateLimitReset) * 1000).toISOString());",
-                    "    }",
-                    "});",
-                    "",
-                    "// Error response validation for non-200 responses",
-                    "if (pm.response.code !== 200) {",
-                    "    pm.test('Error response has proper structure', function () {",
-                    "        const responseJson = pm.response.json();",
-                    "        ",
-                    "        // Should have error message",
-                    "        pm.expect(responseJson).to.have.property('message');",
-                    "        pm.expect(responseJson.message).to.be.a('string');",
-                    "        pm.expect(responseJson.message.length).to.be.greaterThan(0);",
-                    "        ",
-                    "        // Should not leak sensitive information",
-                    "        const sensitiveTerms = ['password', 'secret', 'key', 'token', 'hash'];",
-                    "        const message = responseJson.message.toLowerCase();",
-                    "        sensitiveTerms.forEach(term => {",
-                    "            pm.expect(message).to.not.include(term);",
-                    "        });",
-                    "        ",
-                    "        console.log('✅ Error response structure validated');",
-                    "    });",
-                    "}",
-                    "",
-                    "// Overall authentication status summary",
-                    "const statusMessages = {",
-                    "    200: '🔐 Authentication successful',",
-                    "    400: '❌ Bad request - Check request format and tenant ID',",
-                    "    401: '❌ Authentication failed - Invalid credentials',",
-                    "    429: '⚠️ Rate limit exceeded - Wait before retrying',",
-                    "    500: '🚨 Server error - Check system status'",
-                    "};",
-                    "",
-                    "console.log(statusMessages[pm.response.code] || `❓ Unexpected status: ${pm.response.code}`);"
-                  ]
-                }
-              },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for comprehensive validation",
-                    "",
-                    "console.log('🧪 Running comprehensive authentication validation suite');",
-                    "",
-                    "// Log test environment",
-                    "console.log('📊 Test Environment:');",
-                    "console.log('  Base URL:', pm.collectionVariables.get('baseUrl'));",
-                    "console.log('  Tenant ID:', pm.collectionVariables.get('tenantId'));",
-                    "console.log('  Test Email:', pm.collectionVariables.get('testEmail'));",
-                    "",
-                    "// Clear any existing token for clean test",
-                    "pm.collectionVariables.set('accessToken', '');",
-                    "",
-                    "// Record test start time",
-                    "pm.collectionVariables.set('testStartTime', Date.now());"
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "Google OAuth Flow",
-        "description": "Google OAuth 2.0 authentication flow endpoints",
-        "item": [
-          {
-            "name": "1. Initiate Google OAuth",
-            "request": {
-              "method": "GET",
-              "header": [
-                {
-                  "key": "x-tenant-id",
-                  "value": "{{tenantId}}",
-                  "type": "text",
-                  "description": "Tenant identifier - required to verify Google SSO is enabled"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/auth/google",
-                "host": [
-                  "{{baseUrl}}"
-                ],
-                "path": [
-                  "auth",
-                  "google"
-                ]
-              },
-              "description": "Initiates Google OAuth authentication flow. Returns authorization URL and state parameter for CSRF protection.\n\n**Required Headers:**\n- `x-tenant-id`: Tenant identifier\n\n**Response:**\n- `authUrl`: Google OAuth authorization URL\n- `state`: CSRF protection state parameter\n\n**Rate Limiting:** 10 requests per minute\n\n**Prerequisites:**\n- Tenant must have Google SSO enabled\n- Valid tenant ID must be provided\n\n**Next Steps:**\n1. Copy the `authUrl` from response\n2. Open URL in browser to authenticate with Google\n3. After Google authentication, copy the `code` parameter from callback URL\n4. Use the `code` and `state` in the callback endpoint\n\n**Example Flow:**\n1. GET /auth/google → Returns authUrl and state\n2. User visits authUrl in browser\n3. User authenticates with Google\n4. Google redirects to callback with code\n5. POST /auth/google/callback with code and state"
-            },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Test script for Google OAuth initiation",
-                    "",
-                    "pm.test('OAuth initiation returns successful status', function () {",
-                    "    pm.expect(pm.response.code).to.equal(200);",
-                    "});",
-                    "",
-                    "pm.test('Response contains authorization URL', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('authUrl');",
-                    "    pm.expect(responseJson.authUrl).to.be.a('string');",
-                    "    pm.expect(responseJson.authUrl).to.include('accounts.google.com');",
-                    "});",
-                    "",
-                    "pm.test('Response contains state parameter', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('state');",
-                    "    pm.expect(responseJson.state).to.be.a('string');",
-                    "    pm.expect(responseJson.state.length).to.be.greaterThan(10);",
-                    "});",
-                    "",
-                    "// Capture OAuth parameters for callback",
-                    "pm.test('OAuth parameters captured successfully', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    if (responseJson.authUrl && responseJson.state) {",
-                    "        pm.collectionVariables.set('googleAuthUrl', responseJson.authUrl);",
-                    "        pm.collectionVariables.set('googleState', responseJson.state);",
-                    "        console.log('✅ Google OAuth URL and state captured');",
-                    "        console.log('🔗 Authorization URL:', responseJson.authUrl);",
-                    "        console.log('🔑 State parameter:', responseJson.state);",
-                    "    }",
-                    "});",
-                    "",
-                    "// Instructions for manual OAuth flow",
-                    "if (pm.response.code === 200) {",
-                    "    const responseJson = pm.response.json();",
-                    "    console.log('');",
-                    "    console.log('📋 NEXT STEPS FOR GOOGLE OAUTH:');",
-                    "    console.log('1. Copy this URL and open in browser:');",
-                    "    console.log('   ' + responseJson.authUrl);",
-                    "    console.log('2. Complete Google authentication');",
-                    "    console.log('3. Copy the \"code\" parameter from the callback URL');",
-                    "    console.log('4. Set the googleCode variable with that value');",
-                    "    console.log('5. Run the \"Complete Google OAuth\" request');",
-                    "}"
-                  ]
-                }
-              },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for Google OAuth initiation",
-                    "",
-                    "// Ensure tenant ID is set",
-                    "const tenantId = pm.collectionVariables.get('tenantId');",
-                    "if (!tenantId) {",
-                    "    console.log('⚠️ Warning: tenantId not set. Google OAuth requires a valid tenant.');",
-                    "    console.log('💡 Tip: Register a tenant first or set tenantId manually');",
-                    "}",
-                    "",
-                    "console.log('🔐 Initiating Google OAuth flow for tenant:', tenantId);"
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "name": "2. Complete Google OAuth",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json",
-                  "type": "text"
-                }
-              ],
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"code\": \"{{googleCode}}\",\n  \"state\": \"{{googleState}}\",\n  \"tenantId\": \"{{tenantId}}\"\n}",
-                "options": {
-                  "raw": {
-                    "language": "json"
+            {
+              "name": "2. Complete Google OAuth",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
                   }
-                }
-              },
-              "url": {
-                "raw": "{{baseUrl}}/auth/google/callback",
-                "host": [
-                  "{{baseUrl}}"
                 ],
-                "path": [
-                  "auth",
-                  "google",
-                  "callback"
-                ]
-              },
-              "description": "Completes Google OAuth authentication flow. Exchanges authorization code for JWT token.\n\n**Required Body Parameters:**\n- `code`: Authorization code from Google OAuth callback\n- `state`: State parameter from OAuth initiation (for CSRF protection)\n- `tenantId`: Tenant identifier\n\n**Response:**\n- `accessToken`: JWT token for authenticated requests\n\n**Rate Limiting:** 10 requests per minute\n\n**Prerequisites:**\n1. Must have initiated OAuth flow with GET /auth/google\n2. Must have completed Google authentication in browser\n3. Must have valid authorization code from Google\n\n**Manual Setup Required:**\n- Set `googleCode` variable with the authorization code from Google's callback URL\n- The `state` and `tenantId` are automatically populated from previous requests\n\n**Error Scenarios:**\n- Invalid/expired state: 400 Bad Request\n- Invalid authorization code: 401 Unauthorized\n- Google SSO disabled: 403 Forbidden\n- User not allowed in tenant: 403 Forbidden"
-            },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Test script for Google OAuth callback",
-                    "",
-                    "pm.test('OAuth callback returns successful status', function () {",
-                    "    pm.expect(pm.response.code).to.equal(200);",
-                    "});",
-                    "",
-                    "pm.test('Response contains access token', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('accessToken');",
-                    "    pm.expect(responseJson.accessToken).to.be.a('string');",
-                    "    pm.expect(responseJson.accessToken.length).to.be.greaterThan(0);",
-                    "});",
-                    "",
-                    "// Capture access token for subsequent requests",
-                    "pm.test('Access token captured successfully', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    if (responseJson.accessToken) {",
-                    "        pm.collectionVariables.set('accessToken', responseJson.accessToken);",
-                    "        console.log('✅ Google OAuth access token captured and stored');",
-                    "    }",
-                    "});",
-                    "",
-                    "// Capture user information if present",
-                    "if (pm.response.code === 200) {",
-                    "    const responseJson = pm.response.json();",
-                    "    if (responseJson.user && responseJson.user.id) {",
-                    "        pm.collectionVariables.set('userId', responseJson.user.id);",
-                    "        console.log('✅ User ID captured:', responseJson.user.id);",
-                    "    }",
-                    "}",
-                    "",
-                    "// Clear OAuth temporary variables",
-                    "if (pm.response.code === 200) {",
-                    "    pm.collectionVariables.set('googleCode', '');",
-                    "    console.log('🧹 Cleared temporary OAuth variables');",
-                    "}",
-                    "",
-                    "// Log authentication status",
-                    "if (pm.response.code === 200) {",
-                    "    console.log('🔐 Google OAuth authentication successful');",
-                    "} else if (pm.response.code === 400) {",
-                    "    console.log('❌ Bad request - Check state parameter and authorization code');",
-                    "} else if (pm.response.code === 401) {",
-                    "    console.log('❌ Unauthorized - Invalid authorization code or expired state');",
-                    "} else if (pm.response.code === 403) {",
-                    "    console.log('❌ Forbidden - Google SSO disabled or user not allowed');",
-                    "}"
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"{{googleCode}}\",\n  \"state\": \"{{googleState}}\",\n  \"tenantId\": \"{{tenantId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/callback",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "callback"
                   ]
-                }
+                },
+                "description": "Completes Google OAuth authentication flow. Exchanges authorization code for JWT token.\n\n**Required Body Parameters:**\n- `code`: Authorization code from Google OAuth callback\n- `state`: State parameter from OAuth initiation (for CSRF protection)\n- `tenantId`: Tenant identifier\n\n**Response:**\n- `accessToken`: JWT token for authenticated requests\n\n**Rate Limiting:** 10 requests per minute\n\n**Prerequisites:**\n1. Must have initiated OAuth flow with GET /auth/google\n2. Must have completed Google authentication in browser\n3. Must have valid authorization code from Google\n\n**Manual Setup Required:**\n- Set `googleCode` variable with the authorization code from Google's callback URL\n- The `state` and `tenantId` are automatically populated from previous requests\n\n**Error Scenarios:**\n- Invalid/expired state: 400 Bad Request\n- Invalid authorization code: 401 Unauthorized\n- Google SSO disabled: 403 Forbidden\n- User not allowed in tenant: 403 Forbidden"
               },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for Google OAuth callback",
-                    "",
-                    "// Check required variables",
-                    "const googleCode = pm.collectionVariables.get('googleCode');",
-                    "const googleState = pm.collectionVariables.get('googleState');",
-                    "const tenantId = pm.collectionVariables.get('tenantId');",
-                    "",
-                    "if (!googleCode) {",
-                    "    console.log('⚠️ Warning: googleCode not set. You need to:');",
-                    "    console.log('1. Run \"Initiate Google OAuth\" first');",
-                    "    console.log('2. Complete authentication in browser');",
-                    "    console.log('3. Set googleCode variable from callback URL');",
-                    "}",
-                    "",
-                    "if (!googleState) {",
-                    "    console.log('⚠️ Warning: googleState not set. Run \"Initiate Google OAuth\" first.');",
-                    "}",
-                    "",
-                    "if (!tenantId) {",
-                    "    console.log('⚠️ Warning: tenantId not set. Set tenant ID first.');",
-                    "}",
-                    "",
-                    "console.log('🔐 Completing Google OAuth with:', {",
-                    "    hasCode: !!googleCode,",
-                    "    hasState: !!googleState,",
-                    "    tenantId: tenantId",
-                    "});"
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "Account Linking",
-        "description": "Link and unlink Google accounts with existing users",
-        "item": [
-          {
-            "name": "1. Initiate Google Account Linking",
-            "request": {
-              "method": "GET",
-              "header": [
+              "response": [],
+              "event": [
                 {
-                  "key": "Authorization",
-                  "value": "Bearer {{accessToken}}",
-                  "type": "text",
-                  "description": "JWT token for authenticated user"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/auth/google/link",
-                "host": [
-                  "{{baseUrl}}"
-                ],
-                "path": [
-                  "auth",
-                  "google",
-                  "link"
-                ]
-              },
-              "description": "Initiates Google account linking flow for authenticated users. Returns authorization URL and state parameter.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response:**\n- `authUrl`: Google OAuth authorization URL for linking\n- `state`: CSRF protection state parameter (includes user ID)\n\n**Rate Limiting:** 5 requests per minute\n\n**Prerequisites:**\n- User must be authenticated (valid access token)\n- User must not already have Google account linked\n\n**Use Cases:**\n- Link Google account to existing password-based account\n- Add Google as additional authentication method\n- Enable Google SSO for existing users\n\n**Next Steps:**\n1. Copy the `authUrl` from response\n2. Open URL in browser to authenticate with Google\n3. After Google authentication, copy the `code` parameter from callback URL\n4. Use the `code` and `state` in the link callback endpoint"
-            },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Test script for Google account linking initiation",
-                    "",
-                    "pm.test('Account linking initiation returns successful status', function () {",
-                    "    pm.expect(pm.response.code).to.equal(200);",
-                    "});",
-                    "",
-                    "pm.test('Response contains authorization URL', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('authUrl');",
-                    "    pm.expect(responseJson.authUrl).to.be.a('string');",
-                    "    pm.expect(responseJson.authUrl).to.include('accounts.google.com');",
-                    "});",
-                    "",
-                    "pm.test('Response contains state parameter', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('state');",
-                    "    pm.expect(responseJson.state).to.be.a('string');",
-                    "    pm.expect(responseJson.state.length).to.be.greaterThan(10);",
-                    "});",
-                    "",
-                    "// Capture linking parameters",
-                    "pm.test('Linking parameters captured successfully', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    if (responseJson.authUrl && responseJson.state) {",
-                    "        pm.collectionVariables.set('googleLinkUrl', responseJson.authUrl);",
-                    "        pm.collectionVariables.set('googleLinkState', responseJson.state);",
-                    "        console.log('✅ Google linking URL and state captured');",
-                    "        console.log('🔗 Linking URL:', responseJson.authUrl);",
-                    "    }",
-                    "});",
-                    "",
-                    "// Instructions for manual linking flow",
-                    "if (pm.response.code === 200) {",
-                    "    const responseJson = pm.response.json();",
-                    "    console.log('');",
-                    "    console.log('📋 NEXT STEPS FOR GOOGLE ACCOUNT LINKING:');",
-                    "    console.log('1. Copy this URL and open in browser:');",
-                    "    console.log('   ' + responseJson.authUrl);",
-                    "    console.log('2. Complete Google authentication');",
-                    "    console.log('3. Copy the \"code\" parameter from the callback URL');",
-                    "    console.log('4. Set the googleLinkCode variable with that value');",
-                    "    console.log('5. Run the \"Complete Google Account Linking\" request');",
-                    "}"
-                  ]
-                }
-              },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for Google account linking",
-                    "",
-                    "// Check authentication",
-                    "const accessToken = pm.collectionVariables.get('accessToken');",
-                    "if (!accessToken) {",
-                    "    console.log('⚠️ Warning: No access token found. Please login first.');",
-                    "}",
-                    "",
-                    "console.log('🔗 Initiating Google account linking for authenticated user');"
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "name": "2. Complete Google Account Linking",
-            "request": {
-              "method": "POST",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json",
-                  "type": "text"
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Google OAuth callback",
+                      "",
+                      "pm.test('OAuth callback returns successful status', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains access token', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('accessToken');",
+                      "    pm.expect(responseJson.accessToken).to.be.a('string');",
+                      "    pm.expect(responseJson.accessToken.length).to.be.greaterThan(0);",
+                      "});",
+                      "",
+                      "// Capture access token for subsequent requests",
+                      "pm.test('Access token captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', responseJson.accessToken);",
+                      "        console.log('✅ Google OAuth access token captured and stored');",
+                      "    }",
+                      "});",
+                      "",
+                      "// Capture user information if present",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.user && responseJson.user.id) {",
+                      "        pm.collectionVariables.set('userId', responseJson.user.id);",
+                      "        console.log('✅ User ID captured:', responseJson.user.id);",
+                      "    }",
+                      "}",
+                      "",
+                      "// Clear OAuth temporary variables",
+                      "if (pm.response.code === 200) {",
+                      "    pm.collectionVariables.set('googleCode', '');",
+                      "    console.log('🧹 Cleared temporary OAuth variables');",
+                      "}",
+                      "",
+                      "// Log authentication status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('🔐 Google OAuth authentication successful');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Check state parameter and authorization code');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Unauthorized - Invalid authorization code or expired state');",
+                      "} else if (pm.response.code === 403) {",
+                      "    console.log('❌ Forbidden - Google SSO disabled or user not allowed');",
+                      "}"
+                    ]
+                  }
                 },
                 {
-                  "key": "Authorization",
-                  "value": "Bearer {{accessToken}}",
-                  "type": "text",
-                  "description": "JWT token for authenticated user"
-                }
-              ],
-              "body": {
-                "mode": "raw",
-                "raw": "{\n  \"code\": \"{{googleLinkCode}}\",\n  \"state\": \"{{googleLinkState}}\"\n}",
-                "options": {
-                  "raw": {
-                    "language": "json"
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Google OAuth callback",
+                      "",
+                      "// Check required variables",
+                      "const googleCode = pm.collectionVariables.get('googleCode');",
+                      "const googleState = pm.collectionVariables.get('googleState');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "",
+                      "if (!googleCode) {",
+                      "    console.log('⚠️ Warning: googleCode not set. You need to:');",
+                      "    console.log('1. Run \"Initiate Google OAuth\" first');",
+                      "    console.log('2. Complete authentication in browser');",
+                      "    console.log('3. Set googleCode variable from callback URL');",
+                      "}",
+                      "",
+                      "if (!googleState) {",
+                      "    console.log('⚠️ Warning: googleState not set. Run \"Initiate Google OAuth\" first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Set tenant ID first.');",
+                      "}",
+                      "",
+                      "console.log('🔐 Completing Google OAuth with:', {",
+                      "    hasCode: !!googleCode,",
+                      "    hasState: !!googleState,",
+                      "    tenantId: tenantId",
+                      "});"
+                    ]
                   }
                 }
-              },
-              "url": {
-                "raw": "{{baseUrl}}/auth/google/link/callback",
-                "host": [
-                  "{{baseUrl}}"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Account Linking",
+          "description": "Link and unlink Google accounts with existing users",
+          "item": [
+            {
+              "name": "1. Initiate Google Account Linking",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text",
+                    "description": "JWT token for authenticated user"
+                  }
                 ],
-                "path": [
-                  "auth",
-                  "google",
-                  "link",
-                  "callback"
-                ]
-              },
-              "description": "Completes Google account linking flow. Links Google account to authenticated user.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Required Body Parameters:**\n- `code`: Authorization code from Google OAuth callback\n- `state`: State parameter from linking initiation (includes user ID)\n\n**Response:**\n- `message`: Success confirmation message\n\n**Rate Limiting:** 5 requests per minute\n\n**Prerequisites:**\n1. Must be authenticated with valid access token\n2. Must have initiated linking flow with GET /auth/google/link\n3. Must have completed Google authentication in browser\n4. Must have valid authorization code from Google\n\n**Manual Setup Required:**\n- Set `googleLinkCode` variable with the authorization code from Google's callback URL\n- The `state` is automatically populated from the linking initiation request\n\n**Validation Rules:**\n- Google email must match user's current email\n- Google account must not be linked to another user\n- State parameter must be valid and include correct user ID\n\n**Error Scenarios:**\n- Email mismatch: 400 Bad Request\n- Google account already linked: 409 Conflict\n- Invalid state: 400 Bad Request\n- Invalid authorization code: 401 Unauthorized"
-            },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Test script for Google account linking completion",
-                    "",
-                    "pm.test('Account linking returns successful status', function () {",
-                    "    pm.expect(pm.response.code).to.equal(200);",
-                    "});",
-                    "",
-                    "pm.test('Response contains success message', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('message');",
-                    "    pm.expect(responseJson.message).to.include('linked successfully');",
-                    "});",
-                    "",
-                    "// Clear linking temporary variables",
-                    "if (pm.response.code === 200) {",
-                    "    pm.collectionVariables.set('googleLinkCode', '');",
-                    "    pm.collectionVariables.set('googleLinkUrl', '');",
-                    "    console.log('✅ Google account linked successfully');",
-                    "    console.log('🧹 Cleared temporary linking variables');",
-                    "}",
-                    "",
-                    "// Log linking status",
-                    "if (pm.response.code === 200) {",
-                    "    console.log('🔗 Google account linking completed successfully');",
-                    "} else if (pm.response.code === 400) {",
-                    "    console.log('❌ Bad request - Check email match and state parameter');",
-                    "} else if (pm.response.code === 409) {",
-                    "    console.log('❌ Conflict - Google account already linked to another user');",
-                    "} else if (pm.response.code === 401) {",
-                    "    console.log('❌ Unauthorized - Invalid authorization code or state');",
-                    "}"
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/link",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "link"
                   ]
-                }
+                },
+                "description": "Initiates Google account linking flow for authenticated users. Returns authorization URL and state parameter.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response:**\n- `authUrl`: Google OAuth authorization URL for linking\n- `state`: CSRF protection state parameter (includes user ID)\n\n**Rate Limiting:** 5 requests per minute\n\n**Prerequisites:**\n- User must be authenticated (valid access token)\n- User must not already have Google account linked\n\n**Use Cases:**\n- Link Google account to existing password-based account\n- Add Google as additional authentication method\n- Enable Google SSO for existing users\n\n**Next Steps:**\n1. Copy the `authUrl` from response\n2. Open URL in browser to authenticate with Google\n3. After Google authentication, copy the `code` parameter from callback URL\n4. Use the `code` and `state` in the link callback endpoint"
               },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for Google account linking completion",
-                    "",
-                    "// Check required variables",
-                    "const accessToken = pm.collectionVariables.get('accessToken');",
-                    "const googleLinkCode = pm.collectionVariables.get('googleLinkCode');",
-                    "const googleLinkState = pm.collectionVariables.get('googleLinkState');",
-                    "",
-                    "if (!accessToken) {",
-                    "    console.log('⚠️ Warning: No access token found. Please login first.');",
-                    "}",
-                    "",
-                    "if (!googleLinkCode) {",
-                    "    console.log('⚠️ Warning: googleLinkCode not set. You need to:');",
-                    "    console.log('1. Run \"Initiate Google Account Linking\" first');",
-                    "    console.log('2. Complete authentication in browser');",
-                    "    console.log('3. Set googleLinkCode variable from callback URL');",
-                    "}",
-                    "",
-                    "if (!googleLinkState) {",
-                    "    console.log('⚠️ Warning: googleLinkState not set. Run linking initiation first.');",
-                    "}",
-                    "",
-                    "console.log('🔗 Completing Google account linking with:', {",
-                    "    hasToken: !!accessToken,",
-                    "    hasCode: !!googleLinkCode,",
-                    "    hasState: !!googleLinkState",
-                    "});"
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "name": "3. Unlink Google Account",
-            "request": {
-              "method": "POST",
-              "header": [
+              "response": [],
+              "event": [
                 {
-                  "key": "Authorization",
-                  "value": "Bearer {{accessToken}}",
-                  "type": "text",
-                  "description": "JWT token for authenticated user"
-                }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/auth/google/unlink",
-                "host": [
-                  "{{baseUrl}}"
-                ],
-                "path": [
-                  "auth",
-                  "google",
-                  "unlink"
-                ]
-              },
-              "description": "Unlinks Google account from authenticated user. Requires at least one other authentication method.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response:**\n- `message`: Success confirmation message\n\n**Rate Limiting:** 5 requests per minute\n\n**Prerequisites:**\n- User must be authenticated with valid access token\n- User must have Google account linked\n- User must have at least one other authentication method (password)\n\n**Security Rules:**\n- Cannot unlink if it's the only authentication method\n- User must maintain at least one way to authenticate\n\n**Use Cases:**\n- Remove Google authentication method\n- Security cleanup when changing authentication preferences\n- Account security management\n\n**Error Scenarios:**\n- Google account not linked: 404 Not Found\n- Only authentication method: 400 Bad Request\n- Not authenticated: 401 Unauthorized"
-            },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Test script for Google account unlinking",
-                    "",
-                    "pm.test('Account unlinking returns successful status', function () {",
-                    "    pm.expect(pm.response.code).to.equal(200);",
-                    "});",
-                    "",
-                    "pm.test('Response contains success message', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('message');",
-                    "    pm.expect(responseJson.message).to.include('unlinked successfully');",
-                    "});",
-                    "",
-                    "// Log unlinking status",
-                    "if (pm.response.code === 200) {",
-                    "    console.log('🔓 Google account unlinked successfully');",
-                    "} else if (pm.response.code === 400) {",
-                    "    console.log('❌ Bad request - Cannot unlink only authentication method');",
-                    "} else if (pm.response.code === 404) {",
-                    "    console.log('❌ Not found - Google account not linked to this user');",
-                    "} else if (pm.response.code === 401) {",
-                    "    console.log('❌ Unauthorized - Authentication required');",
-                    "}"
-                  ]
-                }
-              },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for Google account unlinking",
-                    "",
-                    "// Check authentication",
-                    "const accessToken = pm.collectionVariables.get('accessToken');",
-                    "if (!accessToken) {",
-                    "    console.log('⚠️ Warning: No access token found. Please login first.');",
-                    "}",
-                    "",
-                    "console.log('🔓 Unlinking Google account for authenticated user');"
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "Auth Management",
-        "description": "Manage authentication methods and user auth status",
-        "item": [
-          {
-            "name": "Get User Authentication Methods",
-            "request": {
-              "method": "GET",
-              "header": [
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Google account linking initiation",
+                      "",
+                      "pm.test('Account linking initiation returns successful status', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains authorization URL', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('authUrl');",
+                      "    pm.expect(responseJson.authUrl).to.be.a('string');",
+                      "    pm.expect(responseJson.authUrl).to.include('accounts.google.com');",
+                      "});",
+                      "",
+                      "pm.test('Response contains state parameter', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('state');",
+                      "    pm.expect(responseJson.state).to.be.a('string');",
+                      "    pm.expect(responseJson.state.length).to.be.greaterThan(10);",
+                      "});",
+                      "",
+                      "// Capture linking parameters",
+                      "pm.test('Linking parameters captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.authUrl && responseJson.state) {",
+                      "        pm.collectionVariables.set('googleLinkUrl', responseJson.authUrl);",
+                      "        pm.collectionVariables.set('googleLinkState', responseJson.state);",
+                      "        console.log('✅ Google linking URL and state captured');",
+                      "        console.log('🔗 Linking URL:', responseJson.authUrl);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Instructions for manual linking flow",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    console.log('');",
+                      "    console.log('📋 NEXT STEPS FOR GOOGLE ACCOUNT LINKING:');",
+                      "    console.log('1. Copy this URL and open in browser:');",
+                      "    console.log('   ' + responseJson.authUrl);",
+                      "    console.log('2. Complete Google authentication');",
+                      "    console.log('3. Copy the \"code\" parameter from the callback URL');",
+                      "    console.log('4. Set the googleLinkCode variable with that value');",
+                      "    console.log('5. Run the \"Complete Google Account Linking\" request');",
+                      "}"
+                    ]
+                  }
+                },
                 {
-                  "key": "Authorization",
-                  "value": "Bearer {{accessToken}}",
-                  "type": "text",
-                  "description": "JWT token for authenticated user"
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Google account linking",
+                      "",
+                      "// Check authentication",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: No access token found. Please login first.');",
+                      "}",
+                      "",
+                      "console.log('🔗 Initiating Google account linking for authenticated user');"
+                    ]
+                  }
                 }
-              ],
-              "url": {
-                "raw": "{{baseUrl}}/auth/me/auth-methods",
-                "host": [
-                  "{{baseUrl}}"
-                ],
-                "path": [
-                  "auth",
-                  "me",
-                  "auth-methods"
-                ]
-              },
-              "description": "Returns the available authentication methods for the authenticated user.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response:**\n- `authMethods`: Array of available authentication methods\n\n**Possible Authentication Methods:**\n- `password`: Email/password authentication\n- `google`: Google OAuth authentication\n\n**Use Cases:**\n- Check which authentication methods are available\n- Determine if user can unlink Google account\n- Display authentication options in UI\n- Security audit of user authentication methods\n\n**Example Response:**\n```json\n{\n  \"authMethods\": [\"password\", \"google\"]\n}\n```\n\n**Security Notes:**\n- Users must have at least one authentication method\n- This endpoint helps prevent users from removing their only auth method"
+              ]
             },
-            "response": [],
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Test script for authentication methods endpoint",
-                    "",
-                    "pm.test('Auth methods request returns successful status', function () {",
-                    "    pm.expect(pm.response.code).to.equal(200);",
-                    "});",
-                    "",
-                    "pm.test('Response contains auth methods array', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson).to.have.property('authMethods');",
-                    "    pm.expect(responseJson.authMethods).to.be.an('array');",
-                    "});",
-                    "",
-                    "pm.test('Auth methods array is not empty', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    pm.expect(responseJson.authMethods.length).to.be.greaterThan(0);",
-                    "});",
-                    "",
-                    "pm.test('Auth methods contain valid values', function () {",
-                    "    const responseJson = pm.response.json();",
-                    "    const validMethods = ['password', 'google'];",
-                    "    responseJson.authMethods.forEach(method => {",
-                    "        pm.expect(validMethods).to.include(method);",
-                    "    });",
-                    "});",
-                    "",
-                    "// Log authentication methods",
-                    "if (pm.response.code === 200) {",
-                    "    const responseJson = pm.response.json();",
-                    "    console.log('🔐 Available authentication methods:', responseJson.authMethods);",
-                    "    ",
-                    "    // Check if user can safely unlink Google",
-                    "    if (responseJson.authMethods.includes('google') && responseJson.authMethods.length > 1) {",
-                    "        console.log('✅ User can safely unlink Google account (has other auth methods)');",
-                    "    } else if (responseJson.authMethods.includes('google') && responseJson.authMethods.length === 1) {",
-                    "        console.log('⚠️ User cannot unlink Google account (only auth method)');",
-                    "    }",
-                    "} else if (pm.response.code === 401) {",
-                    "    console.log('❌ Unauthorized - Authentication required');",
-                    "} else if (pm.response.code === 404) {",
-                    "    console.log('❌ Not found - User not found');",
-                    "}"
+            {
+              "name": "2. Complete Google Account Linking",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text",
+                    "description": "JWT token for authenticated user"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"{{googleLinkCode}}\",\n  \"state\": \"{{googleLinkState}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/link/callback",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "link",
+                    "callback"
                   ]
-                }
+                },
+                "description": "Completes Google account linking flow. Links Google account to authenticated user.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Required Body Parameters:**\n- `code`: Authorization code from Google OAuth callback\n- `state`: State parameter from linking initiation (includes user ID)\n\n**Response:**\n- `message`: Success confirmation message\n\n**Rate Limiting:** 5 requests per minute\n\n**Prerequisites:**\n1. Must be authenticated with valid access token\n2. Must have initiated linking flow with GET /auth/google/link\n3. Must have completed Google authentication in browser\n4. Must have valid authorization code from Google\n\n**Manual Setup Required:**\n- Set `googleLinkCode` variable with the authorization code from Google's callback URL\n- The `state` is automatically populated from the linking initiation request\n\n**Validation Rules:**\n- Google email must match user's current email\n- Google account must not be linked to another user\n- State parameter must be valid and include correct user ID\n\n**Error Scenarios:**\n- Email mismatch: 400 Bad Request\n- Google account already linked: 409 Conflict\n- Invalid state: 400 Bad Request\n- Invalid authorization code: 401 Unauthorized"
               },
-              {
-                "listen": "prerequest",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "// Pre-request script for authentication methods",
-                    "",
-                    "// Check authentication",
-                    "const accessToken = pm.collectionVariables.get('accessToken');",
-                    "if (!accessToken) {",
-                    "    console.log('⚠️ Warning: No access token found. Please login first.');",
-                    "}",
-                    "",
-                    "console.log('🔍 Retrieving authentication methods for current user');"
-                  ]
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Google account linking completion",
+                      "",
+                      "pm.test('Account linking returns successful status', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains success message', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson.message).to.include('linked successfully');",
+                      "});",
+                      "",
+                      "// Clear linking temporary variables",
+                      "if (pm.response.code === 200) {",
+                      "    pm.collectionVariables.set('googleLinkCode', '');",
+                      "    pm.collectionVariables.set('googleLinkUrl', '');",
+                      "    console.log('✅ Google account linked successfully');",
+                      "    console.log('🧹 Cleared temporary linking variables');",
+                      "}",
+                      "",
+                      "// Log linking status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('🔗 Google account linking completed successfully');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Check email match and state parameter');",
+                      "} else if (pm.response.code === 409) {",
+                      "    console.log('❌ Conflict - Google account already linked to another user');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Unauthorized - Invalid authorization code or state');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Google account linking completion",
+                      "",
+                      "// Check required variables",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "const googleLinkCode = pm.collectionVariables.get('googleLinkCode');",
+                      "const googleLinkState = pm.collectionVariables.get('googleLinkState');",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: No access token found. Please login first.');",
+                      "}",
+                      "",
+                      "if (!googleLinkCode) {",
+                      "    console.log('⚠️ Warning: googleLinkCode not set. You need to:');",
+                      "    console.log('1. Run \"Initiate Google Account Linking\" first');",
+                      "    console.log('2. Complete authentication in browser');",
+                      "    console.log('3. Set googleLinkCode variable from callback URL');",
+                      "}",
+                      "",
+                      "if (!googleLinkState) {",
+                      "    console.log('⚠️ Warning: googleLinkState not set. Run linking initiation first.');",
+                      "}",
+                      "",
+                      "console.log('🔗 Completing Google account linking with:', {",
+                      "    hasToken: !!accessToken,",
+                      "    hasCode: !!googleLinkCode,",
+                      "    hasState: !!googleLinkState",
+                      "});"
+                    ]
+                  }
                 }
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "name": "🏢 Tenant Management",
-    "description": "Tenant registration and Google SSO configuration management",
-    "item": [
-      {
-        "name": "Tenant Registration",
-        "description": "Register new tenants and manage tenant lifecycle",
-        "item": []
-      },
-      {
-        "name": "Google SSO Settings",
-        "description": "Configure and manage Google SSO settings for tenants",
-        "item": []
-      }
-    ]
-  },
-  {
-    "name": "👥 User Management",
-    "description": "Complete user lifecycle management with roles and permissions",
-    "item": [
-      {
-        "name": "CRUD Operations",
-        "description": "Create, read, update, and delete user operations",
-        "item": []
-      },
-      {
-        "name": "Role Assignment",
-        "description": "Assign and manage user roles",
-        "item": []
-      },
-      {
-        "name": "Permission Management",
-        "description": "Manage user permissions and view effective permissions",
-        "item": []
-      }
-    ]
-  },
-  {
-    "name": "🛡️ Role & Permission System",
-    "description": "Role-based access control system management",
-    "item": [
-      {
-        "name": "Role Management",
-        "description": "Create and manage roles with permission assignments",
-        "item": []
-      },
-      {
-        "name": "Permission Management",
-        "description": "Create and manage individual permissions",
-        "item": []
-      }
-    ]
-  },
-  {
-    "name": "📁 Project Management",
-    "description": "Project lifecycle management within tenant context",
-    "item": [
-      {
-        "name": "CRUD Operations",
-        "description": "Complete project management operations",
-        "item": []
-      }
-    ]
-  },
-  {
-    "name": "🔔 Notification System",
-    "description": "Comprehensive notification system with preferences and broadcasting",
-    "item": [
-      {
-        "name": "Notification CRUD",
-        "description": "Create, read, update, and delete notifications",
-        "item": []
-      },
-      {
-        "name": "Notification Preferences",
-        "description": "Manage user notification preferences by category and channel",
-        "item": []
-      },
-      {
-        "name": "Broadcasting",
-        "description": "Tenant-wide notification broadcasting (admin only)",
-        "item": []
-      },
-      {
-        "name": "Privacy Controls",
-        "description": "Notification privacy and visibility controls",
-        "item": []
-      }
-    ]
-  },
-  {
-    "name": "📊 System Monitoring",
-    "description": "System health monitoring and alerting (admin access required)",
-    "item": [
-      {
-        "name": "Queue Monitoring",
-        "description": "Monitor notification queues and processing statistics",
-        "item": []
-      },
-      {
-        "name": "Alert Management",
-        "description": "Configure and manage system alerts",
-        "item": []
-      },
-      {
-        "name": "Health Checks",
-        "description": "Detailed system health and component status checks",
-        "item": []
-      }
-    ]
-  }
-]
+              ]
+            },
+            {
+              "name": "3. Unlink Google Account",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text",
+                    "description": "JWT token for authenticated user"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/unlink",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "unlink"
+                  ]
+                },
+                "description": "Unlinks Google account from authenticated user. Requires at least one other authentication method.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response:**\n- `message`: Success confirmation message\n\n**Rate Limiting:** 5 requests per minute\n\n**Prerequisites:**\n- User must be authenticated with valid access token\n- User must have Google account linked\n- User must have at least one other authentication method (password)\n\n**Security Rules:**\n- Cannot unlink if it's the only authentication method\n- User must maintain at least one way to authenticate\n\n**Use Cases:**\n- Remove Google authentication method\n- Security cleanup when changing authentication preferences\n- Account security management\n\n**Error Scenarios:**\n- Google account not linked: 404 Not Found\n- Only authentication method: 400 Bad Request\n- Not authenticated: 401 Unauthorized"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Google account unlinking",
+                      "",
+                      "pm.test('Account unlinking returns successful status', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains success message', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson.message).to.include('unlinked successfully');",
+                      "});",
+                      "",
+                      "// Log unlinking status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('🔓 Google account unlinked successfully');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Cannot unlink only authentication method');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Not found - Google account not linked to this user');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Unauthorized - Authentication required');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Google account unlinking",
+                      "",
+                      "// Check authentication",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: No access token found. Please login first.');",
+                      "}",
+                      "",
+                      "console.log('🔓 Unlinking Google account for authenticated user');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Auth Management",
+          "description": "Manage authentication methods and user auth status",
+          "item": [
+            {
+              "name": "Get User Authentication Methods",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text",
+                    "description": "JWT token for authenticated user"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me/auth-methods",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me",
+                    "auth-methods"
+                  ]
+                },
+                "description": "Returns the available authentication methods for the authenticated user.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response:**\n- `authMethods`: Array of available authentication methods\n\n**Possible Authentication Methods:**\n- `password`: Email/password authentication\n- `google`: Google OAuth authentication\n\n**Use Cases:**\n- Check which authentication methods are available\n- Determine if user can unlink Google account\n- Display authentication options in UI\n- Security audit of user authentication methods\n\n**Example Response:**\n```json\n{\n  \"authMethods\": [\"password\", \"google\"]\n}\n```\n\n**Security Notes:**\n- Users must have at least one authentication method\n- This endpoint helps prevent users from removing their only auth method"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for authentication methods endpoint",
+                      "",
+                      "pm.test('Auth methods request returns successful status', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains auth methods array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('authMethods');",
+                      "    pm.expect(responseJson.authMethods).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Auth methods array is not empty', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.authMethods.length).to.be.greaterThan(0);",
+                      "});",
+                      "",
+                      "pm.test('Auth methods contain valid values', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const validMethods = ['password', 'google'];",
+                      "    responseJson.authMethods.forEach(method => {",
+                      "        pm.expect(validMethods).to.include(method);",
+                      "    });",
+                      "});",
+                      "",
+                      "// Log authentication methods",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    console.log('🔐 Available authentication methods:', responseJson.authMethods);",
+                      "    ",
+                      "    // Check if user can safely unlink Google",
+                      "    if (responseJson.authMethods.includes('google') && responseJson.authMethods.length > 1) {",
+                      "        console.log('✅ User can safely unlink Google account (has other auth methods)');",
+                      "    } else if (responseJson.authMethods.includes('google') && responseJson.authMethods.length === 1) {",
+                      "        console.log('⚠️ User cannot unlink Google account (only auth method)');",
+                      "    }",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Unauthorized - Authentication required');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Not found - User not found');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for authentication methods",
+                      "",
+                      "// Check authentication",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: No access token found. Please login first.');",
+                      "}",
+                      "",
+                      "console.log('🔍 Retrieving authentication methods for current user');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏢 Tenant Management",
+      "description": "Tenant registration and Google SSO configuration management",
+      "item": [
+        {
+          "name": "Tenant Registration",
+          "description": "Register new tenants and manage tenant lifecycle",
+          "item": [
+            {
+              "name": "Register New Tenant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tenantName\": \"Acme Corporation\",\n  \"adminEmail\": \"admin@acme.com\",\n  \"adminPassword\": \"SecurePass123!\",\n  \"adminFirstName\": \"John\",\n  \"adminLastName\": \"Doe\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants"
+                  ]
+                },
+                "description": "Register a new tenant with an admin user, default roles, and permissions. This endpoint does not require authentication and creates the complete tenant infrastructure.\n\n**Public Endpoint:** No authentication required\n\n**Request Body:**\n- `tenantName`: Organization name (2-100 characters)\n- `adminEmail`: Administrator email address\n- `adminPassword`: Strong password (min 8 chars, uppercase, lowercase, number/special char)\n- `adminFirstName`: Administrator first name (2-50 characters)\n- `adminLastName`: Administrator last name (2-50 characters)\n\n**Response:**\n- `tenant`: Created tenant information with ID\n- `adminUser`: Created admin user information\n\n**Success Response:** 201 Created\n**Error Responses:**\n- 409 Conflict: Email or tenant name already exists\n- 400 Bad Request: Invalid input data\n\n**Use Cases:**\n- Initial tenant setup for new organizations\n- Multi-tenant application onboarding\n- Admin user provisioning"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for tenant registration",
+                      "",
+                      "// Status code validation",
+                      "pm.test('Tenant registration returns 201 Created', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "// Response time validation",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                      "});",
+                      "",
+                      "// Content type validation",
+                      "pm.test('Response content type is JSON', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "// Response structure validation",
+                      "pm.test('Response has correct structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson).to.have.property('data');",
+                      "    pm.expect(responseJson.data).to.have.property('tenant');",
+                      "    pm.expect(responseJson.data).to.have.property('adminUser');",
+                      "});",
+                      "",
+                      "// Tenant data validation",
+                      "pm.test('Tenant data is properly structured', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const tenant = responseJson.data.tenant;",
+                      "    ",
+                      "    pm.expect(tenant).to.have.property('id');",
+                      "    pm.expect(tenant).to.have.property('name');",
+                      "    pm.expect(tenant).to.have.property('createdAt');",
+                      "    pm.expect(tenant).to.have.property('updatedAt');",
+                      "    ",
+                      "    // Validate tenant ID format (UUID)",
+                      "    pm.expect(tenant.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
+                      "});",
+                      "",
+                      "// Admin user data validation",
+                      "pm.test('Admin user data is properly structured', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const adminUser = responseJson.data.adminUser;",
+                      "    ",
+                      "    pm.expect(adminUser).to.have.property('id');",
+                      "    pm.expect(adminUser).to.have.property('email');",
+                      "    pm.expect(adminUser).to.have.property('firstName');",
+                      "    pm.expect(adminUser).to.have.property('lastName');",
+                      "    pm.expect(adminUser).to.have.property('tenantId');",
+                      "    ",
+                      "    // Validate user ID format (UUID)",
+                      "    pm.expect(adminUser.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
+                      "    ",
+                      "    // Validate email format",
+                      "    pm.expect(adminUser.email).to.match(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/);",
+                      "});",
+                      "",
+                      "// Capture tenant ID for subsequent requests",
+                      "pm.test('Tenant ID captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.data && responseJson.data.tenant && responseJson.data.tenant.id) {",
+                      "        pm.collectionVariables.set('tenantId', responseJson.data.tenant.id);",
+                      "        console.log('✅ Tenant ID captured:', responseJson.data.tenant.id);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Capture admin user ID for subsequent requests",
+                      "pm.test('Admin user ID captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.data && responseJson.data.adminUser && responseJson.data.adminUser.id) {",
+                      "        pm.collectionVariables.set('adminUserId', responseJson.data.adminUser.id);",
+                      "        pm.collectionVariables.set('userId', responseJson.data.adminUser.id);",
+                      "        console.log('✅ Admin user ID captured:', responseJson.data.adminUser.id);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Security validation - no sensitive data in response",
+                      "pm.test('Response does not contain sensitive data', function () {",
+                      "    const responseText = pm.response.text().toLowerCase();",
+                      "    pm.expect(responseText).to.not.include('password');",
+                      "    pm.expect(responseText).to.not.include('secret');",
+                      "    pm.expect(responseText).to.not.include('private');",
+                      "});",
+                      "",
+                      "// Log registration status",
+                      "if (pm.response.code === 201) {",
+                      "    const responseJson = pm.response.json();",
+                      "    console.log('🏢 Tenant registration successful');",
+                      "    console.log('  Tenant:', responseJson.data.tenant.name);",
+                      "    console.log('  Admin:', responseJson.data.adminUser.email);",
+                      "} else if (pm.response.code === 409) {",
+                      "    console.log('❌ Conflict - Email or tenant name already exists');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Check input validation');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for tenant registration",
+                      "",
+                      "// Generate unique tenant name and email to avoid conflicts",
+                      "const timestamp = Date.now();",
+                      "const randomSuffix = Math.random().toString(36).substring(2, 8);",
+                      "",
+                      "// Update request body with unique values",
+                      "const requestBody = JSON.parse(pm.request.body.raw);",
+                      "requestBody.tenantName = `Test Tenant ${timestamp}`;",
+                      "requestBody.adminEmail = `admin-${randomSuffix}@test-${timestamp}.com`;",
+                      "",
+                      "// Update the request body",
+                      "pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+                      "",
+                      "console.log('🏢 Registering tenant with unique identifiers:');",
+                      "console.log('  Tenant Name:', requestBody.tenantName);",
+                      "console.log('  Admin Email:', requestBody.adminEmail);",
+                      "",
+                      "// Clear any existing tenant context",
+                      "pm.collectionVariables.set('tenantId', '');",
+                      "pm.collectionVariables.set('adminUserId', '');",
+                      "console.log('🧹 Cleared existing tenant context');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Register Tenant - Conflict Example",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tenantName\": \"Acme Corporation\",\n  \"adminEmail\": \"admin@acme.com\",\n  \"adminPassword\": \"SecurePass123!\",\n  \"adminFirstName\": \"John\",\n  \"adminLastName\": \"Doe\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants"
+                  ]
+                },
+                "description": "Example of tenant registration with duplicate data. This request demonstrates conflict handling when trying to register a tenant with an existing email or tenant name.\n\n**Expected Response:** 409 Conflict\n**Use Case:** Testing duplicate detection and error handling\n\n**Conflict Scenarios:**\n- Duplicate tenant name\n- Duplicate admin email address\n- Database constraint violations"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for conflict handling",
+                      "",
+                      "pm.test('Duplicate registration returns 409 Conflict', function () {",
+                      "    pm.expect(pm.response.code).to.equal(409);",
+                      "});",
+                      "",
+                      "pm.test('Conflict response has proper error message', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson.message).to.be.a('string');",
+                      "    pm.expect(responseJson.message.length).to.be.greaterThan(0);",
+                      "});",
+                      "",
+                      "pm.test('Error message indicates conflict type', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const message = responseJson.message.toLowerCase();",
+                      "    const hasConflictInfo = message.includes('email') || message.includes('tenant') || message.includes('exists') || message.includes('duplicate');",
+                      "    pm.expect(hasConflictInfo).to.be.true;",
+                      "});",
+                      "",
+                      "console.log('✅ Conflict handling properly implemented');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Register Tenant - Validation Error Example",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tenantName\": \"A\",\n  \"adminEmail\": \"invalid-email\",\n  \"adminPassword\": \"weak\",\n  \"adminFirstName\": \"\",\n  \"adminLastName\": \"D\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants"
+                  ]
+                },
+                "description": "Example of tenant registration with invalid data. This request demonstrates input validation and error handling for malformed or insufficient data.\n\n**Expected Response:** 400 Bad Request\n**Use Case:** Testing input validation and error messages\n\n**Validation Errors:**\n- Tenant name too short (min 2 characters)\n- Invalid email format\n- Weak password (doesn't meet complexity requirements)\n- Empty first name\n- Last name too short"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for validation error handling",
+                      "",
+                      "pm.test('Invalid data returns 400 Bad Request', function () {",
+                      "    pm.expect(pm.response.code).to.equal(400);",
+                      "});",
+                      "",
+                      "pm.test('Validation error response has proper structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    // May also have 'errors' array for detailed validation messages",
+                      "});",
+                      "",
+                      "pm.test('Error message indicates validation failure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const message = responseJson.message.toLowerCase();",
+                      "    const hasValidationInfo = message.includes('validation') || message.includes('invalid') || message.includes('required') || message.includes('format');",
+                      "    pm.expect(hasValidationInfo).to.be.true;",
+                      "});",
+                      "",
+                      "console.log('✅ Input validation properly implemented');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Google SSO Settings",
+          "description": "Configure and manage Google SSO settings for tenants",
+          "item": [
+            {
+              "name": "Get Google SSO Settings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier for isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants",
+                    "{{tenantId}}",
+                    "settings",
+                    "google"
+                  ]
+                },
+                "description": "Retrieve current Google SSO configuration for the specified tenant. This endpoint requires admin role authentication.\n\n**Authentication:** Bearer token required\n**Authorization:** Admin role required\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Tenant ID (UUID)\n\n**Response:**\n- `googleSsoEnabled`: Boolean indicating if Google SSO is enabled\n- `googleAutoProvision`: Boolean indicating if auto-provisioning is enabled\n\n**Success Response:** 200 OK\n**Error Responses:**\n- 401 Unauthorized: Missing or invalid token\n- 403 Forbidden: Admin role required\n- 404 Not Found: Tenant not found\n\n**Use Cases:**\n- Check current Google SSO configuration\n- Admin dashboard settings display\n- Configuration validation before updates"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for getting Google SSO settings",
+                      "",
+                      "// Status code validation",
+                      "pm.test('Get Google SSO settings returns 200 OK', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "// Response time validation",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "// Content type validation",
+                      "pm.test('Response content type is JSON', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "// Response structure validation",
+                      "pm.test('Response has correct Google SSO settings structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('googleSsoEnabled');",
+                      "    pm.expect(responseJson).to.have.property('googleAutoProvision');",
+                      "});",
+                      "",
+                      "// Data type validation",
+                      "pm.test('Google SSO settings have correct data types', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.googleSsoEnabled).to.be.a('boolean');",
+                      "    pm.expect(responseJson.googleAutoProvision).to.be.a('boolean');",
+                      "});",
+                      "",
+                      "// Store current settings for comparison in update tests",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.collectionVariables.set('currentGoogleSsoEnabled', responseJson.googleSsoEnabled.toString());",
+                      "    pm.collectionVariables.set('currentGoogleAutoProvision', responseJson.googleAutoProvision.toString());",
+                      "    console.log('✅ Current Google SSO settings captured:');",
+                      "    console.log('  SSO Enabled:', responseJson.googleSsoEnabled);",
+                      "    console.log('  Auto Provision:', responseJson.googleAutoProvision);",
+                      "}",
+                      "",
+                      "// Log access status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('🔧 Google SSO settings retrieved successfully');",
+                      "} else if (pm.response.code === 403) {",
+                      "    console.log('❌ Access denied - Admin role required');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Tenant not found');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Authentication required');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for getting Google SSO settings",
+                      "",
+                      "// Validate required variables",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please register a tenant first.');",
+                      "}",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "console.log('🔧 Retrieving Google SSO settings for tenant:', tenantId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Google SSO Settings",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier for isolation"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"googleSsoEnabled\": true,\n  \"googleAutoProvision\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants",
+                    "{{tenantId}}",
+                    "settings",
+                    "google"
+                  ]
+                },
+                "description": "Update Google SSO configuration for the specified tenant. This endpoint requires admin role authentication and allows partial updates.\n\n**Authentication:** Bearer token required\n**Authorization:** Admin role required\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: Tenant ID (UUID)\n\n**Request Body (all fields optional):**\n- `googleSsoEnabled`: Enable/disable Google SSO for the tenant\n- `googleAutoProvision`: Enable/disable automatic user provisioning\n\n**Response:**\n- `message`: Success message\n- `data`: Updated tenant information with new settings\n\n**Success Response:** 200 OK\n**Error Responses:**\n- 401 Unauthorized: Missing or invalid token\n- 403 Forbidden: Admin role required\n- 404 Not Found: Tenant not found\n- 400 Bad Request: Invalid input data\n\n**Use Cases:**\n- Enable/disable Google SSO for organization\n- Configure auto-provisioning behavior\n- Admin settings management"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for updating Google SSO settings",
+                      "",
+                      "// Status code validation",
+                      "pm.test('Update Google SSO settings returns 200 OK', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "// Response time validation",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "// Content type validation",
+                      "pm.test('Response content type is JSON', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "// Response structure validation",
+                      "pm.test('Response has correct structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson).to.have.property('data');",
+                      "});",
+                      "",
+                      "// Updated data validation",
+                      "pm.test('Updated tenant data is properly structured', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const data = responseJson.data;",
+                      "    ",
+                      "    pm.expect(data).to.have.property('id');",
+                      "    pm.expect(data).to.have.property('name');",
+                      "    pm.expect(data).to.have.property('googleSsoEnabled');",
+                      "    pm.expect(data).to.have.property('googleAutoProvision');",
+                      "    pm.expect(data).to.have.property('updatedAt');",
+                      "    ",
+                      "    // Validate data types",
+                      "    pm.expect(data.googleSsoEnabled).to.be.a('boolean');",
+                      "    pm.expect(data.googleAutoProvision).to.be.a('boolean');",
+                      "});",
+                      "",
+                      "// Validate settings were actually updated",
+                      "pm.test('Settings were updated correctly', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    const updatedData = responseJson.data;",
+                      "    ",
+                      "    // Check if the settings match what was requested",
+                      "    if (requestBody.hasOwnProperty('googleSsoEnabled')) {",
+                      "        pm.expect(updatedData.googleSsoEnabled).to.equal(requestBody.googleSsoEnabled);",
+                      "    }",
+                      "    ",
+                      "    if (requestBody.hasOwnProperty('googleAutoProvision')) {",
+                      "        pm.expect(updatedData.googleAutoProvision).to.equal(requestBody.googleAutoProvision);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Validate updatedAt timestamp is recent",
+                      "pm.test('UpdatedAt timestamp is recent', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const updatedAt = new Date(responseJson.data.updatedAt);",
+                      "    const now = new Date();",
+                      "    const timeDiff = now - updatedAt;",
+                      "    ",
+                      "    // Should be updated within the last 10 seconds",
+                      "    pm.expect(timeDiff).to.be.below(10000);",
+                      "});",
+                      "",
+                      "// Log update status",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    console.log('🔧 Google SSO settings updated successfully');",
+                      "    console.log('  SSO Enabled:', responseJson.data.googleSsoEnabled);",
+                      "    console.log('  Auto Provision:', responseJson.data.googleAutoProvision);",
+                      "    console.log('  Updated At:', responseJson.data.updatedAt);",
+                      "} else if (pm.response.code === 403) {",
+                      "    console.log('❌ Access denied - Admin role required');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Tenant not found');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Authentication required');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Check input data');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for updating Google SSO settings",
+                      "",
+                      "// Validate required variables",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please register a tenant first.');",
+                      "}",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate with admin role first.');",
+                      "}",
+                      "",
+                      "// Log the update request",
+                      "const requestBody = JSON.parse(pm.request.body.raw);",
+                      "console.log('🔧 Updating Google SSO settings for tenant:', tenantId);",
+                      "console.log('  New settings:', requestBody);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Google SSO Settings - Enable SSO Only",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"googleSsoEnabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants",
+                    "{{tenantId}}",
+                    "settings",
+                    "google"
+                  ]
+                },
+                "description": "Example of partial update - enable Google SSO only without changing auto-provisioning settings. Demonstrates that the PATCH endpoint supports partial updates.\n\n**Use Case:** Enable Google SSO while keeping existing auto-provisioning setting\n**Update Type:** Partial update (only googleSsoEnabled field)"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for partial update",
+                      "",
+                      "pm.test('Partial update returns 200 OK', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Only specified field was updated', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const updatedData = responseJson.data;",
+                      "    ",
+                      "    // googleSsoEnabled should be true",
+                      "    pm.expect(updatedData.googleSsoEnabled).to.be.true;",
+                      "    ",
+                      "    // googleAutoProvision should remain unchanged",
+                      "    pm.expect(updatedData).to.have.property('googleAutoProvision');",
+                      "});",
+                      "",
+                      "console.log('✅ Partial update (SSO enabled) completed successfully');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Google SSO Settings - Disable All",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"googleSsoEnabled\": false,\n  \"googleAutoProvision\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants",
+                    "{{tenantId}}",
+                    "settings",
+                    "google"
+                  ]
+                },
+                "description": "Example of disabling all Google SSO features for a tenant. This configuration disables both Google SSO and auto-provisioning.\n\n**Use Case:** Completely disable Google integration for security or policy reasons\n**Security Impact:** Users will need to use email/password authentication only"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for disabling Google SSO",
+                      "",
+                      "pm.test('Google SSO disabled successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Both Google features are disabled', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const updatedData = responseJson.data;",
+                      "    ",
+                      "    pm.expect(updatedData.googleSsoEnabled).to.be.false;",
+                      "    pm.expect(updatedData.googleAutoProvision).to.be.false;",
+                      "});",
+                      "",
+                      "console.log('✅ Google SSO completely disabled');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Google SSO Settings - Unauthorized Example",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tenants",
+                    "{{tenantId}}",
+                    "settings",
+                    "google"
+                  ]
+                },
+                "description": "Example of accessing Google SSO settings without authentication. This request demonstrates security validation and should return a 401 Unauthorized response.\n\n**Expected Response:** 401 Unauthorized\n**Use Case:** Testing authentication requirement enforcement\n**Security Test:** Verify admin endpoints are properly protected"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for unauthorized access",
+                      "",
+                      "pm.test('Unauthorized access returns 401', function () {",
+                      "    pm.expect(pm.response.code).to.equal(401);",
+                      "});",
+                      "",
+                      "pm.test('Error response has proper structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "});",
+                      "",
+                      "pm.test('No sensitive data in error response', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.not.have.property('googleSsoEnabled');",
+                      "    pm.expect(responseJson).to.not.have.property('googleAutoProvision');",
+                      "});",
+                      "",
+                      "console.log('✅ Authentication requirement properly enforced');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management",
+      "description": "Complete user lifecycle management with roles and permissions",
+      "item": [
+        {
+          "name": "CRUD Operations",
+          "description": "Create, read, update, and delete user operations",
+          "item": []
+        },
+        {
+          "name": "Role Assignment",
+          "description": "Assign and manage user roles",
+          "item": []
+        },
+        {
+          "name": "Permission Management",
+          "description": "Manage user permissions and view effective permissions",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "🛡️ Role & Permission System",
+      "description": "Role-based access control system management",
+      "item": [
+        {
+          "name": "Role Management",
+          "description": "Create and manage roles with permission assignments",
+          "item": []
+        },
+        {
+          "name": "Permission Management",
+          "description": "Create and manage individual permissions",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "📁 Project Management",
+      "description": "Project lifecycle management within tenant context",
+      "item": [
+        {
+          "name": "CRUD Operations",
+          "description": "Complete project management operations",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notification System",
+      "description": "Comprehensive notification system with preferences and broadcasting",
+      "item": [
+        {
+          "name": "Notification CRUD",
+          "description": "Create, read, update, and delete notifications",
+          "item": []
+        },
+        {
+          "name": "Notification Preferences",
+          "description": "Manage user notification preferences by category and channel",
+          "item": []
+        },
+        {
+          "name": "Broadcasting",
+          "description": "Tenant-wide notification broadcasting (admin only)",
+          "item": []
+        },
+        {
+          "name": "Privacy Controls",
+          "description": "Notification privacy and visibility controls",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "📊 System Monitoring",
+      "description": "System health monitoring and alerting (admin access required)",
+      "item": [
+        {
+          "name": "Queue Monitoring",
+          "description": "Monitor notification queues and processing statistics",
+          "item": []
+        },
+        {
+          "name": "Alert Management",
+          "description": "Configure and manage system alerts",
+          "item": []
+        },
+        {
+          "name": "Health Checks",
+          "description": "Detailed system health and component status checks",
+          "item": []
+        }
+      ]
+    }
+  ]
 }

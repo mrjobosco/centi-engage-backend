@@ -26,14 +26,14 @@
     - Create authentication error handling examples
     - _Requirements: 2.1, 2.3_
 
-- [ ] 3. Create tenant management endpoints
-  - [ ] 3.1 Implement tenant registration
+- [x] 3. Create tenant management endpoints
+  - [x] 3.1 Implement tenant registration
     - Create POST /tenants endpoint with comprehensive request body
     - Add tenant ID capture for subsequent requests
     - Include conflict handling examples
     - _Requirements: 1.5, 3.1_
 
-  - [ ] 3.2 Add Google SSO settings management
+  - [x] 3.2 Add Google SSO settings management
     - Implement GET /tenants/:id/settings/google endpoint
     - Create PATCH /tenants/:id/settings/google with admin authentication
     - Add proper admin role validation examples
