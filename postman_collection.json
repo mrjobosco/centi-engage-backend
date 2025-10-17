@@ -1,851 +1,313 @@
 {
   "info": {
-    "name": "Multi-Tenant NestJS API",
-    "description": "Complete API collection for the Multi-Tenant NestJS Starter",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Multi-Tenant NestJS API - Comprehensive Collection",
+    "description": "Complete API collection for the Multi-Tenant NestJS Starter with Google OAuth, Notifications, Monitoring, and all system endpoints. This collection includes comprehensive test scripts, environment variable management, and realistic examples for all API functionality.\n\n## Features Covered:\n- Complete Authentication flows (Basic + Google OAuth)\n- Tenant Management with Google SSO settings\n- User, Role, and Permission Management\n- Project Management\n- Comprehensive Notification System\n- Health Checks and System Monitoring\n- Proper tenant isolation and security\n\n## Usage:\n1. Set up your environment variables (baseUrl, etc.)\n2. Start with tenant registration or use existing tenant\n3. Authenticate to get access token\n4. Use any endpoint with proper authentication\n\n## Environment Variables:\nAll necessary variables are automatically captured during API interactions.",
+    "version": "2.0.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script for common setup",
+          "// Ensure tenant header is set for authenticated requests",
+          "if (pm.collectionVariables.get('tenantId') && !pm.request.headers.has('x-tenant-id')) {",
+          "    pm.request.headers.add({",
+          "        key: 'x-tenant-id',",
+          "        value: pm.collectionVariables.get('tenantId')",
+          "    });",
+          "}",
+          "",
+          "// Set common headers",
+          "pm.request.headers.add({",
+          "    key: 'User-Agent',",
+          "    value: 'Postman-Collection/2.0.0'",
+          "});",
+          "",
+          "// Log request for debugging",
+          "console.log(`Making ${pm.request.method} request to: ${pm.request.url}`);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script for common validations",
+          "pm.test('Response time is acceptable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Response has proper content type', function () {",
+          "    const contentType = pm.response.headers.get('Content-Type');",
+          "    if (contentType) {",
+          "        pm.expect(contentType).to.include('application/json');",
+          "    }",
+          "});",
+          "",
+          "// Log response status for debugging",
+          "console.log(`Response status: ${pm.response.status} (${pm.response.code})`);"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api",
-      "type": "string"
+      "type": "string",
+      "description": "Base URL for the API (development: http://localhost:3000/api, production: update as needed)"
     },
     {
       "key": "tenantId",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "Current tenant identifier - automatically captured during tenant registration or login"
     },
     {
       "key": "accessToken",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "JWT authentication token - automatically captured during login"
     },
     {
       "key": "userId",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "Current user ID - automatically captured during user operations"
     },
     {
       "key": "roleId",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "Role ID for testing role operations - automatically captured during role creation"
     },
     {
       "key": "permissionId",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "Permission ID for testing permission operations - automatically captured during permission creation"
     },
     {
       "key": "projectId",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "Project ID for testing project operations - automatically captured during project creation"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string",
+      "description": "Notification ID for testing notification operations - automatically captured during notification creation"
+    },
+    {
+      "key": "googleAuthUrl",
+      "value": "",
+      "type": "string",
+      "description": "Google OAuth authorization URL - automatically captured during OAuth initiation"
+    },
+    {
+      "key": "googleState",
+      "value": "",
+      "type": "string",
+      "description": "Google OAuth state parameter - automatically captured during OAuth flow"
+    },
+    {
+      "key": "googleCode",
+      "value": "",
+      "type": "string",
+      "description": "Google OAuth authorization code - manually set from OAuth callback"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token - automatically captured when available"
+    },
+    {
+      "key": "adminUserId",
+      "value": "",
+      "type": "string",
+      "description": "Admin user ID for testing admin operations - automatically captured during tenant registration"
+    },
+    {
+      "key": "testEmail",
+      "value": "test@example.com",
+      "type": "string",
+      "description": "Test email address for user operations"
+    },
+    {
+      "key": "testPassword",
+      "value": "TestPass123!",
+      "type": "string",
+      "description": "Test password for user operations"
     }
   ],
   "item": [
     {
-      "name": "Authentication",
+      "name": "🏥 Environment Setup",
+      "description": "Initial setup and health check endpoints to verify system status before testing",
       "item": [
         {
-          "name": "Register Tenant",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('tenantId', response.data.tenant.id);",
-                  "    pm.collectionVariables.set('userId', response.data.adminUser.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tenantName\": \"Acme Corporation\",\n  \"adminEmail\": \"admin@acme.com\",\n  \"adminPassword\": \"SecurePass123!\",\n  \"adminFirstName\": \"John\",\n  \"adminLastName\": \"Doe\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/tenants",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "tenants"
-              ]
-            }
-          }
+          "name": "Health Checks",
+          "description": "Basic health check endpoints to verify system components",
+          "item": []
         },
         {
-          "name": "Login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('accessToken', response.accessToken);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@acme.com\",\n  \"password\": \"SecurePass123!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            }
-          }
+          "name": "Configuration Tests",
+          "description": "Test environment configuration and connectivity",
+          "item": []
         }
       ]
     },
     {
-      "name": "Users",
+      "name": "🔐 Authentication",
+      "description": "Complete authentication flows including basic auth and Google OAuth integration",
       "item": [
         {
-          "name": "List Users",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
-            }
-          }
+          "name": "Basic Auth",
+          "description": "Standard email/password authentication endpoints",
+          "item": []
         },
         {
-          "name": "Get User by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
-          }
+          "name": "Google OAuth Flow",
+          "description": "Google OAuth 2.0 authentication flow endpoints",
+          "item": []
         },
         {
-          "name": "Create User",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('userId', response.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@acme.com\",\n  \"password\": \"UserPass123!\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
-            }
-          }
+          "name": "Account Linking",
+          "description": "Link and unlink Google accounts with existing users",
+          "item": []
         },
         {
-          "name": "Update User",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Janet\",\n  \"lastName\": \"Johnson\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Assign Roles to User",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"roleIds\": [\"{{roleId}}\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}/roles",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}",
-                "roles"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Assign Permissions to User",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"permissionIds\": [\"{{permissionId}}\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}",
-                "permissions"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get User Effective Permissions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}",
-                "permissions"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Delete User",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
-          }
+          "name": "Auth Management",
+          "description": "Manage authentication methods and user auth status",
+          "item": []
         }
       ]
     },
     {
-      "name": "Roles",
+      "name": "🏢 Tenant Management",
+      "description": "Tenant registration and Google SSO configuration management",
       "item": [
         {
-          "name": "List Roles",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/roles",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles"
-              ]
-            }
-          }
+          "name": "Tenant Registration",
+          "description": "Register new tenants and manage tenant lifecycle",
+          "item": []
         },
         {
-          "name": "Get Role by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/roles/{{roleId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles",
-                "{{roleId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Create Role",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('roleId', response.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Project Manager\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/roles",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Update Role",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Senior Project Manager\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/roles/{{roleId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles",
-                "{{roleId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Update Role Permissions",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"permissionIds\": [\"{{permissionId}}\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/roles/{{roleId}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles",
-                "{{roleId}}",
-                "permissions"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Delete Role",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/roles/{{roleId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles",
-                "{{roleId}}"
-              ]
-            }
-          }
+          "name": "Google SSO Settings",
+          "description": "Configure and manage Google SSO settings for tenants",
+          "item": []
         }
       ]
     },
     {
-      "name": "Permissions",
+      "name": "👥 User Management",
+      "description": "Complete user lifecycle management with roles and permissions",
       "item": [
         {
-          "name": "List Permissions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "permissions"
-              ]
-            }
-          }
+          "name": "CRUD Operations",
+          "description": "Create, read, update, and delete user operations",
+          "item": []
         },
         {
-          "name": "Create Permission",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('permissionId', response.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"export\",\n  \"subject\": \"report\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "permissions"
-              ]
-            }
-          }
+          "name": "Role Assignment",
+          "description": "Assign and manage user roles",
+          "item": []
         },
         {
-          "name": "Delete Permission",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/permissions/{{permissionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "permissions",
-                "{{permissionId}}"
-              ]
-            }
-          }
+          "name": "Permission Management",
+          "description": "Manage user permissions and view effective permissions",
+          "item": []
         }
       ]
     },
     {
-      "name": "Projects",
+      "name": "🛡️ Role & Permission System",
+      "description": "Role-based access control system management",
       "item": [
         {
-          "name": "List Projects",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/projects",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "projects"
-              ]
-            }
-          }
+          "name": "Role Management",
+          "description": "Create and manage roles with permission assignments",
+          "item": []
         },
         {
-          "name": "Get Project by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/projects/{{projectId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "projects",
-                "{{projectId}}"
-              ]
-            }
-          }
+          "name": "Permission Management",
+          "description": "Create and manage individual permissions",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "📁 Project Management",
+      "description": "Project lifecycle management within tenant context",
+      "item": [
+        {
+          "name": "CRUD Operations",
+          "description": "Complete project management operations",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notification System",
+      "description": "Comprehensive notification system with preferences and broadcasting",
+      "item": [
+        {
+          "name": "Notification CRUD",
+          "description": "Create, read, update, and delete notifications",
+          "item": []
         },
         {
-          "name": "Create Project",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('projectId', response.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"My First Project\",\n  \"description\": \"A sample project for testing\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/projects",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "projects"
-              ]
-            }
-          }
+          "name": "Notification Preferences",
+          "description": "Manage user notification preferences by category and channel",
+          "item": []
         },
         {
-          "name": "Update Project",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"description\": \"Updated description\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/projects/{{projectId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "projects",
-                "{{projectId}}"
-              ]
-            }
-          }
+          "name": "Broadcasting",
+          "description": "Tenant-wide notification broadcasting (admin only)",
+          "item": []
         },
         {
-          "name": "Delete Project",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-tenant-id",
-                "value": "{{tenantId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/projects/{{projectId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "projects",
-                "{{projectId}}"
-              ]
-            }
-          }
+          "name": "Privacy Controls",
+          "description": "Notification privacy and visibility controls",
+          "item": []
+        }
+      ]
+    },
+    {
+      "name": "📊 System Monitoring",
+      "description": "System health monitoring and alerting (admin access required)",
+      "item": [
+        {
+          "name": "Queue Monitoring",
+          "description": "Monitor notification queues and processing statistics",
+          "item": []
+        },
+        {
+          "name": "Alert Management",
+          "description": "Configure and manage system alerts",
+          "item": []
+        },
+        {
+          "name": "Health Checks",
+          "description": "Detailed system health and component status checks",
+          "item": []
         }
       ]
     }
