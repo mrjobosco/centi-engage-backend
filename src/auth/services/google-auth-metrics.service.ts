@@ -54,7 +54,7 @@ export class GoogleAuthMetricsService {
     @Optional()
     @InjectMetric('google_active_sessions')
     private readonly activeSessionsGauge?: Gauge<string>,
-  ) { }
+  ) {}
 
   /**
    * Record Google sign-in attempt

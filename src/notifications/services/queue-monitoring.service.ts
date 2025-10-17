@@ -14,7 +14,7 @@ export class QueueMonitoringService implements OnModuleInit {
     private readonly smsQueue: Queue,
 
     private readonly metricsService: MetricsService,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     // Start monitoring immediately

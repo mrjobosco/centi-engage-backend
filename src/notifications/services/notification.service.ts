@@ -23,7 +23,7 @@ export class NotificationService {
     private readonly channelFactory: NotificationChannelFactory,
     private readonly metricsService: MetricsService,
     private readonly notificationLogger: NotificationLoggerService,
-  ) { }
+  ) {}
 
   /**
    * Create and send a notification through enabled channels

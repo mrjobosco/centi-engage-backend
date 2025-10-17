@@ -34,7 +34,7 @@ export class GoogleAuthService {
     private readonly jwtService: JwtService,
     private readonly authAuditService: AuthAuditService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
-  ) { }
+  ) {}
 
   /**
    * Validate that a tenant has Google SSO enabled

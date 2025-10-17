@@ -90,4 +90,4 @@ import { GoogleAuthMetricsService } from '../services/google-auth-metrics.servic
   ],
   exports: [GoogleAuthMetricsService],
 })
-export class GoogleAuthMetricsModule { }
+export class GoogleAuthMetricsModule {}

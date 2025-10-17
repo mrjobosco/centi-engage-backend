@@ -29,7 +29,7 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 @Controller('roles')
 @UseGuards(JwtAuthGuard)
 export class RoleController {
-  constructor(private readonly roleService: RoleService) { }
+  constructor(private readonly roleService: RoleService) {}
 
   @Get()
   @Permissions('read:role')

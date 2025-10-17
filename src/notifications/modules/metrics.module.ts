@@ -76,4 +76,4 @@ import { MetricsService } from '../services/metrics.service';
   ],
   exports: [MetricsService],
 })
-export class MetricsModule { }
+export class MetricsModule {}

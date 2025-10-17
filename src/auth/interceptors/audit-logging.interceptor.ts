@@ -19,7 +19,7 @@ import { ErrorResponseFormatter } from '../errors/error-response.formatter';
 export class AuditLoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditLoggingInterceptor.name);
 
-  constructor(private readonly auditService: AuthAuditService) { }
+  constructor(private readonly auditService: AuthAuditService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();

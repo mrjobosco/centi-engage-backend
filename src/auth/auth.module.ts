@@ -48,4 +48,4 @@ import { TenantModule } from '../tenant/tenant.module';
     GoogleAuthMetricsService,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

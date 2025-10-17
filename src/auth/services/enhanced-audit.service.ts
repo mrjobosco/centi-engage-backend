@@ -248,9 +248,9 @@ export class EnhancedAuditService extends AuthAuditService {
       },
       error: event.errorCode
         ? {
-          code: event.errorCode,
-          message: event.errorMessage,
-        }
+            code: event.errorCode,
+            message: event.errorMessage,
+          }
         : undefined,
       metadata: event.metadata,
     };

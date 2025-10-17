@@ -26,7 +26,7 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 @Controller('permissions')
 @UseGuards(JwtAuthGuard)
 export class PermissionController {
-  constructor(private readonly permissionService: PermissionService) { }
+  constructor(private readonly permissionService: PermissionService) {}
 
   @Get()
   @Permissions('read:permission')

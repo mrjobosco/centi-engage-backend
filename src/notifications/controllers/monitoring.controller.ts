@@ -20,7 +20,7 @@ export class MonitoringController {
     private readonly metricsService: MetricsService,
     private readonly queueMonitoringService: QueueMonitoringService,
     private readonly alertingService: AlertingService,
-  ) { }
+  ) {}
 
   @Get('queue-stats')
   @ApiOperation({ summary: 'Get queue statistics' })

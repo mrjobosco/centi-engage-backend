@@ -18,7 +18,7 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
-  ) { }
+  ) {}
 
   /**
    * List all users for the current tenant

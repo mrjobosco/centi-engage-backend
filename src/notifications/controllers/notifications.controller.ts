@@ -45,7 +45,7 @@ export class NotificationsController {
   constructor(
     private readonly notificationService: NotificationService,
     private readonly privacyService: NotificationPrivacyService,
-  ) { }
+  ) {}
 
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 notifications per minute per user

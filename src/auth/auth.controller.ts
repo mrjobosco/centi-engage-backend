@@ -31,7 +31,7 @@ export class AuthController {
     private readonly googleOAuthService: GoogleOAuthService,
     private readonly oauthStateService: OAuthStateService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
-  ) { }
+  ) {}
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for login

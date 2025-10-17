@@ -8,7 +8,7 @@ export class NotificationEventBase {
   constructor(
     public readonly name: NotificationEventName,
     public readonly payload: NotificationEvent,
-  ) { }
+  ) {}
 }
 
 /**

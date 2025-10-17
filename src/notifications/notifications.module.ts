@@ -14,6 +14,7 @@ import { NotificationService } from './services/notification.service';
 import { NotificationPreferenceService } from './services/notification-preference.service';
 import { NotificationTemplateService } from './services/notification-template.service';
 import { NotificationPrivacyService } from './services/notification-privacy.service';
+import { NotificationSchedulerService } from './services/notification-scheduler.service';
 import { QueueService } from './services/queue.service';
 import { RateLimitingService } from './services/rate-limiting.service';
 import { PhoneNumberService } from './services/phone-number.service';
@@ -125,6 +126,7 @@ import {
     NotificationPreferenceService,
     NotificationTemplateService,
     NotificationPrivacyService,
+    NotificationSchedulerService,
     QueueService,
     RateLimitingService,
     PhoneNumberService,
@@ -185,7 +187,7 @@ export class NotificationsModule implements OnModuleInit {
     private readonly inAppChannel: InAppChannelService,
     private readonly emailChannel: EmailChannelService,
     private readonly smsChannel: SmsChannelService,
-  ) { }
+  ) {}
 
   /**
    * Register all channel handlers with the factory when the module initializes

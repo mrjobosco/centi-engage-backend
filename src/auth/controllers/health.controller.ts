@@ -13,7 +13,7 @@ export interface GoogleOAuthHealthStatus {
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly googleOAuthService: GoogleOAuthService) { }
+  constructor(private readonly googleOAuthService: GoogleOAuthService) {}
 
   /**
    * Health check endpoint for Google OAuth configuration and connectivity
@@ -22,7 +22,7 @@ export class HealthController {
   @Public()
   @SkipGoogleOAuthRateLimit()
   @Get('google-oauth')
-  async checkGoogleOAuth(): Promise<GoogleOAuthHealthStatus> {
+  checkGoogleOAuth(): GoogleOAuthHealthStatus {
     const timestamp = new Date().toISOString();
 
     try {
@@ -66,10 +66,11 @@ export class HealthController {
           status: 'error',
           configured: true,
           connectivity: 'error',
-          error: `Google API connectivity failed: ${connectivityError instanceof Error
+          error: `Google API connectivity failed: ${
+            connectivityError instanceof Error
               ? connectivityError.message
               : 'Unknown error'
-            }`,
+          }`,
           timestamp,
         };
       }
@@ -77,8 +78,9 @@ export class HealthController {
       return {
         status: 'error',
         configured: false,
-        error: `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'
-          }`,
+        error: `Health check failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
         timestamp,
       };
     }
@@ -91,19 +93,14 @@ export class HealthController {
   @Public()
   @SkipGoogleOAuthRateLimit()
   @Get('google-oauth/status')
-  async getGoogleOAuthStatus(): Promise<{ status: string }> {
-    try {
-      const healthStatus = await this.checkGoogleOAuth();
+  getGoogleOAuthStatus(): { status: string } {
+    const healthStatus = this.checkGoogleOAuth();
 
-      if (healthStatus.status === 'ok') {
-        return { status: 'healthy' };
-      } else {
-        // Return 503 Service Unavailable for unhealthy status
-        throw new Error('Google OAuth service is unhealthy');
-      }
-    } catch (error) {
-      // This will result in a 500 status code
-      throw error;
+    if (healthStatus.status === 'ok') {
+      return { status: 'healthy' };
+    } else {
+      // Return 503 Service Unavailable for unhealthy status
+      throw new Error('Google OAuth service is unhealthy');
     }
   }
 }

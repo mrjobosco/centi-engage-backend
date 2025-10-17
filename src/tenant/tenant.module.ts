@@ -17,4 +17,4 @@ import { DatabaseModule } from '../database/database.module';
   ],
   exports: [TenantContextService, TenantService],
 })
-export class TenantModule { }
+export class TenantModule {}

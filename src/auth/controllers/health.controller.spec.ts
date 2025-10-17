@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HealthController, GoogleOAuthHealthStatus } from './health.controller';
+import { HealthController } from './health.controller';
 import { GoogleOAuthService } from '../services/google-oauth.service';
 
 describe('HealthController', () => {
@@ -31,10 +31,10 @@ describe('HealthController', () => {
   });
 
   describe('checkGoogleOAuth', () => {
-    it('should return error status when Google OAuth is not configured', async () => {
+    it('should return error status when Google OAuth is not configured', () => {
       googleOAuthService.isConfigured.mockReturnValue(false);
 
-      const result = await controller.checkGoogleOAuth();
+      const result = controller.checkGoogleOAuth();
 
       expect(result.status).toBe('error');
       expect(result.configured).toBe(false);
@@ -42,13 +42,13 @@ describe('HealthController', () => {
       expect(result.timestamp).toBeDefined();
     });
 
-    it('should return ok status when Google OAuth is configured and connectivity works', async () => {
+    it('should return ok status when Google OAuth is configured and connectivity works', () => {
       googleOAuthService.isConfigured.mockReturnValue(true);
       googleOAuthService.generateAuthUrl.mockReturnValue(
         'https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=test&scope=email%20profile&response_type=code&state=health-check-123',
       );
 
-      const result = await controller.checkGoogleOAuth();
+      const result = controller.checkGoogleOAuth();
 
       expect(result.status).toBe('ok');
       expect(result.configured).toBe(true);
@@ -57,13 +57,13 @@ describe('HealthController', () => {
       expect(result.timestamp).toBeDefined();
     });
 
-    it('should return error status when auth URL generation fails', async () => {
+    it('should return error status when auth URL generation fails', () => {
       googleOAuthService.isConfigured.mockReturnValue(true);
       googleOAuthService.generateAuthUrl.mockImplementation(() => {
         throw new Error('OAuth client initialization failed');
       });
 
-      const result = await controller.checkGoogleOAuth();
+      const result = controller.checkGoogleOAuth();
 
       expect(result.status).toBe('error');
       expect(result.configured).toBe(true);
@@ -72,11 +72,11 @@ describe('HealthController', () => {
       expect(result.timestamp).toBeDefined();
     });
 
-    it('should return error status when auth URL is invalid', async () => {
+    it('should return error status when auth URL is invalid', () => {
       googleOAuthService.isConfigured.mockReturnValue(true);
       googleOAuthService.generateAuthUrl.mockReturnValue('invalid-url');
 
-      const result = await controller.checkGoogleOAuth();
+      const result = controller.checkGoogleOAuth();
 
       expect(result.status).toBe('error');
       expect(result.configured).toBe(true);
@@ -85,12 +85,12 @@ describe('HealthController', () => {
       expect(result.timestamp).toBeDefined();
     });
 
-    it('should handle unexpected errors gracefully', async () => {
+    it('should handle unexpected errors gracefully', () => {
       googleOAuthService.isConfigured.mockImplementation(() => {
         throw new Error('Unexpected configuration error');
       });
 
-      const result = await controller.checkGoogleOAuth();
+      const result = controller.checkGoogleOAuth();
 
       expect(result.status).toBe('error');
       expect(result.configured).toBe(false);
@@ -98,7 +98,7 @@ describe('HealthController', () => {
       expect(result.timestamp).toBeDefined();
     });
 
-    it('should include timestamp in all responses', async () => {
+    it('should include timestamp in all responses', () => {
       const beforeTime = new Date().toISOString();
 
       googleOAuthService.isConfigured.mockReturnValue(true);
@@ -106,7 +106,7 @@ describe('HealthController', () => {
         'https://accounts.google.com/oauth/authorize?test=true',
       );
 
-      const result = await controller.checkGoogleOAuth();
+      const result = controller.checkGoogleOAuth();
       const afterTime = new Date().toISOString();
 
       expect(result.timestamp).toBeDefined();
@@ -122,7 +122,7 @@ describe('HealthController', () => {
         'https://accounts.google.com/oauth/authorize?test=true',
       );
 
-      const result = await controller.getGoogleOAuthStatus();
+      const result = controller.getGoogleOAuthStatus();
 
       expect(result.status).toBe('healthy');
     });

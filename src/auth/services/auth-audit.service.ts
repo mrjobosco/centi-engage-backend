@@ -5,11 +5,11 @@ export interface AuthAuditEvent {
   userId: string;
   tenantId: string;
   action:
-  | 'google_login'
-  | 'google_link'
-  | 'google_unlink'
-  | 'password_login'
-  | 'google_settings_update';
+    | 'google_login'
+    | 'google_link'
+    | 'google_unlink'
+    | 'password_login'
+    | 'google_settings_update';
   authMethod: 'google' | 'password' | 'admin';
   success: boolean;
   ipAddress?: string;
@@ -23,7 +23,7 @@ export interface AuthAuditEvent {
 export class AuthAuditService {
   private readonly logger = new Logger(AuthAuditService.name);
 
-  constructor(protected readonly prisma: PrismaService) { }
+  constructor(protected readonly prisma: PrismaService) {}
 
   /**
    * Log authentication events to both database and application logs

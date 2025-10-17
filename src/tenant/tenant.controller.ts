@@ -28,7 +28,7 @@ import type { RequestUser } from '../auth/interfaces/request-with-user.interface
 @ApiTags('Tenants')
 @Controller('tenants')
 export class TenantController {
-  constructor(private readonly tenantService: TenantService) { }
+  constructor(private readonly tenantService: TenantService) {}
 
   @Public()
   @Post()

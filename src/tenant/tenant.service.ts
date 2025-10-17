@@ -40,7 +40,7 @@ export class TenantService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authAuditService: AuthAuditService,
-  ) { }
+  ) {}
 
   async createTenant(input: CreateTenantInput): Promise<CreateTenantResult> {
     const {

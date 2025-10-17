@@ -29,7 +29,7 @@ export class MetricsService {
 
     @InjectMetric('notification_bounce_rate_total')
     private readonly bounceCounter: Counter<string>,
-  ) { }
+  ) {}
 
   /**
    * Record successful notification delivery

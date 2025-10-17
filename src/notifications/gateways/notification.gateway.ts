@@ -20,7 +20,8 @@ import { NotificationLoggerService } from '../services/notification-logger.servi
   namespace: '/notifications',
 })
 export class NotificationGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server!: Server;
 
@@ -31,7 +32,7 @@ export class NotificationGateway
     private readonly jwtService: JwtService,
     private readonly tenantContextService: TenantContextService,
     private readonly notificationLogger: NotificationLoggerService,
-  ) { }
+  ) {}
 
   async handleConnection(@ConnectedSocket() client: Socket): Promise<void> {
     try {

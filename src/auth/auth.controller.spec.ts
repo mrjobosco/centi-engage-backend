@@ -15,11 +15,6 @@ import type { User } from '@prisma/client';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: AuthService;
-  let googleAuthService: GoogleAuthService;
-  let googleOAuthService: GoogleOAuthService;
-  let oauthStateService: OAuthStateService;
-  let tenantContextService: TenantContextService;
 
   const mockAuthService = {
     login: jest.fn(),

@@ -13,9 +13,9 @@ import { RequestUser } from '../../auth/interfaces/request-with-user.interface';
  */
 @Injectable()
 export class TenantIsolationGuard implements CanActivate {
-  constructor(private readonly tenantContext: TenantContextService) { }
+  constructor(private readonly tenantContext: TenantContextService) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const user = request.user as RequestUser;
 

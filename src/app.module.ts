@@ -48,11 +48,11 @@ import { SharedMetricsModule } from './common/modules/metrics.module';
     // Only apply throttler guard in non-test environments
     ...(process.env.NODE_ENV !== 'test'
       ? [
-        {
-          provide: 'APP_GUARD',
-          useClass: ThrottlerGuard,
-        },
-      ]
+          {
+            provide: 'APP_GUARD',
+            useClass: ThrottlerGuard,
+          },
+        ]
       : []),
   ],
 })

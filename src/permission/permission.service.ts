@@ -13,7 +13,7 @@ export class PermissionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
-  ) { }
+  ) {}
 
   /**
    * List all permissions for the current tenant

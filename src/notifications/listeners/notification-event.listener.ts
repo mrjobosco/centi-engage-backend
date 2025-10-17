@@ -26,7 +26,7 @@ import {
 export class NotificationEventListener {
   private readonly logger = new Logger(NotificationEventListener.name);
 
-  constructor(private readonly notificationService: NotificationService) { }
+  constructor(private readonly notificationService: NotificationService) {}
 
   /**
    * Helper method to handle errors consistently
