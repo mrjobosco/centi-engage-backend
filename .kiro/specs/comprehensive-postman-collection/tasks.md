@@ -92,14 +92,14 @@
     - Add preference validation and category management examples
     - _Requirements: 5.2, 3.4_
 
-- [ ] 8. Add health check and monitoring endpoints
-  - [ ] 8.1 Implement health check endpoints
+- [x] 8. Add health check and monitoring endpoints
+  - [x] 8.1 Implement health check endpoints
     - Create GET /health/google-oauth and GET /health/google-oauth/status
     - Add GET / root endpoint for basic application health
     - Include health status validation and error scenarios
     - _Requirements: 4.1, 4.5_
 
-  - [ ] 8.2 Create system monitoring endpoints
+  - [x] 8.2 Create system monitoring endpoints
     - Implement GET /monitoring/queue-stats with admin authentication
     - Add GET /monitoring/alert-config and GET /monitoring/alert-history
     - Create POST /monitoring/test-alert and POST /monitoring/check-alerts
