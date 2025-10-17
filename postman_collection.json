@@ -2121,17 +2121,1096 @@
         {
           "name": "CRUD Operations",
           "description": "Create, read, update, and delete user operations",
-          "item": []
+          "item": [
+            {
+              "name": "Get All Users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier for multi-tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users"
+                  ]
+                },
+                "description": "Retrieve all users in the current tenant. Requires 'read:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Required Permissions:** read:user\n\n**Response:**\n- Array of user objects with basic information\n- Each user includes id, email, firstName, lastName, createdAt, updatedAt\n\n**Use Cases:**\n- User management dashboard\n- User selection for role/permission assignment\n- Tenant user overview\n\n**Rate Limiting:** Standard API rate limits apply"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get All Users",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response is an array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Users have required properties', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.length > 0) {",
+                      "        const user = responseJson[0];",
+                      "        pm.expect(user).to.have.property('id');",
+                      "        pm.expect(user).to.have.property('email');",
+                      "        pm.expect(user).to.have.property('createdAt');",
+                      "        pm.expect(user).to.have.property('updatedAt');",
+                      "        ",
+                      "        // Capture first user ID for subsequent tests",
+                      "        if (!pm.collectionVariables.get('userId')) {",
+                      "            pm.collectionVariables.set('userId', user.id);",
+                      "            console.log('✅ User ID captured:', user.id);",
+                      "        }",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "console.log('📋 Retrieved', pm.response.json().length, 'users');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}"
+                  ]
+                },
+                "description": "Retrieve a specific user by their ID with detailed information including roles and permissions. Requires 'read:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: User ID (UUID format)\n\n**Required Permissions:** read:user\n\n**Response:**\n- User object with detailed information\n- Includes roles and permissions if available\n\n**Error Responses:**\n- 404: User not found\n- 403: Insufficient permissions\n- 401: Invalid or missing authentication\n\n**Use Cases:**\n- User profile viewing\n- User details for editing\n- Permission verification"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get User by ID",
+                      "",
+                      "pm.test('Status code is 200 or 404', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('User object has required properties', function () {",
+                      "        const user = pm.response.json();",
+                      "        pm.expect(user).to.have.property('id');",
+                      "        pm.expect(user).to.have.property('email');",
+                      "        pm.expect(user).to.have.property('createdAt');",
+                      "        pm.expect(user).to.have.property('updatedAt');",
+                      "        ",
+                      "        // Verify the ID matches the requested ID",
+                      "        const requestedId = pm.collectionVariables.get('userId');",
+                      "        pm.expect(user.id).to.equal(requestedId);",
+                      "    });",
+                      "    ",
+                      "    pm.test('User email is valid format', function () {",
+                      "        const user = pm.response.json();",
+                      "        pm.expect(user.email).to.match(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/);",
+                      "    });",
+                      "    ",
+                      "    console.log('👤 User details retrieved for:', pm.response.json().email);",
+                      "} else if (pm.response.code === 404) {",
+                      "    pm.test('404 response has error message', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "    });",
+                      "    console.log('❌ User not found');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Get User by ID",
+                      "",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Run \"Get All Users\" first to capture a user ID.');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create User",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users"
+                  ]
+                },
+                "description": "Create a new user in the current tenant. Requires 'create:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Request Body:**\n- `email` (required): Valid email address\n- `password` (required): Minimum 8 characters\n- `firstName` (optional): User's first name\n- `lastName` (optional): User's last name\n\n**Required Permissions:** create:user\n\n**Response:**\n- Created user object (password excluded)\n- Includes generated user ID\n\n**Error Responses:**\n- 409: Email already exists\n- 400: Invalid request data\n- 403: Insufficient permissions\n\n**Use Cases:**\n- User registration by admin\n- Bulk user creation\n- Team member invitation"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Create User",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Created user has required properties', function () {",
+                      "    const user = pm.response.json();",
+                      "    pm.expect(user).to.have.property('id');",
+                      "    pm.expect(user).to.have.property('email');",
+                      "    pm.expect(user).to.have.property('createdAt');",
+                      "    pm.expect(user).to.have.property('updatedAt');",
+                      "    ",
+                      "    // Password should not be returned",
+                      "    pm.expect(user).to.not.have.property('password');",
+                      "});",
+                      "",
+                      "pm.test('User email matches request', function () {",
+                      "    const user = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    pm.expect(user.email).to.equal(requestBody.email);",
+                      "});",
+                      "",
+                      "// Capture the new user ID for subsequent operations",
+                      "pm.test('User ID captured successfully', function () {",
+                      "    const user = pm.response.json();",
+                      "    if (user.id) {",
+                      "        pm.collectionVariables.set('userId', user.id);",
+                      "        console.log('✅ New user ID captured:', user.id);",
+                      "        console.log('👤 Created user:', user.email);",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Create User",
+                      "",
+                      "// Generate unique email to avoid conflicts",
+                      "const timestamp = Date.now();",
+                      "const uniqueEmail = `testuser${timestamp}@example.com`;",
+                      "",
+                      "// Update the request body with unique email",
+                      "const requestBody = JSON.parse(pm.request.body.raw);",
+                      "requestBody.email = uniqueEmail;",
+                      "pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+                      "",
+                      "console.log('🔄 Generated unique email:', uniqueEmail);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update User",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"updated@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}"
+                  ]
+                },
+                "description": "Update an existing user's information. Requires 'update:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: User ID to update\n\n**Request Body (all optional):**\n- `email`: New email address\n- `firstName`: Updated first name\n- `lastName`: Updated last name\n\n**Required Permissions:** update:user\n\n**Response:**\n- Updated user object\n- Includes updated timestamp\n\n**Error Responses:**\n- 404: User not found\n- 409: Email already exists (if changing email)\n- 400: Invalid request data\n- 403: Insufficient permissions\n\n**Use Cases:**\n- Profile updates\n- Administrative user management\n- Contact information changes"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Update User",
+                      "",
+                      "pm.test('Status code is 200 or 404', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('Updated user has required properties', function () {",
+                      "        const user = pm.response.json();",
+                      "        pm.expect(user).to.have.property('id');",
+                      "        pm.expect(user).to.have.property('email');",
+                      "        pm.expect(user).to.have.property('updatedAt');",
+                      "    });",
+                      "    ",
+                      "    pm.test('User data reflects updates', function () {",
+                      "        const user = pm.response.json();",
+                      "        const requestBody = JSON.parse(pm.request.body.raw);",
+                      "        ",
+                      "        if (requestBody.firstName) {",
+                      "            pm.expect(user.firstName).to.equal(requestBody.firstName);",
+                      "        }",
+                      "        if (requestBody.lastName) {",
+                      "            pm.expect(user.lastName).to.equal(requestBody.lastName);",
+                      "        }",
+                      "        if (requestBody.email) {",
+                      "            pm.expect(user.email).to.equal(requestBody.email);",
+                      "        }",
+                      "    });",
+                      "    ",
+                      "    console.log('✅ User updated successfully:', pm.response.json().email);",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ User not found for update');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Update User",
+                      "",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Create a user first or run \"Get All Users\".');",
+                      "}",
+                      "",
+                      "// Generate unique email to avoid conflicts",
+                      "const timestamp = Date.now();",
+                      "const requestBody = JSON.parse(pm.request.body.raw);",
+                      "if (requestBody.email) {",
+                      "    requestBody.email = `updated${timestamp}@example.com`;",
+                      "    pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+                      "    console.log('🔄 Generated unique email for update:', requestBody.email);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete User",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}"
+                  ]
+                },
+                "description": "Delete a user and all their role/permission assignments. Requires 'delete:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: User ID to delete\n\n**Required Permissions:** delete:user\n\n**Response:**\n- Success message confirming deletion\n\n**Error Responses:**\n- 404: User not found\n- 403: Insufficient permissions\n- 400: Cannot delete (e.g., last admin user)\n\n**Important Notes:**\n- This action is irreversible\n- All user's role and permission assignments are also deleted\n- User's created content may remain but will be orphaned\n\n**Use Cases:**\n- Employee offboarding\n- Account cleanup\n- Administrative user management"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Delete User",
+                      "",
+                      "pm.test('Status code is 200 or 404', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('Deletion response has success message', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "    });",
+                      "    ",
+                      "    console.log('✅ User deleted successfully');",
+                      "    ",
+                      "    // Clear the userId variable since user is deleted",
+                      "    pm.collectionVariables.set('userId', '');",
+                      "    console.log('🧹 Cleared userId variable');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ User not found for deletion');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Delete User",
+                      "",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Create a user first or run \"Get All Users\".');",
+                      "} else {",
+                      "    console.log('🗑️ Preparing to delete user:', userId);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Role Assignment",
           "description": "Assign and manage user roles",
-          "item": []
+          "item": [
+            {
+              "name": "Assign Roles to User",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"roleIds\": [\"{{roleId}}\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/roles",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "roles"
+                  ]
+                },
+                "description": "Replace user roles with the provided role IDs. This operation replaces all existing roles. Requires 'update:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: User ID to assign roles to\n\n**Request Body:**\n- `roleIds`: Array of role IDs to assign to the user\n\n**Required Permissions:** update:user\n\n**Response:**\n- Updated user object with new role assignments\n- Includes role details if expanded\n\n**Error Responses:**\n- 404: User or role not found\n- 403: Insufficient permissions\n- 400: Invalid role IDs\n\n**Important Notes:**\n- This replaces ALL existing roles\n- To add roles without replacing, use PATCH (if available)\n- Empty array removes all roles\n\n**Use Cases:**\n- Role management by administrators\n- User promotion/demotion\n- Bulk role assignment changes"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Assign Roles to User",
+                      "",
+                      "pm.test('Status code is 200 or 404', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('Response contains user with roles', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('id');",
+                      "        ",
+                      "        // Check if roles are included in response",
+                      "        if (responseJson.roles) {",
+                      "            pm.expect(responseJson.roles).to.be.an('array');",
+                      "            console.log('👥 User now has', responseJson.roles.length, 'role(s)');",
+                      "        }",
+                      "    });",
+                      "    ",
+                      "    pm.test('Role assignment reflects request', function () {",
+                      "        const requestBody = JSON.parse(pm.request.body.raw);",
+                      "        const responseJson = pm.response.json();",
+                      "        ",
+                      "        if (responseJson.roles && requestBody.roleIds) {",
+                      "            // Verify the number of roles matches (if roles are expanded)",
+                      "            if (responseJson.roles.length > 0 && typeof responseJson.roles[0] === 'object') {",
+                      "                pm.expect(responseJson.roles.length).to.equal(requestBody.roleIds.length);",
+                      "            }",
+                      "        }",
+                      "    });",
+                      "    ",
+                      "    console.log('✅ Roles assigned successfully to user');",
+                      "} else if (pm.response.code === 404) {",
+                      "    pm.test('404 response has error message', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "    });",
+                      "    console.log('❌ User or role not found');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Assign Roles to User",
+                      "",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "const roleId = pm.collectionVariables.get('roleId');",
+                      "",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Create a user first or run \"Get All Users\".');",
+                      "}",
+                      "",
+                      "if (!roleId) {",
+                      "    console.log('⚠️ Warning: roleId not set. Create a role first or set roleId manually.');",
+                      "    console.log('💡 Tip: You can set a roleId manually in the environment variables.');",
+                      "} else {",
+                      "    console.log('👥 Assigning role', roleId, 'to user', userId);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Assign Multiple Roles Example",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"roleIds\": [\n    \"role-admin-id\",\n    \"role-user-id\",\n    \"role-viewer-id\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/roles",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "roles"
+                  ]
+                },
+                "description": "Example of assigning multiple roles to a user simultaneously. This demonstrates how to assign multiple roles in a single request.\n\n**Use Case:** Assigning multiple roles to a user who needs various permissions\n**Example Scenario:** A user who needs both admin and viewer roles\n\n**Note:** Replace the role IDs in the request body with actual role IDs from your system."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for multiple role assignment",
+                      "",
+                      "pm.test('Multiple roles assigned successfully', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    console.log('✅ Assigned', requestBody.roleIds.length, 'roles to user');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Remove All Roles Example",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"roleIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/roles",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "roles"
+                  ]
+                },
+                "description": "Example of removing all roles from a user by providing an empty roleIds array.\n\n**Use Case:** Removing all roles from a user (e.g., during role restructuring)\n**Important:** This will remove ALL roles from the user, potentially affecting their access permissions"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for removing all roles",
+                      "",
+                      "pm.test('All roles removed successfully', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ All roles removed from user');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Permission Management",
           "description": "Manage user permissions and view effective permissions",
-          "item": []
+          "item": [
+            {
+              "name": "Assign Permissions to User",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissionIds\": [\"{{permissionId}}\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "permissions"
+                  ]
+                },
+                "description": "Grant user-specific permissions directly to a user. These permissions are in addition to role-based permissions. Requires 'update:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: User ID to assign permissions to\n\n**Request Body:**\n- `permissionIds`: Array of permission IDs to assign directly to the user\n\n**Required Permissions:** update:user\n\n**Response:**\n- Updated user object with new permission assignments\n- May include permission details if expanded\n\n**Error Responses:**\n- 404: User or permission not found\n- 403: Insufficient permissions\n- 400: Invalid permission IDs\n\n**Important Notes:**\n- These are user-specific permissions (not role-based)\n- User-specific permissions are additive to role permissions\n- Use sparingly - prefer role-based permissions for maintainability\n\n**Use Cases:**\n- Temporary permission grants\n- Special access requirements\n- Fine-grained permission control"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Assign Permissions to User",
+                      "",
+                      "pm.test('Status code is 200 or 404', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('Response contains user with permissions', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('id');",
+                      "        ",
+                      "        // Check if permissions are included in response",
+                      "        if (responseJson.permissions) {",
+                      "            pm.expect(responseJson.permissions).to.be.an('array');",
+                      "            console.log('🔐 User now has', responseJson.permissions.length, 'direct permission(s)');",
+                      "        }",
+                      "    });",
+                      "    ",
+                      "    pm.test('Permission assignment reflects request', function () {",
+                      "        const requestBody = JSON.parse(pm.request.body.raw);",
+                      "        const responseJson = pm.response.json();",
+                      "        ",
+                      "        if (responseJson.permissions && requestBody.permissionIds) {",
+                      "            // Verify permissions were assigned (if permissions are expanded)",
+                      "            if (responseJson.permissions.length > 0 && typeof responseJson.permissions[0] === 'object') {",
+                      "                pm.expect(responseJson.permissions.length).to.equal(requestBody.permissionIds.length);",
+                      "            }",
+                      "        }",
+                      "    });",
+                      "    ",
+                      "    console.log('✅ Permissions assigned successfully to user');",
+                      "} else if (pm.response.code === 404) {",
+                      "    pm.test('404 response has error message', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "    });",
+                      "    console.log('❌ User or permission not found');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Assign Permissions to User",
+                      "",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "const permissionId = pm.collectionVariables.get('permissionId');",
+                      "",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Create a user first or run \"Get All Users\".');",
+                      "}",
+                      "",
+                      "if (!permissionId) {",
+                      "    console.log('⚠️ Warning: permissionId not set. Create a permission first or set permissionId manually.');",
+                      "    console.log('💡 Tip: You can set a permissionId manually in the environment variables.');",
+                      "} else {",
+                      "    console.log('🔐 Assigning permission', permissionId, 'to user', userId);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User Effective Permissions",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "permissions"
+                  ]
+                },
+                "description": "Get all effective permissions for a user, including both role-based and user-specific permissions. Requires 'read:user' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: User ID to get permissions for\n\n**Required Permissions:** read:user\n\n**Response:**\n- Array of all effective permissions for the user\n- Includes permissions from roles and direct user assignments\n- May include permission source information (role vs direct)\n\n**Error Responses:**\n- 404: User not found\n- 403: Insufficient permissions\n\n**Response Structure:**\n- Each permission includes: id, name, description, source\n- Source indicates if permission comes from role or direct assignment\n\n**Use Cases:**\n- Permission auditing\n- Access control verification\n- Debugging permission issues\n- Security compliance checks"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get User Effective Permissions",
+                      "",
+                      "pm.test('Status code is 200 or 404', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test('Response is an array of permissions', function () {",
+                      "        const permissions = pm.response.json();",
+                      "        pm.expect(permissions).to.be.an('array');",
+                      "    });",
+                      "    ",
+                      "    pm.test('Permissions have required properties', function () {",
+                      "        const permissions = pm.response.json();",
+                      "        if (permissions.length > 0) {",
+                      "            const permission = permissions[0];",
+                      "            pm.expect(permission).to.have.property('id');",
+                      "            pm.expect(permission).to.have.property('name');",
+                      "            ",
+                      "            // Log permission details",
+                      "            console.log('🔐 First permission:', permission.name);",
+                      "            if (permission.source) {",
+                      "                console.log('📍 Source:', permission.source);",
+                      "            }",
+                      "        }",
+                      "    });",
+                      "    ",
+                      "    pm.test('Permission analysis', function () {",
+                      "        const permissions = pm.response.json();",
+                      "        const totalPermissions = permissions.length;",
+                      "        ",
+                      "        // Count permissions by source if available",
+                      "        const rolePermissions = permissions.filter(p => p.source === 'role').length;",
+                      "        const directPermissions = permissions.filter(p => p.source === 'direct').length;",
+                      "        ",
+                      "        console.log('📊 Permission Summary:');",
+                      "        console.log('  Total effective permissions:', totalPermissions);",
+                      "        if (rolePermissions > 0) console.log('  From roles:', rolePermissions);",
+                      "        if (directPermissions > 0) console.log('  Direct assignments:', directPermissions);",
+                      "        ",
+                      "        // List all permission names",
+                      "        const permissionNames = permissions.map(p => p.name).join(', ');",
+                      "        console.log('  Permissions:', permissionNames || 'None');",
+                      "    });",
+                      "    ",
+                      "    console.log('✅ Effective permissions retrieved successfully');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ User not found');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Get User Effective Permissions",
+                      "",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Create a user first or run \"Get All Users\".');",
+                      "} else {",
+                      "    console.log('🔍 Getting effective permissions for user:', userId);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Assign Multiple Permissions Example",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissionIds\": [\n    \"read:user\",\n    \"update:user\",\n    \"read:project\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "permissions"
+                  ]
+                },
+                "description": "Example of assigning multiple permissions directly to a user. This demonstrates granting specific permissions that may not be covered by the user's roles.\n\n**Use Case:** Granting specific permissions for temporary access or special requirements\n**Example Scenario:** A user who needs read access to users and projects but not full admin rights\n\n**Note:** Replace the permission IDs with actual permission IDs from your system."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for multiple permission assignment",
+                      "",
+                      "pm.test('Multiple permissions assigned successfully', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    console.log('✅ Assigned', requestBody.permissionIds.length, 'permissions to user');",
+                      "    console.log('🔐 Permissions:', requestBody.permissionIds.join(', '));",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Remove All User Permissions Example",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissionIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{userId}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{userId}}",
+                    "permissions"
+                  ]
+                },
+                "description": "Example of removing all direct permissions from a user by providing an empty permissionIds array. The user will still retain permissions from their assigned roles.\n\n**Use Case:** Cleaning up direct permission assignments while keeping role-based permissions\n**Important:** This only removes direct user permissions, not role-based permissions"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for removing all direct permissions",
+                      "",
+                      "pm.test('All direct permissions removed successfully', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ All direct permissions removed from user');",
+                      "    console.log('ℹ️ User still retains role-based permissions');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     },

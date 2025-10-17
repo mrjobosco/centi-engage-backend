@@ -39,14 +39,14 @@
     - Add proper admin role validation examples
     - _Requirements: 4.4, 3.2_
 
-- [ ] 4. Implement user management endpoints
-  - [ ] 4.1 Create user CRUD operations
+- [x] 4. Implement user management endpoints
+  - [x] 4.1 Create user CRUD operations
     - Implement GET /users, GET /users/:id, POST /users endpoints
     - Add PUT /users/:id and DELETE /users/:id requests
     - Include user ID capture and proper test data
     - _Requirements: 1.5, 3.1_
 
-  - [ ] 4.2 Add role and permission assignment endpoints
+  - [x] 4.2 Add role and permission assignment endpoints
     - Create PUT /users/:id/roles and PUT /users/:id/permissions
     - Implement GET /users/:id/permissions for effective permissions
     - Add proper role and permission ID management
