@@ -4360,7 +4360,645 @@
         {
           "name": "CRUD Operations",
           "description": "Complete project management operations",
-          "item": []
+          "item": [
+            {
+              "name": "Get All Projects",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ]
+                },
+                "description": "Retrieve all projects in the current tenant. Requires 'read:project' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Required Permissions:** read:project\n\n**Response:**\n- Array of project objects with basic information\n- Each project includes id, name, description, ownerId, createdAt, updatedAt\n\n**Rate Limiting:** Standard API rate limits apply\n\n**Example Scenarios:**\n- Valid request: Returns 200 with projects array\n- No projects: Returns 200 with empty array\n- Missing permission: Returns 403 Forbidden\n- Invalid token: Returns 401 Unauthorized"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get All Projects",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response is JSON array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Projects have required fields', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.length > 0) {",
+                      "        const project = responseJson[0];",
+                      "        pm.expect(project).to.have.property('id');",
+                      "        pm.expect(project).to.have.property('name');",
+                      "        pm.expect(project).to.have.property('ownerId');",
+                      "        pm.expect(project).to.have.property('createdAt');",
+                      "        pm.expect(project).to.have.property('updatedAt');",
+                      "        ",
+                      "        // Capture first project ID for subsequent tests",
+                      "        pm.collectionVariables.set('projectId', project.id);",
+                      "        console.log('✅ Project ID captured:', project.id);",
+                      "    }",
+                      "});",
+                      "",
+                      "console.log('📁 Projects retrieved:', pm.response.json().length);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Get All Projects",
+                      "",
+                      "// Validate required variables",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context first.');",
+                      "}",
+                      "",
+                      "console.log('📁 Fetching all projects for tenant:', tenantId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Project by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{projectId}}"
+                  ]
+                },
+                "description": "Retrieve a specific project by its ID with detailed information. Requires 'read:project' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Project ID (UUID format)\n\n**Required Permissions:** read:project\n\n**Response:**\n- Project object with detailed information\n- Includes id, name, description, ownerId, createdAt, updatedAt\n- May include owner information if populated\n\n**Example Scenarios:**\n- Valid project ID: Returns 200 with project details\n- Project not found: Returns 404 Not Found\n- Project in different tenant: Returns 404 Not Found (tenant isolation)\n- Missing permission: Returns 403 Forbidden\n- Invalid token: Returns 401 Unauthorized"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get Project by ID",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains project details', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "    pm.expect(responseJson).to.have.property('ownerId');",
+                      "    pm.expect(responseJson).to.have.property('createdAt');",
+                      "    pm.expect(responseJson).to.have.property('updatedAt');",
+                      "});",
+                      "",
+                      "pm.test('Project ID matches requested ID', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestedId = pm.collectionVariables.get('projectId');",
+                      "    pm.expect(responseJson.id).to.equal(requestedId);",
+                      "});",
+                      "",
+                      "console.log('📁 Project details retrieved for ID:', pm.response.json().id);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Get Project by ID",
+                      "",
+                      "// Validate required variables",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const projectId = pm.collectionVariables.get('projectId');",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context first.');",
+                      "}",
+                      "",
+                      "if (!projectId) {",
+                      "    console.log('⚠️ Warning: projectId not set. Please create a project or get all projects first.');",
+                      "    console.log('💡 Tip: Run \"Get All Projects\" first to capture a project ID');",
+                      "}",
+                      "",
+                      "console.log('📁 Fetching project details for ID:', projectId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Project",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Sample Project\",\n  \"description\": \"This is a sample project for testing the API endpoints. It demonstrates project creation with proper metadata and owner assignment.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ]
+                },
+                "description": "Create a new project in the current tenant. The authenticated user will be automatically set as the project owner. Requires 'create:project' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Required Permissions:** create:project\n\n**Request Body:**\n- `name`: Project name (required, string, 1-100 characters)\n- `description`: Project description (optional, string, max 500 characters)\n\n**Response:**\n- Created project object with generated ID\n- Includes id, name, description, ownerId (current user), createdAt, updatedAt\n\n**Owner Assignment:**\n- The current authenticated user is automatically assigned as the project owner\n- Owner has full permissions on the project\n\n**Example Scenarios:**\n- Valid request: Returns 201 with created project\n- Missing name: Returns 400 Bad Request\n- Name too long: Returns 400 Bad Request\n- Missing permission: Returns 403 Forbidden\n- Invalid token: Returns 401 Unauthorized"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Create Project",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains created project', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "    pm.expect(responseJson).to.have.property('ownerId');",
+                      "    pm.expect(responseJson).to.have.property('createdAt');",
+                      "    pm.expect(responseJson).to.have.property('updatedAt');",
+                      "});",
+                      "",
+                      "pm.test('Project name matches request', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    pm.expect(responseJson.name).to.equal(requestBody.name);",
+                      "});",
+                      "",
+                      "pm.test('Owner is current user', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const currentUserId = pm.collectionVariables.get('userId');",
+                      "    if (currentUserId) {",
+                      "        pm.expect(responseJson.ownerId).to.equal(currentUserId);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Capture project ID for subsequent tests",
+                      "pm.test('Project ID captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.id) {",
+                      "        pm.collectionVariables.set('projectId', responseJson.id);",
+                      "        console.log('✅ Project ID captured:', responseJson.id);",
+                      "        console.log('📁 Project created:', responseJson.name);",
+                      "    }",
+                      "});",
+                      "",
+                      "console.log('📁 Project creation completed successfully');"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Create Project",
+                      "",
+                      "// Validate required variables",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context first.');",
+                      "}",
+                      "",
+                      "// Generate unique project name for testing",
+                      "const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '');",
+                      "const projectName = `Test Project ${timestamp}`;",
+                      "",
+                      "// Update request body with unique name",
+                      "const requestBody = JSON.parse(pm.request.body.raw);",
+                      "requestBody.name = projectName;",
+                      "pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+                      "",
+                      "console.log('📁 Creating project:', projectName);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Project",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"description\": \"This project has been updated with new information. The description now includes additional details about the project scope and objectives.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{projectId}}"
+                  ]
+                },
+                "description": "Update an existing project's details. Supports partial updates - only provided fields will be updated. Requires 'update:project' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: Project ID (UUID format)\n\n**Required Permissions:** update:project\n\n**Request Body (all fields optional):**\n- `name`: Updated project name (string, 1-100 characters)\n- `description`: Updated project description (string, max 500 characters)\n\n**Response:**\n- Updated project object with new values\n- Includes id, name, description, ownerId, createdAt, updatedAt\n- updatedAt timestamp reflects the update time\n\n**Partial Updates:**\n- Only provided fields are updated\n- Omitted fields retain their current values\n- Empty strings are treated as valid updates\n\n**Example Scenarios:**\n- Valid update: Returns 200 with updated project\n- Project not found: Returns 404 Not Found\n- Project in different tenant: Returns 404 Not Found (tenant isolation)\n- Invalid field values: Returns 400 Bad Request\n- Missing permission: Returns 403 Forbidden\n- Invalid token: Returns 401 Unauthorized"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Update Project",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains updated project', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "    pm.expect(responseJson).to.have.property('updatedAt');",
+                      "});",
+                      "",
+                      "pm.test('Project fields updated correctly', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    ",
+                      "    // Check if provided fields were updated",
+                      "    if (requestBody.name) {",
+                      "        pm.expect(responseJson.name).to.equal(requestBody.name);",
+                      "    }",
+                      "    if (requestBody.description) {",
+                      "        pm.expect(responseJson.description).to.equal(requestBody.description);",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('Project ID remains unchanged', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const originalId = pm.collectionVariables.get('projectId');",
+                      "    pm.expect(responseJson.id).to.equal(originalId);",
+                      "});",
+                      "",
+                      "pm.test('UpdatedAt timestamp is recent', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const updatedAt = new Date(responseJson.updatedAt);",
+                      "    const now = new Date();",
+                      "    const timeDiff = now - updatedAt;",
+                      "    ",
+                      "    // Should be updated within the last 10 seconds",
+                      "    pm.expect(timeDiff).to.be.below(10000);",
+                      "});",
+                      "",
+                      "console.log('📁 Project updated successfully:', pm.response.json().name);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Update Project",
+                      "",
+                      "// Validate required variables",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const projectId = pm.collectionVariables.get('projectId');",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context first.');",
+                      "}",
+                      "",
+                      "if (!projectId) {",
+                      "    console.log('⚠️ Warning: projectId not set. Please create a project first.');",
+                      "    console.log('💡 Tip: Run \"Create Project\" first to get a project ID');",
+                      "}",
+                      "",
+                      "// Add timestamp to make the update unique",
+                      "const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '');",
+                      "const requestBody = JSON.parse(pm.request.body.raw);",
+                      "requestBody.name = `Updated Project ${timestamp}`;",
+                      "pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+                      "",
+                      "console.log('📁 Updating project ID:', projectId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete Project",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{projectId}}"
+                  ]
+                },
+                "description": "Delete an existing project permanently. This action cannot be undone. Requires 'delete:project' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token with valid JWT\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Project ID (UUID format)\n\n**Required Permissions:** delete:project\n\n**Response:**\n- Success confirmation message\n- HTTP 200 status code\n\n**Important Notes:**\n- This operation is permanent and cannot be undone\n- All project-related data may be affected\n- Consider backing up important project data before deletion\n- Tenant isolation ensures only projects within the current tenant can be deleted\n\n**Example Scenarios:**\n- Valid deletion: Returns 200 with success message\n- Project not found: Returns 404 Not Found\n- Project in different tenant: Returns 404 Not Found (tenant isolation)\n- Missing permission: Returns 403 Forbidden\n- Invalid token: Returns 401 Unauthorized"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Delete Project",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms deletion', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    // Response should indicate successful deletion",
+                      "    const responseText = JSON.stringify(responseJson).toLowerCase();",
+                      "    const hasSuccessIndicator = responseText.includes('success') || ",
+                      "                               responseText.includes('deleted') || ",
+                      "                               responseText.includes('removed');",
+                      "    pm.expect(hasSuccessIndicator).to.be.true;",
+                      "});",
+                      "",
+                      "// Clear the project ID since it's been deleted",
+                      "pm.test('Project ID cleared after deletion', function () {",
+                      "    pm.collectionVariables.set('projectId', '');",
+                      "    console.log('🗑️ Project ID cleared from variables');",
+                      "});",
+                      "",
+                      "console.log('🗑️ Project deleted successfully');"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Delete Project",
+                      "",
+                      "// Validate required variables",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const projectId = pm.collectionVariables.get('projectId');",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context first.');",
+                      "}",
+                      "",
+                      "if (!projectId) {",
+                      "    console.log('⚠️ Warning: projectId not set. Please create a project first.');",
+                      "    console.log('💡 Tip: Run \"Create Project\" first to get a project ID');",
+                      "}",
+                      "",
+                      "console.log('🗑️ Deleting project ID:', projectId);",
+                      "console.log('⚠️ Warning: This action cannot be undone!');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Project - Validation Examples",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\",\n  \"description\": \"This request demonstrates validation by providing an empty name, which should trigger a 400 Bad Request response.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ]
+                },
+                "description": "Example of project creation with invalid data to demonstrate validation handling. This request uses an empty name which should trigger validation errors.\n\n**Expected Response:** 400 Bad Request\n**Use Case:** Testing input validation and error handling\n\n**Validation Rules Tested:**\n- Name is required (cannot be empty)\n- Name length validation\n- Field type validation\n\n**Other Validation Examples:**\n- Try with name longer than 100 characters\n- Try with invalid data types\n- Try with missing required fields"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for validation example",
+                      "",
+                      "pm.test('Validation error returns 400 Bad Request', function () {",
+                      "    pm.expect(pm.response.code).to.equal(400);",
+                      "});",
+                      "",
+                      "pm.test('Error response has validation message', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    ",
+                      "    // Should mention validation or name requirement",
+                      "    const message = responseJson.message.toLowerCase();",
+                      "    const hasValidationInfo = message.includes('name') || ",
+                      "                             message.includes('required') || ",
+                      "                             message.includes('validation');",
+                      "    pm.expect(hasValidationInfo).to.be.true;",
+                      "});",
+                      "",
+                      "pm.test('No project created on validation error', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.not.have.property('id');",
+                      "});",
+                      "",
+                      "console.log('✅ Validation error properly handled');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     },

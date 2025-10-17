@@ -65,7 +65,7 @@
     - Include permission validation and error handling
     - _Requirements: 1.5, 3.3_
 
-- [ ] 6. Add project management endpoints
+- [x] 6. Add project management endpoints
   - Create GET /projects, GET /projects/:id, POST /projects endpoints
   - Implement PUT /projects/:id and DELETE /projects/:id requests
   - Add project ID capture and owner assignment examples
