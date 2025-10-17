@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Multi-Tenant NestJS API - Comprehensive Collection",
-    "description": "Complete API collection for the Multi-Tenant NestJS Starter with Google OAuth, Notifications, Monitoring, and all system endpoints. This collection includes comprehensive test scripts, environment variable management, and realistic examples for all API functionality.\n\n## Features Covered:\n- Complete Authentication flows (Basic + Google OAuth)\n- Tenant Management with Google SSO settings\n- User, Role, and Permission Management\n- Project Management\n- Comprehensive Notification System\n- Health Checks and System Monitoring\n- Proper tenant isolation and security\n\n## Usage:\n1. Set up your environment variables (baseUrl, etc.)\n2. Start with tenant registration or use existing tenant\n3. Authenticate to get access token\n4. Use any endpoint with proper authentication\n\n## Environment Variables:\nAll necessary variables are automatically captured during API interactions.",
+    "description": "Complete API collection for the Multi-Tenant NestJS Starter with Google OAuth, Notifications, Monitoring, and all system endpoints. This collection includes comprehensive test scripts, environment variable management, and realistic examples for all API functionality.\n\n## 🚀 Features Covered:\n- **Authentication**: Complete flows (Basic + Google OAuth) with account linking\n- **Tenant Management**: Registration and Google SSO configuration\n- **User Management**: CRUD operations with role and permission assignment\n- **RBAC System**: Role and permission management with fine-grained access control\n- **Project Management**: Full project lifecycle within tenant context\n- **Notification System**: Comprehensive notifications with preferences and broadcasting\n- **System Monitoring**: Health checks, queue monitoring, and alerting\n- **Security**: Proper tenant isolation, rate limiting, and authentication\n\n## 📋 Quick Start Guide:\n1. **Environment Setup**: Start with health checks to verify system status\n2. **Tenant Registration**: Create a new tenant or use existing tenant credentials\n3. **Authentication**: Login to obtain access tokens (automatically captured)\n4. **API Testing**: Use any endpoint with proper authentication and tenant context\n\n## 🔧 Environment Variables:\nAll necessary variables are automatically captured during API interactions:\n- `accessToken`: JWT authentication token (auto-captured)\n- `tenantId`: Current tenant identifier (auto-captured)\n- `userId`, `roleId`, `permissionId`, `projectId`, `notificationId`: Resource IDs (auto-captured)\n\n## 🛡️ Security Features:\n- Automatic tenant isolation with x-tenant-id headers\n- JWT token management and validation\n- Permission-based access control validation\n- Rate limiting awareness and compliance\n\n## 📊 Testing Features:\n- Comprehensive response validation scripts\n- Performance monitoring and alerting\n- Error handling and troubleshooting examples\n- Realistic test data and edge case scenarios",
     "version": "2.0.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -816,11 +816,11 @@
   "item": [
     {
       "name": "🏥 Environment Setup",
-      "description": "Initial setup and health check endpoints to verify system status before testing",
+      "description": "Initial setup and health check endpoints to verify system status before testing. Start here to validate your environment configuration and system health before proceeding with API testing.",
       "item": [
         {
           "name": "Health Checks",
-          "description": "Basic health check endpoints to verify system components",
+          "description": "Basic health check endpoints to verify system components. These endpoints provide quick health status checks for the application, Google OAuth configuration, and overall system availability. Essential for monitoring and load balancer health checks.",
           "item": [
             {
               "name": "Application Health Check",
@@ -1276,18 +1276,18 @@
         },
         {
           "name": "Configuration Tests",
-          "description": "Test environment configuration and connectivity",
+          "description": "Test environment configuration and connectivity. These endpoints validate environment setup, configuration parameters, and system connectivity before proceeding with comprehensive API testing. Essential for ensuring proper test environment preparation.",
           "item": []
         }
       ]
     },
     {
       "name": "🔐 Authentication",
-      "description": "Complete authentication flows including basic auth and Google OAuth integration",
+      "description": "Complete authentication flows including basic auth and Google OAuth integration. These endpoints handle user authentication, token management, and account linking functionality.",
       "item": [
         {
           "name": "Basic Auth",
-          "description": "Standard email/password authentication endpoints",
+          "description": "Standard email/password authentication endpoints. These endpoints handle traditional login flows with email and password credentials, including error scenarios and validation examples. All authentication responses automatically capture JWT tokens for subsequent API calls.",
           "item": [
             {
               "name": "Login",
@@ -1736,7 +1736,7 @@
         },
         {
           "name": "Google OAuth Flow",
-          "description": "Google OAuth 2.0 authentication flow endpoints",
+          "description": "Google OAuth 2.0 authentication flow endpoints. These endpoints handle the complete OAuth flow including authorization URL generation, callback processing, and token exchange. Includes proper state management and tenant-specific Google SSO configuration validation.",
           "item": [
             {
               "name": "1. Initiate Google OAuth",
@@ -1967,7 +1967,7 @@
         },
         {
           "name": "Account Linking",
-          "description": "Link and unlink Google accounts with existing users",
+          "description": "Link and unlink Google accounts with existing users. These endpoints allow users to connect their Google accounts to existing platform accounts, enabling multiple authentication methods. Includes email validation and account security features.",
           "item": [
             {
               "name": "1. Initiate Google Account Linking",
@@ -2263,7 +2263,7 @@
         },
         {
           "name": "Auth Management",
-          "description": "Manage authentication methods and user auth status",
+          "description": "Manage authentication methods and user auth status. These endpoints provide information about available authentication methods for users, including Google OAuth status and account linking capabilities.",
           "item": [
             {
               "name": "Get User Authentication Methods",
@@ -2366,11 +2366,11 @@
     },
     {
       "name": "🏢 Tenant Management",
-      "description": "Tenant registration and Google SSO configuration management",
+      "description": "Tenant registration and Google SSO configuration management. These endpoints handle multi-tenant setup, configuration, and Google SSO integration settings.",
       "item": [
         {
           "name": "Tenant Registration",
-          "description": "Register new tenants and manage tenant lifecycle",
+          "description": "Register new tenants and manage tenant lifecycle. These endpoints handle tenant creation with admin user setup, default role and permission initialization, and tenant configuration. Includes validation examples and conflict handling scenarios.",
           "item": [
             {
               "name": "Register New Tenant",
@@ -2672,7 +2672,7 @@
         },
         {
           "name": "Google SSO Settings",
-          "description": "Configure and manage Google SSO settings for tenants",
+          "description": "Configure and manage Google SSO settings for tenants. These endpoints allow tenant administrators to configure Google OAuth integration, manage SSO-only modes, and control Google authentication availability for their tenant users.",
           "item": [
             {
               "name": "Get Google SSO Settings",
@@ -3163,11 +3163,11 @@
     },
     {
       "name": "👥 User Management",
-      "description": "Complete user lifecycle management with roles and permissions",
+      "description": "Complete user lifecycle management with roles and permissions. These endpoints handle user CRUD operations, role assignments, and direct permission management within the tenant context.",
       "item": [
         {
           "name": "CRUD Operations",
-          "description": "Create, read, update, and delete user operations",
+          "description": "Create, read, update, and delete user operations. These endpoints handle complete user lifecycle management within the tenant context, including user creation, profile updates, and account deletion with proper permission validation.",
           "item": [
             {
               "name": "Get All Users",
@@ -3639,7 +3639,7 @@
         },
         {
           "name": "Role Assignment",
-          "description": "Assign and manage user roles",
+          "description": "Assign and manage user roles. These endpoints handle role assignment to users, including multiple role assignments, role removal, and role replacement operations. All operations respect tenant isolation and permission requirements.",
           "item": [
             {
               "name": "Assign Roles to User",
@@ -3894,7 +3894,7 @@
         },
         {
           "name": "Permission Management",
-          "description": "Manage user permissions and view effective permissions",
+          "description": "Manage user permissions and view effective permissions. These endpoints handle direct permission assignments to users (beyond role-based permissions) and provide comprehensive views of all effective permissions including both role-based and direct assignments.",
           "item": [
             {
               "name": "Assign Permissions to User",
@@ -4263,11 +4263,11 @@
     },
     {
       "name": "🛡️ Role & Permission System",
-      "description": "Role-based access control system management",
+      "description": "Role-based access control (RBAC) system management. These endpoints handle role creation, permission management, and the assignment of permissions to roles for comprehensive access control.",
       "item": [
         {
           "name": "Role Management",
-          "description": "Create and manage roles with permission assignments",
+          "description": "Create and manage roles with permission assignments. These endpoints handle role lifecycle management including creation, updates, deletion, and permission assignment to roles. Supports comprehensive RBAC system configuration within tenant boundaries.",
           "item": [
             {
               "name": "Get All Roles",
@@ -4820,7 +4820,7 @@
         },
         {
           "name": "Permission Management",
-          "description": "Create and manage individual permissions",
+          "description": "Create and manage individual permissions. These endpoints handle permission creation and deletion, providing the building blocks for the RBAC system. Permissions define granular access controls that can be assigned to roles or directly to users.",
           "item": [
             {
               "name": "Get All Permissions",
@@ -5402,11 +5402,11 @@
     },
     {
       "name": "📁 Project Management",
-      "description": "Project lifecycle management within tenant context",
+      "description": "Project lifecycle management within tenant context. These endpoints handle project creation, updates, deletion, and management with proper tenant isolation and permission controls.",
       "item": [
         {
           "name": "CRUD Operations",
-          "description": "Complete project management operations",
+          "description": "Complete project management operations. These endpoints handle project lifecycle management including creation, retrieval, updates, and deletion within the tenant context. Includes project ownership assignment and proper access control validation.",
           "item": [
             {
               "name": "Get All Projects",
@@ -6051,11 +6051,11 @@
     },
     {
       "name": "🔔 Notification System",
-      "description": "Comprehensive notification system with preferences and broadcasting",
+      "description": "Comprehensive notification system with preferences, broadcasting, and privacy controls. These endpoints handle notification CRUD operations, user preferences, tenant-wide broadcasting, and privacy management.",
       "item": [
         {
           "name": "Notification CRUD",
-          "description": "Create, read, update, and delete notifications",
+          "description": "Create, read, update, and delete notifications. These endpoints handle individual notification management including creation with multiple channels (email, SMS, in-app), marking as read, bulk operations, and notification deletion with proper tenant isolation.",
           "item": [
             {
               "name": "Create Notification",
@@ -6828,7 +6828,7 @@
         },
         {
           "name": "Notification Preferences",
-          "description": "Manage user notification preferences by category and channel",
+          "description": "Manage user notification preferences by category and channel. These endpoints allow users to configure their notification preferences for different categories (system, marketing, security) and channels (email, SMS, in-app), providing granular control over notification delivery.",
           "item": [
             {
               "name": "Get User Notification Preferences",
@@ -7390,7 +7390,7 @@
         },
         {
           "name": "Broadcasting",
-          "description": "Tenant-wide notification broadcasting (admin only)",
+          "description": "Tenant-wide notification broadcasting (admin only). These endpoints allow tenant administrators to send notifications to all users within their tenant, with proper rate limiting and admin permission validation. Useful for system announcements and tenant-wide communications.",
           "item": [
             {
               "name": "Broadcast to Tenant",
@@ -7752,18 +7752,18 @@
         },
         {
           "name": "Privacy Controls",
-          "description": "Notification privacy and visibility controls",
+          "description": "Notification privacy and visibility controls. These endpoints handle notification privacy settings, visibility controls, and data protection features ensuring compliance with privacy regulations and user preferences for notification data handling.",
           "item": []
         }
       ]
     },
     {
       "name": "📊 System Monitoring",
-      "description": "System health monitoring and alerting (admin access required)",
+      "description": "System health monitoring and alerting (admin access required). These endpoints provide queue monitoring, alert management, and comprehensive health checks for system administrators.",
       "item": [
         {
           "name": "Queue Monitoring",
-          "description": "Monitor notification queues and processing statistics",
+          "description": "Monitor notification queues and processing statistics. These endpoints provide detailed insights into queue performance, processing rates, failed jobs, and system throughput metrics. Requires admin access for security and operational oversight.",
           "item": [
             {
               "name": "Get Queue Statistics",
@@ -7955,7 +7955,7 @@
         },
         {
           "name": "Alert Management",
-          "description": "Configure and manage system alerts",
+          "description": "Configure and manage system alerts. These endpoints handle alert configuration, alert history retrieval, manual alert testing, and automated alert checking. Provides comprehensive alerting capabilities for system administrators to monitor critical system events.",
           "item": [
             {
               "name": "Get Alert Configuration",
@@ -8822,7 +8822,7 @@
         },
         {
           "name": "Health Checks",
-          "description": "Detailed system health and component status checks",
+          "description": "Detailed system health and component status checks. These endpoints provide comprehensive health monitoring including database connectivity, external service status, and detailed system diagnostics for troubleshooting and maintenance purposes.",
           "item": [
             {
               "name": "Comprehensive System Health Check",
