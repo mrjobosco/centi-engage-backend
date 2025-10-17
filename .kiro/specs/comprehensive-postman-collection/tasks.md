@@ -52,14 +52,14 @@
     - Add proper role and permission ID management
     - _Requirements: 2.2, 3.4_
 
-- [ ] 5. Create role and permission management endpoints
-  - [ ] 5.1 Implement role management
+- [x] 5. Create role and permission management endpoints
+  - [x] 5.1 Implement role management
     - Create GET /roles, GET /roles/:id, POST /roles endpoints
     - Add PUT /roles/:id, DELETE /roles/:id, and PUT /roles/:id/permissions
     - Include role ID capture and realistic role examples
     - _Requirements: 1.5, 3.1_
 
-  - [ ] 5.2 Implement permission management
+  - [x] 5.2 Implement permission management
     - Create GET /permissions, POST /permissions, DELETE /permissions/:id
     - Add permission ID capture and proper permission format examples
     - Include permission validation and error handling

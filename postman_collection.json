@@ -3221,12 +3221,1135 @@
         {
           "name": "Role Management",
           "description": "Create and manage roles with permission assignments",
-          "item": []
+          "item": [
+            {
+              "name": "Get All Roles",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier for role isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/roles",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "roles"
+                  ]
+                },
+                "description": "Retrieve all roles in the current tenant with their associated permissions. Requires 'read:role' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Required Permission:** read:role\n\n**Response:**\n- Array of role objects with permissions\n- Each role includes: id, name, description, tenantId, createdAt, updatedAt, permissions\n\n**Use Cases:**\n- List available roles for assignment\n- Role management interface\n- Permission auditing"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get All Roles",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response is an array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "// Capture first role ID if available",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.length > 0) {",
+                      "        pm.collectionVariables.set('roleId', responseJson[0].id);",
+                      "        console.log('✅ Role ID captured:', responseJson[0].id);",
+                      "        console.log('📋 Available roles:', responseJson.map(r => r.name).join(', '));",
+                      "    } else {",
+                      "        console.log('ℹ️ No roles found in tenant');",
+                      "    }",
+                      "}",
+                      "",
+                      "// Validate role structure if roles exist",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.length > 0) {",
+                      "        pm.test('Role objects have required properties', function () {",
+                      "            const role = responseJson[0];",
+                      "            pm.expect(role).to.have.property('id');",
+                      "            pm.expect(role).to.have.property('name');",
+                      "            pm.expect(role).to.have.property('tenantId');",
+                      "            pm.expect(role).to.have.property('createdAt');",
+                      "            pm.expect(role).to.have.property('updatedAt');",
+                      "        });",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Role by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/roles/{{roleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "{{roleId}}"
+                  ]
+                },
+                "description": "Retrieve a specific role by ID with its permissions. Requires 'read:role' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Role ID\n\n**Required Permission:** read:role\n\n**Response:**\n- Role object with full details and permissions\n\n**Use Cases:**\n- View role details\n- Edit role form population\n- Permission analysis"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get Role by ID",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response is a role object', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "});",
+                      "",
+                      "pm.test('Role ID matches requested ID', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestedId = pm.collectionVariables.get('roleId');",
+                      "    pm.expect(responseJson.id).to.equal(requestedId);",
+                      "});",
+                      "",
+                      "pm.test('Role has permissions array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('permissions');",
+                      "    pm.expect(responseJson.permissions).to.be.an('array');",
+                      "});",
+                      "",
+                      "// Log role details",
+                      "if (pm.response.code === 200) {",
+                      "    const role = pm.response.json();",
+                      "    console.log('🎭 Role Details:');",
+                      "    console.log('  Name:', role.name);",
+                      "    console.log('  Description:', role.description || 'No description');",
+                      "    console.log('  Permissions:', role.permissions?.length || 0);",
+                      "    if (role.permissions?.length > 0) {",
+                      "        console.log('  Permission names:', role.permissions.map(p => p.name).join(', '));",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Get Role by ID",
+                      "",
+                      "const roleId = pm.collectionVariables.get('roleId');",
+                      "if (!roleId) {",
+                      "    console.log('⚠️ Warning: roleId not set. Run \"Get All Roles\" first to capture a role ID.');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Role",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Content Manager\",\n  \"description\": \"Can manage all content within the tenant\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/roles",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "roles"
+                  ]
+                },
+                "description": "Create a new role in the current tenant. Requires 'create:role' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Request Body:**\n- `name`: Role name (required, string)\n- `description`: Role description (optional, string)\n\n**Required Permission:** create:role\n\n**Response:**\n- Created role object with generated ID\n\n**Example Role Names:**\n- Admin, Editor, Viewer, Content Manager, Project Manager, Support Agent\n\n**Use Cases:**\n- Create custom roles for organization\n- Set up role-based access control\n- Define permission groups"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Create Role",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Response contains created role', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "    pm.expect(responseJson).to.have.property('tenantId');",
+                      "});",
+                      "",
+                      "pm.test('Role name matches request', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    pm.expect(responseJson.name).to.equal(requestBody.name);",
+                      "});",
+                      "",
+                      "// Capture created role ID",
+                      "if (pm.response.code === 201) {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.collectionVariables.set('roleId', responseJson.id);",
+                      "    console.log('✅ Role created successfully');",
+                      "    console.log('🆔 Role ID captured:', responseJson.id);",
+                      "    console.log('🎭 Role name:', responseJson.name);",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Role",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Senior Content Manager\",\n  \"description\": \"Senior role with enhanced content management capabilities\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/roles/{{roleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "{{roleId}}"
+                  ]
+                },
+                "description": "Update an existing role's name and description. Requires 'update:role' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: Role ID to update\n\n**Request Body:**\n- `name`: New role name (required, string)\n- `description`: New role description (optional, string)\n\n**Required Permission:** update:role\n\n**Response:**\n- Updated role object\n\n**Use Cases:**\n- Rename roles\n- Update role descriptions\n- Role maintenance"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Update Role",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains updated role', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "});",
+                      "",
+                      "pm.test('Role name was updated', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    pm.expect(responseJson.name).to.equal(requestBody.name);",
+                      "});",
+                      "",
+                      "pm.test('Updated timestamp is recent', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const updatedAt = new Date(responseJson.updatedAt);",
+                      "    const now = new Date();",
+                      "    const timeDiff = now - updatedAt;",
+                      "    pm.expect(timeDiff).to.be.below(60000); // Within last minute",
+                      "});",
+                      "",
+                      "// Log update confirmation",
+                      "if (pm.response.code === 200) {",
+                      "    const role = pm.response.json();",
+                      "    console.log('✅ Role updated successfully');",
+                      "    console.log('🎭 New name:', role.name);",
+                      "    console.log('📝 Description:', role.description || 'No description');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Update Role",
+                      "",
+                      "const roleId = pm.collectionVariables.get('roleId');",
+                      "if (!roleId) {",
+                      "    console.log('⚠️ Warning: roleId not set. Create a role first or run \"Get All Roles\" to capture an ID.');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Assign Permissions to Role",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissionIds\": [\n    \"{{permissionId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/roles/{{roleId}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "{{roleId}}",
+                    "permissions"
+                  ]
+                },
+                "description": "Replace all permissions for a role with the provided list. This operation completely replaces the role's permissions. Requires 'update:role' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `id`: Role ID to update permissions for\n\n**Request Body:**\n- `permissionIds`: Array of permission IDs to assign (replaces all existing)\n\n**Required Permission:** update:role\n\n**Response:**\n- Updated role object with new permissions\n\n**Important:** This replaces ALL permissions. To add permissions, include existing ones in the array.\n\n**Use Cases:**\n- Configure role permissions\n- Update access control\n- Permission management"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Assign Permissions to Role",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains role with permissions', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('permissions');",
+                      "});",
+                      "",
+                      "pm.test('Permissions were assigned correctly', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    const assignedPermissionIds = responseJson.permissions.map(p => p.id);",
+                      "    ",
+                      "    requestBody.permissionIds.forEach(permId => {",
+                      "        pm.expect(assignedPermissionIds).to.include(permId);",
+                      "    });",
+                      "});",
+                      "",
+                      "// Log permission assignment results",
+                      "if (pm.response.code === 200) {",
+                      "    const role = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    console.log('✅ Permissions assigned successfully');",
+                      "    console.log('🎭 Role:', role.name);",
+                      "    console.log('📋 Assigned permissions:', role.permissions.length);",
+                      "    console.log('🔑 Permission names:', role.permissions.map(p => p.name).join(', '));",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Assign Permissions to Role",
+                      "",
+                      "const roleId = pm.collectionVariables.get('roleId');",
+                      "const permissionId = pm.collectionVariables.get('permissionId');",
+                      "",
+                      "if (!roleId) {",
+                      "    console.log('⚠️ Warning: roleId not set. Create a role first.');",
+                      "}",
+                      "",
+                      "if (!permissionId) {",
+                      "    console.log('⚠️ Warning: permissionId not set. Create a permission first or run \"Get All Permissions\".');",
+                      "    console.log('💡 Tip: You can manually set permissionId or use multiple permission IDs in the request body.');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete Role",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/roles/{{roleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "{{roleId}}"
+                  ]
+                },
+                "description": "Delete a role and remove it from all users. This operation is irreversible. Requires 'delete:role' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Role ID to delete\n\n**Required Permission:** delete:role\n\n**Response:**\n- Confirmation message\n\n**Important:** This removes the role from all users who have it assigned.\n\n**Use Cases:**\n- Remove obsolete roles\n- Clean up role structure\n- Role lifecycle management"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Delete Role",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains confirmation message', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    // Response structure may vary, check for common success indicators",
+                      "    const hasMessage = responseJson.message || responseJson.success || responseJson.deleted;",
+                      "    pm.expect(hasMessage).to.exist;",
+                      "});",
+                      "",
+                      "// Clear the deleted role ID",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ Role deleted successfully');",
+                      "    console.log('🧹 Clearing roleId variable');",
+                      "    pm.collectionVariables.set('roleId', '');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Delete Role",
+                      "",
+                      "const roleId = pm.collectionVariables.get('roleId');",
+                      "if (!roleId) {",
+                      "    console.log('⚠️ Warning: roleId not set. Create a role first or run \"Get All Roles\" to capture an ID.');",
+                      "} else {",
+                      "    console.log('🗑️ About to delete role ID:', roleId);",
+                      "    console.log('⚠️ This action is irreversible and will remove the role from all users.');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Permission Management",
           "description": "Create and manage individual permissions",
-          "item": []
+          "item": [
+            {
+              "name": "Get All Permissions",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier for permission isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "permissions"
+                  ]
+                },
+                "description": "Retrieve all permissions in the current tenant. Requires 'read:permission' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Required Permission:** read:permission\n\n**Response:**\n- Array of permission objects\n- Each permission includes: id, name, description, tenantId, createdAt, updatedAt\n\n**Permission Format:**\n- Permissions follow the format: action:subject\n- Examples: read:user, create:project, delete:role, manage:notifications\n\n**Use Cases:**\n- List available permissions for role assignment\n- Permission management interface\n- Access control auditing"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Get All Permissions",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response is an array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "// Capture first permission ID if available",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.length > 0) {",
+                      "        pm.collectionVariables.set('permissionId', responseJson[0].id);",
+                      "        console.log('✅ Permission ID captured:', responseJson[0].id);",
+                      "        console.log('🔑 Available permissions:', responseJson.map(p => p.name).join(', '));",
+                      "    } else {",
+                      "        console.log('ℹ️ No permissions found in tenant');",
+                      "    }",
+                      "}",
+                      "",
+                      "// Validate permission structure if permissions exist",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.length > 0) {",
+                      "        pm.test('Permission objects have required properties', function () {",
+                      "            const permission = responseJson[0];",
+                      "            pm.expect(permission).to.have.property('id');",
+                      "            pm.expect(permission).to.have.property('name');",
+                      "            pm.expect(permission).to.have.property('tenantId');",
+                      "            pm.expect(permission).to.have.property('createdAt');",
+                      "            pm.expect(permission).to.have.property('updatedAt');",
+                      "        });",
+                      "        ",
+                      "        pm.test('Permission names follow action:subject format', function () {",
+                      "            const permissions = responseJson;",
+                      "            permissions.forEach(permission => {",
+                      "                // Check if permission name contains a colon (action:subject format)",
+                      "                pm.expect(permission.name).to.match(/^[a-zA-Z_]+:[a-zA-Z_]+$/);",
+                      "            });",
+                      "        });",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Permission",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"manage\",\n  \"subject\": \"reports\",\n  \"description\": \"Can create, read, update, and delete reports\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "permissions"
+                  ]
+                },
+                "description": "Create a new permission in the current tenant. Permissions follow the action:subject format. Requires 'create:permission' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Request Body:**\n- `action`: Permission action (required, string) - e.g., read, create, update, delete, manage\n- `subject`: Permission subject/resource (required, string) - e.g., user, project, role, notification\n- `description`: Permission description (optional, string)\n\n**Required Permission:** create:permission\n\n**Response:**\n- Created permission object with generated ID\n\n**Permission Examples:**\n- read:user, create:project, update:role, delete:notification\n- manage:reports (combines multiple actions)\n- admin:tenant (administrative access)\n\n**Use Cases:**\n- Define custom permissions for specific resources\n- Create fine-grained access control\n- Set up permission-based authorization"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Create Permission",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Response contains created permission', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('name');",
+                      "    pm.expect(responseJson).to.have.property('tenantId');",
+                      "});",
+                      "",
+                      "pm.test('Permission name follows action:subject format', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    const expectedName = `${requestBody.action}:${requestBody.subject}`;",
+                      "    pm.expect(responseJson.name).to.equal(expectedName);",
+                      "});",
+                      "",
+                      "pm.test('Permission has correct format', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.name).to.match(/^[a-zA-Z_]+:[a-zA-Z_]+$/);",
+                      "});",
+                      "",
+                      "// Capture created permission ID",
+                      "if (pm.response.code === 201) {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.collectionVariables.set('permissionId', responseJson.id);",
+                      "    console.log('✅ Permission created successfully');",
+                      "    console.log('🆔 Permission ID captured:', responseJson.id);",
+                      "    console.log('🔑 Permission name:', responseJson.name);",
+                      "    console.log('📝 Description:', responseJson.description || 'No description');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Permission - Read User Example",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"read\",\n  \"subject\": \"user\",\n  \"description\": \"Can view user information and profiles\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "permissions"
+                  ]
+                },
+                "description": "Example of creating a basic read permission for users. This demonstrates the standard permission format and is commonly used in role-based access control.\n\n**Permission Created:** read:user\n**Use Case:** Allow users to view other users' information\n**Common Assignment:** Assigned to most user roles for basic functionality"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Create Permission - Read User Example",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Permission name is read:user', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.name).to.equal('read:user');",
+                      "});",
+                      "",
+                      "// Log creation of standard permission",
+                      "if (pm.response.code === 201) {",
+                      "    console.log('✅ Standard read:user permission created');",
+                      "    console.log('🔑 This is a commonly used permission for basic user access');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Permission - Invalid Format Example",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"\",\n  \"subject\": \"user\",\n  \"description\": \"Invalid permission with empty action\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "permissions"
+                  ]
+                },
+                "description": "Example of invalid permission creation with empty action field. This demonstrates validation error handling.\n\n**Expected Response:** 400 Bad Request\n**Use Case:** Testing input validation and error handling"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Create Permission - Invalid Format Example",
+                      "",
+                      "pm.test('Status code is 400 for invalid input', function () {",
+                      "    pm.expect(pm.response.code).to.equal(400);",
+                      "});",
+                      "",
+                      "pm.test('Error response has proper structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "});",
+                      "",
+                      "pm.test('Error message mentions validation', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const message = responseJson.message.toLowerCase();",
+                      "    const hasValidationError = message.includes('validation') || ",
+                      "                               message.includes('required') || ",
+                      "                               message.includes('empty') ||",
+                      "                               message.includes('action');",
+                      "    pm.expect(hasValidationError).to.be.true;",
+                      "});",
+                      "",
+                      "console.log('✅ Validation error properly handled for empty action field');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete Permission",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/permissions/{{permissionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "permissions",
+                    "{{permissionId}}"
+                  ]
+                },
+                "description": "Delete a permission and remove it from all roles and users. This operation is irreversible. Requires 'delete:permission' permission.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Permission ID to delete\n\n**Required Permission:** delete:permission\n\n**Response:**\n- Confirmation message with deleted permission ID\n\n**Important:** This removes the permission from all roles and users who have it assigned.\n\n**Use Cases:**\n- Remove obsolete permissions\n- Clean up permission structure\n- Permission lifecycle management\n- Security cleanup"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for Delete Permission",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains confirmation message', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('object');",
+                      "    // Check for common success indicators",
+                      "    const hasConfirmation = responseJson.message || ",
+                      "                           responseJson.success || ",
+                      "                           responseJson.deletedPermissionId;",
+                      "    pm.expect(hasConfirmation).to.exist;",
+                      "});",
+                      "",
+                      "pm.test('Deleted permission ID is included in response', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestedId = pm.collectionVariables.get('permissionId');",
+                      "    ",
+                      "    // Check if the response includes the deleted permission ID",
+                      "    const hasDeletedId = responseJson.deletedPermissionId === requestedId ||",
+                      "                         responseJson.id === requestedId ||",
+                      "                         (responseJson.message && responseJson.message.includes(requestedId));",
+                      "    pm.expect(hasDeletedId).to.be.true;",
+                      "});",
+                      "",
+                      "// Clear the deleted permission ID",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ Permission deleted successfully');",
+                      "    console.log('🧹 Clearing permissionId variable');",
+                      "    pm.collectionVariables.set('permissionId', '');",
+                      "}",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for Delete Permission",
+                      "",
+                      "const permissionId = pm.collectionVariables.get('permissionId');",
+                      "if (!permissionId) {",
+                      "    console.log('⚠️ Warning: permissionId not set. Create a permission first or run \"Get All Permissions\" to capture an ID.');",
+                      "} else {",
+                      "    console.log('🗑️ About to delete permission ID:', permissionId);",
+                      "    console.log('⚠️ This action is irreversible and will remove the permission from all roles and users.');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Permission Validation Suite",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"validate\",\n  \"subject\": \"permissions\",\n  \"description\": \"Test permission for validation suite\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "permissions"
+                  ]
+                },
+                "description": "Comprehensive permission validation suite that tests multiple aspects of permission creation including format validation, tenant isolation, and security checks.\n\n**Validation Coverage:**\n- Permission name format validation\n- Tenant isolation verification\n- Duplicate permission handling\n- Response structure validation\n- Security header checks\n\n**Use Case:** Complete permission system validation and security testing"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Comprehensive Permission Validation Suite",
+                      "",
+                      "// Basic response validation",
+                      "pm.test('Permission creation response is valid', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([201, 409]); // Created or conflict",
+                      "});",
+                      "",
+                      "// Format validation for successful creation",
+                      "if (pm.response.code === 201) {",
+                      "    pm.test('Permission format validation', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        const requestBody = JSON.parse(pm.request.body.raw);",
+                      "        ",
+                      "        // Validate permission name format",
+                      "        const expectedName = `${requestBody.action}:${requestBody.subject}`;",
+                      "        pm.expect(responseJson.name).to.equal(expectedName);",
+                      "        ",
+                      "        // Validate action:subject pattern",
+                      "        pm.expect(responseJson.name).to.match(/^[a-zA-Z_]+:[a-zA-Z_]+$/);",
+                      "        ",
+                      "        console.log('✅ Permission format validation passed');",
+                      "        console.log('🔑 Permission name:', responseJson.name);",
+                      "    });",
+                      "    ",
+                      "    pm.test('Tenant isolation validation', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        const currentTenantId = pm.collectionVariables.get('tenantId');",
+                      "        ",
+                      "        // Verify permission belongs to current tenant",
+                      "        pm.expect(responseJson.tenantId).to.equal(currentTenantId);",
+                      "        ",
+                      "        console.log('✅ Tenant isolation validated');",
+                      "        console.log('🏢 Tenant ID:', responseJson.tenantId);",
+                      "    });",
+                      "    ",
+                      "    pm.test('Permission metadata validation', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        ",
+                      "        // Check required fields",
+                      "        pm.expect(responseJson).to.have.property('id');",
+                      "        pm.expect(responseJson).to.have.property('name');",
+                      "        pm.expect(responseJson).to.have.property('tenantId');",
+                      "        pm.expect(responseJson).to.have.property('createdAt');",
+                      "        pm.expect(responseJson).to.have.property('updatedAt');",
+                      "        ",
+                      "        // Validate timestamps",
+                      "        const createdAt = new Date(responseJson.createdAt);",
+                      "        const updatedAt = new Date(responseJson.updatedAt);",
+                      "        pm.expect(createdAt.getTime()).to.be.a('number');",
+                      "        pm.expect(updatedAt.getTime()).to.be.a('number');",
+                      "        ",
+                      "        console.log('✅ Permission metadata validation passed');",
+                      "    });",
+                      "    ",
+                      "    // Capture permission for cleanup",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.collectionVariables.set('permissionId', responseJson.id);",
+                      "    console.log('🆔 Permission ID captured for validation suite:', responseJson.id);",
+                      "}",
+                      "",
+                      "// Conflict handling validation",
+                      "if (pm.response.code === 409) {",
+                      "    pm.test('Duplicate permission handling', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "        ",
+                      "        const message = responseJson.message.toLowerCase();",
+                      "        const hasConflictInfo = message.includes('exists') || ",
+                      "                               message.includes('duplicate') || ",
+                      "                               message.includes('conflict');",
+                      "        pm.expect(hasConflictInfo).to.be.true;",
+                      "        ",
+                      "        console.log('✅ Duplicate permission properly rejected');",
+                      "    });",
+                      "}",
+                      "",
+                      "// Security validation",
+                      "pm.test('Security headers validation', function () {",
+                      "    const headers = pm.response.headers;",
+                      "    ",
+                      "    // Content-Type should be JSON",
+                      "    pm.expect(headers.get('Content-Type')).to.include('application/json');",
+                      "    ",
+                      "    console.log('🔒 Security headers validated');",
+                      "});",
+                      "",
+                      "// Performance validation",
+                      "pm.test('Permission creation performance', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "    ",
+                      "    if (pm.response.responseTime > 1000) {",
+                      "        console.log('⚠️ Warning: Permission creation took longer than 1 second');",
+                      "    } else {",
+                      "        console.log('⚡ Permission creation performance is good');",
+                      "    }",
+                      "});",
+                      "",
+                      "// Overall validation summary",
+                      "console.log('📊 Permission Validation Suite Summary:');",
+                      "console.log('  Status:', pm.response.status);",
+                      "console.log('  Response Time:', pm.response.responseTime + 'ms');",
+                      "console.log('  Content Length:', pm.response.headers.get('Content-Length') || 'Unknown');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     },
