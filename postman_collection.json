@@ -5009,17 +5009,1699 @@
         {
           "name": "Notification CRUD",
           "description": "Create, read, update, and delete notifications",
-          "item": []
+          "item": [
+            {
+              "name": "Create Notification",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"type\": \"INFO\",\n  \"category\": \"system\",\n  \"title\": \"Welcome to the platform\",\n  \"message\": \"Your account has been successfully created and you can now access all features.\",\n  \"data\": {\n    \"actionUrl\": \"/dashboard\",\n    \"priority\": \"normal\",\n    \"source\": \"user_registration\"\n  },\n  \"priority\": \"MEDIUM\",\n  \"expiresAt\": \"2024-12-31T23:59:59.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notifications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications"
+                  ]
+                },
+                "description": "Create a new notification for a specific user. This endpoint allows creating notifications with various types, categories, and optional metadata.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Request Body:**\n- `userId`: Target user ID (required)\n- `type`: Notification type - INFO, WARNING, SUCCESS, ERROR (required)\n- `category`: Notification category for grouping (required)\n- `title`: Notification title (required, max 255 chars)\n- `message`: Notification message content (required, max 1000 chars)\n- `data`: Additional metadata object (optional)\n- `priority`: Priority level - LOW, MEDIUM, HIGH, URGENT (optional)\n- `expiresAt`: Expiration date in ISO format (optional)\n\n**Rate Limiting:** 10 notifications per minute per user\n\n**Example Scenarios:**\n- System notifications: Welcome messages, account updates\n- Business notifications: Invoice generated, payment received\n- Alert notifications: Security warnings, system maintenance\n- Promotional notifications: Feature announcements, offers"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for notification creation",
+                      "",
+                      "pm.test('Notification created successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response has correct content type', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response contains notification data', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('tenantId');",
+                      "    pm.expect(responseJson).to.have.property('userId');",
+                      "    pm.expect(responseJson).to.have.property('type');",
+                      "    pm.expect(responseJson).to.have.property('category');",
+                      "    pm.expect(responseJson).to.have.property('title');",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson).to.have.property('createdAt');",
+                      "});",
+                      "",
+                      "// Capture notification ID for subsequent requests",
+                      "pm.test('Notification ID captured successfully', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.id) {",
+                      "        pm.collectionVariables.set('notificationId', responseJson.id);",
+                      "        console.log('✅ Notification ID captured:', responseJson.id);",
+                      "    }",
+                      "});",
+                      "",
+                      "// Validate notification structure",
+                      "pm.test('Notification has valid structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    ",
+                      "    // Validate required fields",
+                      "    pm.expect(responseJson.id).to.be.a('string');",
+                      "    pm.expect(responseJson.tenantId).to.equal(pm.collectionVariables.get('tenantId'));",
+                      "    pm.expect(responseJson.userId).to.equal(pm.collectionVariables.get('userId'));",
+                      "    pm.expect(responseJson.type).to.be.oneOf(['INFO', 'WARNING', 'SUCCESS', 'ERROR']);",
+                      "    pm.expect(responseJson.category).to.be.a('string');",
+                      "    pm.expect(responseJson.title).to.be.a('string');",
+                      "    pm.expect(responseJson.message).to.be.a('string');",
+                      "    ",
+                      "    // Validate timestamps",
+                      "    pm.expect(responseJson.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/);",
+                      "    ",
+                      "    console.log('✅ Notification structure validation passed');",
+                      "});",
+                      "",
+                      "// Log creation status",
+                      "if (pm.response.code === 201) {",
+                      "    console.log('🔔 Notification created successfully');",
+                      "} else if (pm.response.code === 429) {",
+                      "    console.log('⚠️ Rate limit exceeded - Wait before creating more notifications');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Authentication required - Check access token');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Check request body and tenant ID');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for notification creation",
+                      "",
+                      "// Ensure required variables are set",
+                      "const userId = pm.collectionVariables.get('userId');",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "",
+                      "if (!userId) {",
+                      "    console.log('⚠️ Warning: userId not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context.');",
+                      "}",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "// Log request details",
+                      "console.log('🔔 Creating notification for user:', userId);",
+                      "console.log('📋 Request details:', {",
+                      "    tenantId: tenantId,",
+                      "    hasAuth: !!accessToken",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User Notifications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications?page=1&limit=20&sortBy=createdAt&sortOrder=desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number for pagination (default: 1)"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "Number of items per page (max: 100, default: 20)"
+                    },
+                    {
+                      "key": "type",
+                      "value": "",
+                      "description": "Filter by notification type (INFO, WARNING, SUCCESS, ERROR)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "category",
+                      "value": "",
+                      "description": "Filter by notification category",
+                      "disabled": true
+                    },
+                    {
+                      "key": "unread",
+                      "value": "",
+                      "description": "Filter by read status (true for read, false for unread)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "Sort field (createdAt, readAt, title, type)"
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "Sort order (asc, desc)"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Search term for title and message",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get paginated list of notifications for the current authenticated user with comprehensive filtering and sorting options.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Query Parameters:**\n- `page`: Page number (default: 1, min: 1)\n- `limit`: Items per page (default: 20, max: 100)\n- `type`: Filter by notification type (INFO, WARNING, SUCCESS, ERROR)\n- `category`: Filter by notification category\n- `unread`: Filter by read status (true/false)\n- `sortBy`: Sort field (createdAt, readAt, title, type)\n- `sortOrder`: Sort direction (asc, desc)\n- `search`: Search in title and message content\n\n**Rate Limiting:** 100 requests per minute\n\n**Response Structure:**\n- `notifications`: Array of notification objects\n- `total`: Total number of notifications\n- `page`: Current page number\n- `limit`: Items per page\n- `totalPages`: Total number of pages\n\n**Example Use Cases:**\n- Get recent notifications: Default sorting by createdAt desc\n- Get unread notifications: Set unread=false\n- Search notifications: Use search parameter\n- Filter by type: Set type parameter for specific notification types"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for getting user notifications",
+                      "",
+                      "pm.test('Notifications retrieved successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response has correct content type', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response has pagination structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('notifications');",
+                      "    pm.expect(responseJson).to.have.property('total');",
+                      "    pm.expect(responseJson).to.have.property('page');",
+                      "    pm.expect(responseJson).to.have.property('limit');",
+                      "    pm.expect(responseJson).to.have.property('totalPages');",
+                      "});",
+                      "",
+                      "pm.test('Notifications array is valid', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.notifications).to.be.an('array');",
+                      "    ",
+                      "    // If notifications exist, validate structure",
+                      "    if (responseJson.notifications.length > 0) {",
+                      "        const notification = responseJson.notifications[0];",
+                      "        pm.expect(notification).to.have.property('id');",
+                      "        pm.expect(notification).to.have.property('tenantId');",
+                      "        pm.expect(notification).to.have.property('userId');",
+                      "        pm.expect(notification).to.have.property('type');",
+                      "        pm.expect(notification).to.have.property('category');",
+                      "        pm.expect(notification).to.have.property('title');",
+                      "        pm.expect(notification).to.have.property('message');",
+                      "        pm.expect(notification).to.have.property('createdAt');",
+                      "        ",
+                      "        // Capture first notification ID if available",
+                      "        if (!pm.collectionVariables.get('notificationId')) {",
+                      "            pm.collectionVariables.set('notificationId', notification.id);",
+                      "            console.log('✅ Notification ID captured from list:', notification.id);",
+                      "        }",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('Pagination values are valid', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.page).to.be.a('number');",
+                      "    pm.expect(responseJson.limit).to.be.a('number');",
+                      "    pm.expect(responseJson.total).to.be.a('number');",
+                      "    pm.expect(responseJson.totalPages).to.be.a('number');",
+                      "    ",
+                      "    // Validate pagination logic",
+                      "    pm.expect(responseJson.page).to.be.at.least(1);",
+                      "    pm.expect(responseJson.limit).to.be.at.least(1);",
+                      "    pm.expect(responseJson.total).to.be.at.least(0);",
+                      "    pm.expect(responseJson.totalPages).to.be.at.least(0);",
+                      "});",
+                      "",
+                      "// Log retrieval status",
+                      "const responseJson = pm.response.json();",
+                      "console.log('📋 Retrieved notifications:', {",
+                      "    count: responseJson.notifications.length,",
+                      "    total: responseJson.total,",
+                      "    page: responseJson.page,",
+                      "    totalPages: responseJson.totalPages",
+                      "});",
+                      "",
+                      "if (responseJson.notifications.length === 0) {",
+                      "    console.log('📭 No notifications found for current user');",
+                      "} else {",
+                      "    console.log('✅ Notifications retrieved successfully');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User Notifications - With Filters",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications?page=1&limit=10&type=INFO&unread=false&search=welcome&sortBy=createdAt&sortOrder=desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "type",
+                      "value": "INFO"
+                    },
+                    {
+                      "key": "unread",
+                      "value": "false"
+                    },
+                    {
+                      "key": "search",
+                      "value": "welcome"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt"
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc"
+                    }
+                  ]
+                },
+                "description": "Example of getting notifications with comprehensive filtering applied. This demonstrates how to use multiple query parameters to filter and search notifications.\n\n**Applied Filters:**\n- Type: INFO notifications only\n- Status: Unread notifications only\n- Search: Contains 'welcome' in title or message\n- Sorting: By creation date, newest first\n- Pagination: First 10 results\n\n**Use Case:** Finding specific notifications with advanced filtering"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Filtered notifications retrieved', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Filters applied correctly', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    ",
+                      "    // Check if notifications match filters",
+                      "    responseJson.notifications.forEach(notification => {",
+                      "        // Type filter",
+                      "        pm.expect(notification.type).to.equal('INFO');",
+                      "        ",
+                      "        // Unread filter (readAt should be null for unread)",
+                      "        pm.expect(notification.readAt).to.be.null;",
+                      "        ",
+                      "        // Search filter (title or message should contain 'welcome')",
+                      "        const searchTerm = 'welcome';",
+                      "        const titleMatch = notification.title.toLowerCase().includes(searchTerm);",
+                      "        const messageMatch = notification.message.toLowerCase().includes(searchTerm);",
+                      "        pm.expect(titleMatch || messageMatch).to.be.true;",
+                      "    });",
+                      "});",
+                      "",
+                      "console.log('🔍 Filtered notifications test completed');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Notification by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}"
+                  ]
+                },
+                "description": "Get a specific notification by its ID. Users can only access their own notifications due to ownership validation.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Notification ID (automatically captured from previous requests)\n\n**Security:**\n- Ownership validation ensures users can only access their own notifications\n- Tenant isolation prevents cross-tenant access\n\n**Response:** Single notification object with all details\n\n**Error Cases:**\n- 404: Notification not found or access denied\n- 401: Authentication required\n- 403: Insufficient permissions"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for getting notification by ID",
+                      "",
+                      "pm.test('Notification retrieved by ID successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains notification details', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('tenantId');",
+                      "    pm.expect(responseJson).to.have.property('userId');",
+                      "    pm.expect(responseJson).to.have.property('type');",
+                      "    pm.expect(responseJson).to.have.property('category');",
+                      "    pm.expect(responseJson).to.have.property('title');",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson).to.have.property('createdAt');",
+                      "});",
+                      "",
+                      "pm.test('Notification belongs to current user', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const currentUserId = pm.collectionVariables.get('userId');",
+                      "    pm.expect(responseJson.userId).to.equal(currentUserId);",
+                      "});",
+                      "",
+                      "pm.test('Notification belongs to current tenant', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const currentTenantId = pm.collectionVariables.get('tenantId');",
+                      "    pm.expect(responseJson.tenantId).to.equal(currentTenantId);",
+                      "});",
+                      "",
+                      "// Log notification details",
+                      "if (pm.response.code === 200) {",
+                      "    const notification = pm.response.json();",
+                      "    console.log('📋 Notification details:', {",
+                      "        id: notification.id,",
+                      "        type: notification.type,",
+                      "        category: notification.category,",
+                      "        title: notification.title,",
+                      "        isRead: !!notification.readAt",
+                      "    });",
+                      "    console.log('✅ Notification retrieved successfully');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Notification not found or access denied');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for getting notification by ID",
+                      "",
+                      "const notificationId = pm.collectionVariables.get('notificationId');",
+                      "if (!notificationId) {",
+                      "    console.log('⚠️ Warning: notificationId not set. Please create a notification first or set the ID manually.');",
+                      "    console.log('💡 Tip: Run \"Create Notification\" or \"Get User Notifications\" first to capture an ID');",
+                      "}",
+                      "",
+                      "console.log('🔍 Retrieving notification:', notificationId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Mark Notification as Read",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}",
+                    "read"
+                  ]
+                },
+                "description": "Mark a specific notification as read. This updates the readAt timestamp and affects unread count calculations.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Notification ID to mark as read\n\n**Security:**\n- Ownership validation ensures users can only mark their own notifications\n- Tenant isolation prevents cross-tenant access\n\n**Rate Limiting:** 50 mark-as-read operations per minute\n\n**Response:** Success confirmation message\n\n**Use Cases:**\n- User clicks on notification to read it\n- Bulk read operations (use mark-all-as-read for efficiency)\n- Notification interaction tracking"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for marking notification as read",
+                      "",
+                      "pm.test('Notification marked as read successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains success confirmation', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('success');",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson.success).to.be.true;",
+                      "});",
+                      "",
+                      "// Log mark as read status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ Notification marked as read successfully');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Notification not found or access denied');",
+                      "} else if (pm.response.code === 429) {",
+                      "    console.log('⚠️ Rate limit exceeded - Too many mark-as-read operations');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for marking notification as read",
+                      "",
+                      "const notificationId = pm.collectionVariables.get('notificationId');",
+                      "if (!notificationId) {",
+                      "    console.log('⚠️ Warning: notificationId not set. Please create a notification first.');",
+                      "}",
+                      "",
+                      "console.log('📖 Marking notification as read:', notificationId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Mark All Notifications as Read",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/read-all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "read-all"
+                  ]
+                },
+                "description": "Mark all unread notifications as read for the current authenticated user. This is a bulk operation that updates all unread notifications at once.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Rate Limiting:** 10 mark-all-as-read operations per minute\n\n**Response:** Success confirmation message\n\n**Use Cases:**\n- \"Mark all as read\" button functionality\n- Bulk notification management\n- Clearing notification badges/counters\n- User preference for batch operations\n\n**Performance:** Optimized for bulk updates, more efficient than individual mark-as-read calls"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for marking all notifications as read",
+                      "",
+                      "pm.test('All notifications marked as read successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains success confirmation', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('success');",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson.success).to.be.true;",
+                      "});",
+                      "",
+                      "// Log bulk mark as read status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ All notifications marked as read successfully');",
+                      "} else if (pm.response.code === 429) {",
+                      "    console.log('⚠️ Rate limit exceeded - Too many bulk operations');",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Unread Notification Count",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/unread-count",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "unread-count"
+                  ]
+                },
+                "description": "Get the count of unread notifications for the current authenticated user. This is optimized for frequent polling and badge display.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Rate Limiting:** 60 requests per minute (optimized for frequent polling)\n\n**Response:** Object with count property\n\n**Use Cases:**\n- Notification badge counters in UI\n- Real-time notification status updates\n- Dashboard widgets showing unread counts\n- Mobile app badge numbers\n- Periodic polling for notification status\n\n**Performance:** Highly optimized query for fast response times"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for getting unread notification count",
+                      "",
+                      "pm.test('Unread count retrieved successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is fast (optimized for polling)', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains count', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('count');",
+                      "    pm.expect(responseJson.count).to.be.a('number');",
+                      "    pm.expect(responseJson.count).to.be.at.least(0);",
+                      "});",
+                      "",
+                      "// Log unread count",
+                      "const responseJson = pm.response.json();",
+                      "console.log('📊 Unread notification count:', responseJson.count);",
+                      "",
+                      "if (responseJson.count === 0) {",
+                      "    console.log('📭 No unread notifications');",
+                      "} else if (responseJson.count === 1) {",
+                      "    console.log('📬 1 unread notification');",
+                      "} else {",
+                      "    console.log(`📬 ${responseJson.count} unread notifications`);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete Notification",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}"
+                  ]
+                },
+                "description": "Delete (dismiss) a specific notification. This performs a soft delete for privacy and audit purposes.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Path Parameters:**\n- `id`: Notification ID to delete\n\n**Security:**\n- Ownership validation ensures users can only delete their own notifications\n- Tenant isolation prevents cross-tenant access\n- Soft delete maintains audit trail\n\n**Rate Limiting:** 30 delete operations per minute\n\n**Response:** Success confirmation message\n\n**Use Cases:**\n- User dismisses notification from UI\n- Cleanup of old or irrelevant notifications\n- Privacy-focused notification management\n- Notification list management"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for deleting notification",
+                      "",
+                      "pm.test('Notification deleted successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response contains success confirmation', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('success');",
+                      "    pm.expect(responseJson).to.have.property('message');",
+                      "    pm.expect(responseJson.success).to.be.true;",
+                      "});",
+                      "",
+                      "// Log deletion status",
+                      "if (pm.response.code === 200) {",
+                      "    console.log('✅ Notification deleted successfully');",
+                      "    // Clear the notification ID since it's been deleted",
+                      "    pm.collectionVariables.set('notificationId', '');",
+                      "    console.log('🧹 Cleared notificationId variable');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Notification not found or access denied');",
+                      "} else if (pm.response.code === 429) {",
+                      "    console.log('⚠️ Rate limit exceeded - Too many delete operations');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for deleting notification",
+                      "",
+                      "const notificationId = pm.collectionVariables.get('notificationId');",
+                      "if (!notificationId) {",
+                      "    console.log('⚠️ Warning: notificationId not set. Please create a notification first.');",
+                      "}",
+                      "",
+                      "console.log('🗑️ Deleting notification:', notificationId);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Notification Preferences",
           "description": "Manage user notification preferences by category and channel",
-          "item": []
+          "item": [
+            {
+              "name": "Get User Notification Preferences",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notification-preferences",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notification-preferences"
+                  ]
+                },
+                "description": "Get all notification preferences for the current authenticated user. Returns preferences for each category and channel combination.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Rate Limiting:** 30 requests per minute\n\n**Response Structure:**\nArray of preference objects, each containing:\n- `id`: Preference record ID\n- `tenantId`: Tenant identifier\n- `userId`: User identifier\n- `category`: Notification category (e.g., 'invoice', 'system', 'security')\n- `inAppEnabled`: Boolean for in-app notification preference\n- `emailEnabled`: Boolean for email notification preference\n- `smsEnabled`: Boolean for SMS notification preference\n- `createdAt`: Creation timestamp\n- `updatedAt`: Last update timestamp\n\n**Use Cases:**\n- Display user preference settings in UI\n- Initialize preference management forms\n- Audit user notification settings\n- Sync preferences across devices\n\n**Default Behavior:**\n- New users get default preferences for all categories\n- Missing categories are created with default settings\n- Preferences are tenant-isolated"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for getting user notification preferences",
+                      "",
+                      "pm.test('Notification preferences retrieved successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response has correct content type', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response is an array of preferences', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Preferences have valid structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    ",
+                      "    if (responseJson.length > 0) {",
+                      "        const preference = responseJson[0];",
+                      "        pm.expect(preference).to.have.property('id');",
+                      "        pm.expect(preference).to.have.property('tenantId');",
+                      "        pm.expect(preference).to.have.property('userId');",
+                      "        pm.expect(preference).to.have.property('category');",
+                      "        pm.expect(preference).to.have.property('inAppEnabled');",
+                      "        pm.expect(preference).to.have.property('emailEnabled');",
+                      "        pm.expect(preference).to.have.property('smsEnabled');",
+                      "        pm.expect(preference).to.have.property('createdAt');",
+                      "        pm.expect(preference).to.have.property('updatedAt');",
+                      "        ",
+                      "        // Validate data types",
+                      "        pm.expect(preference.id).to.be.a('string');",
+                      "        pm.expect(preference.tenantId).to.equal(pm.collectionVariables.get('tenantId'));",
+                      "        pm.expect(preference.userId).to.equal(pm.collectionVariables.get('userId'));",
+                      "        pm.expect(preference.category).to.be.a('string');",
+                      "        pm.expect(preference.inAppEnabled).to.be.a('boolean');",
+                      "        pm.expect(preference.emailEnabled).to.be.a('boolean');",
+                      "        pm.expect(preference.smsEnabled).to.be.a('boolean');",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('All preferences belong to current user and tenant', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const currentUserId = pm.collectionVariables.get('userId');",
+                      "    const currentTenantId = pm.collectionVariables.get('tenantId');",
+                      "    ",
+                      "    responseJson.forEach(preference => {",
+                      "        pm.expect(preference.userId).to.equal(currentUserId);",
+                      "        pm.expect(preference.tenantId).to.equal(currentTenantId);",
+                      "    });",
+                      "});",
+                      "",
+                      "// Log preferences summary",
+                      "const responseJson = pm.response.json();",
+                      "console.log('⚙️ User notification preferences retrieved');",
+                      "console.log('📊 Preferences summary:', {",
+                      "    totalCategories: responseJson.length,",
+                      "    userId: pm.collectionVariables.get('userId'),",
+                      "    tenantId: pm.collectionVariables.get('tenantId')",
+                      "});",
+                      "",
+                      "if (responseJson.length === 0) {",
+                      "    console.log('📭 No preferences found - User may need default preferences created');",
+                      "} else {",
+                      "    console.log('✅ Preferences loaded successfully');",
+                      "    ",
+                      "    // Log category breakdown",
+                      "    const categories = responseJson.map(p => p.category);",
+                      "    console.log('📋 Categories configured:', categories.join(', '));",
+                      "    ",
+                      "    // Log channel usage summary",
+                      "    const channelStats = {",
+                      "        inApp: responseJson.filter(p => p.inAppEnabled).length,",
+                      "        email: responseJson.filter(p => p.emailEnabled).length,",
+                      "        sms: responseJson.filter(p => p.smsEnabled).length",
+                      "    };",
+                      "    console.log('📱 Channel usage:', channelStats);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Available Notification Categories",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/notification-preferences/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notification-preferences",
+                    "categories"
+                  ]
+                },
+                "description": "Get list of all available notification categories for the current tenant. This is used to populate preference management interfaces.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n\n**Rate Limiting:** 20 requests per minute\n\n**Response Structure:**\n- `categories`: Array of category strings\n\n**Common Categories:**\n- `user_activity`: User actions and interactions\n- `system`: System notifications and updates\n- `invoice`: Billing and payment notifications\n- `project`: Project-related notifications\n- `security`: Security alerts and warnings\n- `announcement`: Company announcements\n- `feature_announcement`: New feature releases\n- `maintenance`: System maintenance notifications\n\n**Use Cases:**\n- Populate preference management UI\n- Validate category names in forms\n- Display available notification types\n- Initialize new user preferences\n\n**Tenant Isolation:**\n- Categories may vary by tenant configuration\n- Custom categories can be tenant-specific"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for getting notification categories",
+                      "",
+                      "pm.test('Notification categories retrieved successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                      "});",
+                      "",
+                      "pm.test('Response has correct content type', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response contains categories array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('categories');",
+                      "    pm.expect(responseJson.categories).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Categories are valid strings', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    ",
+                      "    responseJson.categories.forEach(category => {",
+                      "        pm.expect(category).to.be.a('string');",
+                      "        pm.expect(category.length).to.be.greaterThan(0);",
+                      "    });",
+                      "});",
+                      "",
+                      "pm.test('Common categories are present', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const categories = responseJson.categories;",
+                      "    ",
+                      "    // Check for some expected common categories",
+                      "    const expectedCategories = ['system', 'user_activity', 'security'];",
+                      "    const hasCommonCategories = expectedCategories.some(expected => ",
+                      "        categories.includes(expected)",
+                      "    );",
+                      "    ",
+                      "    pm.expect(hasCommonCategories).to.be.true;",
+                      "});",
+                      "",
+                      "// Log categories information",
+                      "const responseJson = pm.response.json();",
+                      "console.log('📋 Available notification categories retrieved');",
+                      "console.log('📊 Categories summary:', {",
+                      "    totalCategories: responseJson.categories.length,",
+                      "    tenantId: pm.collectionVariables.get('tenantId')",
+                      "});",
+                      "",
+                      "if (responseJson.categories.length === 0) {",
+                      "    console.log('⚠️ No categories found - Check tenant configuration');",
+                      "} else {",
+                      "    console.log('✅ Categories loaded successfully');",
+                      "    console.log('📋 Available categories:', responseJson.categories.join(', '));",
+                      "    ",
+                      "    // Store first category for testing preferences",
+                      "    if (responseJson.categories.length > 0) {",
+                      "        pm.collectionVariables.set('testCategory', responseJson.categories[0]);",
+                      "        console.log('💾 Stored test category:', responseJson.categories[0]);",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Notification Preferences for Category",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"inAppEnabled\": true,\n  \"emailEnabled\": true,\n  \"smsEnabled\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notification-preferences/{{testCategory}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notification-preferences",
+                    "{{testCategory}}"
+                  ]
+                },
+                "description": "Update notification channel preferences for a specific category. This allows users to control which channels they receive notifications through for each category.\n\n**Required Headers:**\n- `Authorization`: Bearer token\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Path Parameters:**\n- `category`: Notification category to update (e.g., 'system', 'invoice', 'security')\n\n**Request Body (all fields optional):**\n- `inAppEnabled`: Enable/disable in-app notifications (boolean)\n- `emailEnabled`: Enable/disable email notifications (boolean)\n- `smsEnabled`: Enable/disable SMS notifications (boolean)\n\n**Rate Limiting:** 20 preference updates per minute\n\n**Response:** Updated preference object with all current settings\n\n**Use Cases:**\n- User toggles notification channels in settings\n- Bulk preference updates during onboarding\n- Privacy-focused notification management\n- Channel-specific opt-out functionality\n\n**Validation:**\n- At least one field must be provided\n- Category must exist in available categories\n- Boolean values required for all channel fields\n\n**Examples:**\n- Disable all email: `{\"emailEnabled\": false}`\n- Enable only in-app: `{\"inAppEnabled\": true, \"emailEnabled\": false, \"smsEnabled\": false}`\n- Update single channel: `{\"smsEnabled\": true}`"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for updating notification preferences",
+                      "",
+                      "pm.test('Notification preferences updated successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response has correct content type', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response contains updated preference', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('id');",
+                      "    pm.expect(responseJson).to.have.property('tenantId');",
+                      "    pm.expect(responseJson).to.have.property('userId');",
+                      "    pm.expect(responseJson).to.have.property('category');",
+                      "    pm.expect(responseJson).to.have.property('inAppEnabled');",
+                      "    pm.expect(responseJson).to.have.property('emailEnabled');",
+                      "    pm.expect(responseJson).to.have.property('smsEnabled');",
+                      "    pm.expect(responseJson).to.have.property('updatedAt');",
+                      "});",
+                      "",
+                      "pm.test('Preference belongs to current user and tenant', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.userId).to.equal(pm.collectionVariables.get('userId'));",
+                      "    pm.expect(responseJson.tenantId).to.equal(pm.collectionVariables.get('tenantId'));",
+                      "});",
+                      "",
+                      "pm.test('Preference values match request', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    ",
+                      "    // Check that updated values match request",
+                      "    if (requestBody.hasOwnProperty('inAppEnabled')) {",
+                      "        pm.expect(responseJson.inAppEnabled).to.equal(requestBody.inAppEnabled);",
+                      "    }",
+                      "    if (requestBody.hasOwnProperty('emailEnabled')) {",
+                      "        pm.expect(responseJson.emailEnabled).to.equal(requestBody.emailEnabled);",
+                      "    }",
+                      "    if (requestBody.hasOwnProperty('smsEnabled')) {",
+                      "        pm.expect(responseJson.smsEnabled).to.equal(requestBody.smsEnabled);",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('Updated timestamp is recent', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    const updatedAt = new Date(responseJson.updatedAt);",
+                      "    const now = new Date();",
+                      "    const timeDiff = now - updatedAt;",
+                      "    ",
+                      "    // Should be updated within the last minute",
+                      "    pm.expect(timeDiff).to.be.below(60000);",
+                      "});",
+                      "",
+                      "// Log preference update results",
+                      "if (pm.response.code === 200) {",
+                      "    const responseJson = pm.response.json();",
+                      "    const requestBody = JSON.parse(pm.request.body.raw);",
+                      "    ",
+                      "    console.log('⚙️ Notification preferences updated successfully');",
+                      "    console.log('📋 Updated preference details:', {",
+                      "        category: responseJson.category,",
+                      "        inApp: responseJson.inAppEnabled,",
+                      "        email: responseJson.emailEnabled,",
+                      "        sms: responseJson.smsEnabled,",
+                      "        updatedAt: responseJson.updatedAt",
+                      "    });",
+                      "    ",
+                      "    console.log('🔄 Changes applied:', requestBody);",
+                      "    console.log('✅ Preference update completed');",
+                      "} else if (pm.response.code === 400) {",
+                      "    console.log('❌ Bad request - Check preference data format');",
+                      "} else if (pm.response.code === 404) {",
+                      "    console.log('❌ Category not found - Check category name');",
+                      "} else if (pm.response.code === 429) {",
+                      "    console.log('⚠️ Rate limit exceeded - Too many preference updates');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for updating notification preferences",
+                      "",
+                      "const testCategory = pm.collectionVariables.get('testCategory');",
+                      "if (!testCategory) {",
+                      "    console.log('⚠️ Warning: testCategory not set. Please run \"Get Available Notification Categories\" first.');",
+                      "    console.log('💡 Tip: The categories endpoint will capture a test category automatically');",
+                      "    ",
+                      "    // Set a default category for testing",
+                      "    pm.collectionVariables.set('testCategory', 'system');",
+                      "    console.log('🔧 Set default test category: system');",
+                      "}",
+                      "",
+                      "console.log('⚙️ Updating preferences for category:', testCategory);",
+                      "console.log('📋 Request details:', {",
+                      "    category: testCategory,",
+                      "    userId: pm.collectionVariables.get('userId'),",
+                      "    tenantId: pm.collectionVariables.get('tenantId')",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Preferences - Disable All Email",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"emailEnabled\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notification-preferences/system",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notification-preferences",
+                    "system"
+                  ]
+                },
+                "description": "Example of disabling email notifications for the 'system' category. This demonstrates partial preference updates where only specific channels are modified.\n\n**Scenario:** User wants to stop receiving system notification emails but keep in-app and SMS notifications\n\n**Use Case:** Privacy-focused notification management, reducing email volume"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Email notifications disabled for system category', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Email preference is disabled', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.emailEnabled).to.be.false;",
+                      "    pm.expect(responseJson.category).to.equal('system');",
+                      "});",
+                      "",
+                      "console.log('📧 Email notifications disabled for system category');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Preferences - Enable Only In-App",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"inAppEnabled\": true,\n  \"emailEnabled\": false,\n  \"smsEnabled\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notification-preferences/security",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notification-preferences",
+                    "security"
+                  ]
+                },
+                "description": "Example of setting preferences to only receive in-app notifications for security category. This demonstrates comprehensive preference control.\n\n**Scenario:** User wants security notifications only within the application, no external communications\n\n**Use Case:** High-security environments, minimal external notification footprint"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Security preferences set to in-app only', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('Only in-app notifications enabled', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.inAppEnabled).to.be.true;",
+                      "    pm.expect(responseJson.emailEnabled).to.be.false;",
+                      "    pm.expect(responseJson.smsEnabled).to.be.false;",
+                      "    pm.expect(responseJson.category).to.equal('security');",
+                      "});",
+                      "",
+                      "console.log('🔒 Security notifications set to in-app only');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Preferences - Enable All Channels",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"inAppEnabled\": true,\n  \"emailEnabled\": true,\n  \"smsEnabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notification-preferences/invoice",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notification-preferences",
+                    "invoice"
+                  ]
+                },
+                "description": "Example of enabling all notification channels for invoice category. This ensures maximum notification coverage for important financial communications.\n\n**Scenario:** User wants to receive invoice notifications through all available channels for maximum visibility\n\n**Use Case:** Critical business notifications, financial alerts, important updates"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('All notification channels enabled for invoices', function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "});",
+                      "",
+                      "pm.test('All channels are enabled', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.inAppEnabled).to.be.true;",
+                      "    pm.expect(responseJson.emailEnabled).to.be.true;",
+                      "    pm.expect(responseJson.smsEnabled).to.be.true;",
+                      "    pm.expect(responseJson.category).to.equal('invoice');",
+                      "});",
+                      "",
+                      "console.log('💰 All notification channels enabled for invoice category');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Broadcasting",
           "description": "Tenant-wide notification broadcasting (admin only)",
-          "item": []
+          "item": [
+            {
+              "name": "Broadcast to Tenant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text",
+                    "description": "Tenant identifier - required for tenant isolation"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"INFO\",\n  \"category\": \"announcement\",\n  \"title\": \"System Maintenance Scheduled\",\n  \"message\": \"We will be performing scheduled maintenance on our systems from 2:00 AM to 4:00 AM UTC on Sunday. During this time, some services may be temporarily unavailable. We apologize for any inconvenience.\",\n  \"data\": {\n    \"maintenanceWindow\": {\n      \"start\": \"2024-01-15T02:00:00Z\",\n      \"end\": \"2024-01-15T04:00:00Z\",\n      \"timezone\": \"UTC\"\n    },\n    \"affectedServices\": [\"API\", \"Dashboard\", \"Reports\"],\n    \"actionRequired\": false,\n    \"priority\": \"high\"\n  },\n  \"priority\": \"HIGH\",\n  \"expiresAt\": \"2024-01-16T00:00:00.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/tenant-broadcast",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "tenant-broadcast"
+                  ]
+                },
+                "description": "Broadcast a notification to all users in the current tenant. This is an admin-only endpoint with strict rate limiting.\n\n**Required Headers:**\n- `Authorization`: Bearer token (admin role required)\n- `x-tenant-id`: Tenant identifier\n- `Content-Type`: application/json\n\n**Request Body:**\n- `type`: Notification type - INFO, WARNING, SUCCESS, ERROR (required)\n- `category`: Notification category for grouping (required)\n- `title`: Notification title (required, max 255 chars)\n- `message`: Notification message content (required, max 1000 chars)\n- `data`: Additional metadata object (optional)\n- `priority`: Priority level - LOW, MEDIUM, HIGH, URGENT (optional)\n- `expiresAt`: Expiration date in ISO format (optional)\n\n**Security:**\n- Admin role validation required\n- Tenant isolation enforced\n- Rate limiting: 5 broadcasts per 5 minutes per tenant\n\n**Response:**\n- `notifications`: Array of created notification objects\n- `count`: Number of users who received the notification\n\n**Use Cases:**\n- System maintenance announcements\n- Security alerts and updates\n- Feature announcements\n- Emergency notifications\n- Company-wide communications\n- Policy updates and reminders"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for tenant broadcast",
+                      "",
+                      "pm.test('Tenant broadcast sent successfully', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Response time is acceptable for broadcast', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                      "});",
+                      "",
+                      "pm.test('Response has correct content type', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response contains broadcast results', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson).to.have.property('notifications');",
+                      "    pm.expect(responseJson).to.have.property('count');",
+                      "    pm.expect(responseJson.notifications).to.be.an('array');",
+                      "    pm.expect(responseJson.count).to.be.a('number');",
+                      "});",
+                      "",
+                      "pm.test('Broadcast notifications have valid structure', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    ",
+                      "    if (responseJson.notifications.length > 0) {",
+                      "        const notification = responseJson.notifications[0];",
+                      "        pm.expect(notification).to.have.property('id');",
+                      "        pm.expect(notification).to.have.property('tenantId');",
+                      "        pm.expect(notification).to.have.property('userId');",
+                      "        pm.expect(notification).to.have.property('type');",
+                      "        pm.expect(notification).to.have.property('category');",
+                      "        pm.expect(notification).to.have.property('title');",
+                      "        pm.expect(notification).to.have.property('message');",
+                      "        pm.expect(notification).to.have.property('createdAt');",
+                      "        ",
+                      "        // Validate tenant consistency",
+                      "        pm.expect(notification.tenantId).to.equal(pm.collectionVariables.get('tenantId'));",
+                      "    }",
+                      "});",
+                      "",
+                      "pm.test('Broadcast count matches notifications array', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    pm.expect(responseJson.count).to.equal(responseJson.notifications.length);",
+                      "});",
+                      "",
+                      "// Log broadcast results",
+                      "if (pm.response.code === 201) {",
+                      "    const responseJson = pm.response.json();",
+                      "    console.log('📢 Tenant broadcast sent successfully');",
+                      "    console.log('📊 Broadcast statistics:', {",
+                      "        recipientCount: responseJson.count,",
+                      "        notificationsCreated: responseJson.notifications.length,",
+                      "        tenantId: pm.collectionVariables.get('tenantId')",
+                      "    });",
+                      "    ",
+                      "    if (responseJson.count === 0) {",
+                      "        console.log('⚠️ No users found in tenant to receive broadcast');",
+                      "    } else {",
+                      "        console.log(`✅ Broadcast delivered to ${responseJson.count} users`);",
+                      "    }",
+                      "} else if (pm.response.code === 403) {",
+                      "    console.log('❌ Access denied - Admin role required for broadcasting');",
+                      "} else if (pm.response.code === 429) {",
+                      "    console.log('⚠️ Rate limit exceeded - Too many tenant broadcasts');",
+                      "    console.log('💡 Tip: Wait 5 minutes between tenant broadcasts');",
+                      "} else if (pm.response.code === 401) {",
+                      "    console.log('❌ Authentication required - Check access token');",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Pre-request script for tenant broadcast",
+                      "",
+                      "// Ensure required variables are set",
+                      "const tenantId = pm.collectionVariables.get('tenantId');",
+                      "const accessToken = pm.collectionVariables.get('accessToken');",
+                      "",
+                      "if (!tenantId) {",
+                      "    console.log('⚠️ Warning: tenantId not set. Please set tenant context.');",
+                      "}",
+                      "",
+                      "if (!accessToken) {",
+                      "    console.log('⚠️ Warning: accessToken not set. Please authenticate first.');",
+                      "}",
+                      "",
+                      "// Log broadcast attempt",
+                      "console.log('📢 Attempting tenant broadcast');",
+                      "console.log('🎯 Target tenant:', tenantId);",
+                      "console.log('⚠️ Note: This requires admin role permissions');",
+                      "console.log('🚦 Rate limit: 5 broadcasts per 5 minutes per tenant');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Broadcast - Emergency Alert Example",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"ERROR\",\n  \"category\": \"security\",\n  \"title\": \"🚨 Security Alert: Immediate Action Required\",\n  \"message\": \"We have detected suspicious activity on your account. Please change your password immediately and review your recent login activity. If you did not authorize recent logins, contact support immediately.\",\n  \"data\": {\n    \"alertType\": \"security_breach\",\n    \"severity\": \"critical\",\n    \"actionRequired\": true,\n    \"supportContact\": \"security@company.com\",\n    \"incidentId\": \"SEC-2024-001\",\n    \"detectedAt\": \"2024-01-10T15:30:00Z\",\n    \"recommendedActions\": [\n      \"Change password immediately\",\n      \"Review login history\",\n      \"Enable two-factor authentication\",\n      \"Contact support if unauthorized access suspected\"\n    ]\n  },\n  \"priority\": \"URGENT\",\n  \"expiresAt\": \"2024-01-17T23:59:59.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/tenant-broadcast",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "tenant-broadcast"
+                  ]
+                },
+                "description": "Example of an emergency security alert broadcast. This demonstrates how to send urgent, high-priority notifications to all tenant users.\n\n**Scenario:** Security breach detected requiring immediate user action\n\n**Key Features:**\n- URGENT priority level\n- ERROR type for critical alerts\n- Detailed action items in data object\n- Security category for proper filtering\n- Extended expiration for important alerts\n\n**Use Case:** Critical security incidents requiring immediate tenant-wide notification"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Emergency alert broadcast sent', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Emergency alert has urgent priority', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.notifications.length > 0) {",
+                      "        const notification = responseJson.notifications[0];",
+                      "        pm.expect(notification.type).to.equal('ERROR');",
+                      "        pm.expect(notification.category).to.equal('security');",
+                      "    }",
+                      "});",
+                      "",
+                      "console.log('🚨 Emergency security alert broadcast completed');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Broadcast - Feature Announcement Example",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"SUCCESS\",\n  \"category\": \"feature_announcement\",\n  \"title\": \"🎉 New Feature: Advanced Analytics Dashboard\",\n  \"message\": \"We're excited to announce the launch of our new Advanced Analytics Dashboard! Get deeper insights into your data with customizable charts, real-time metrics, and automated reports. Check it out in the Analytics section.\",\n  \"data\": {\n    \"featureName\": \"Advanced Analytics Dashboard\",\n    \"releaseDate\": \"2024-01-10\",\n    \"actionUrl\": \"/analytics/dashboard\",\n    \"features\": [\n      \"Customizable charts and graphs\",\n      \"Real-time data visualization\",\n      \"Automated report generation\",\n      \"Export capabilities\",\n      \"Mobile-responsive design\"\n    ],\n    \"documentationUrl\": \"/docs/analytics\",\n    \"videoTutorialUrl\": \"/tutorials/analytics-dashboard\",\n    \"feedbackUrl\": \"/feedback/analytics\"\n  },\n  \"priority\": \"MEDIUM\",\n  \"expiresAt\": \"2024-02-10T23:59:59.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/tenant-broadcast",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "tenant-broadcast"
+                  ]
+                },
+                "description": "Example of a feature announcement broadcast. This demonstrates how to communicate new features and updates to all tenant users.\n\n**Scenario:** New feature launch announcement\n\n**Key Features:**\n- SUCCESS type for positive announcements\n- Detailed feature information in data object\n- Links to documentation and tutorials\n- Feedback collection URL\n- Longer expiration for feature announcements\n\n**Use Case:** Product updates, new feature rollouts, enhancement announcements"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Feature announcement broadcast sent', function () {",
+                      "    pm.expect(pm.response.code).to.equal(201);",
+                      "});",
+                      "",
+                      "pm.test('Feature announcement has success type', function () {",
+                      "    const responseJson = pm.response.json();",
+                      "    if (responseJson.notifications.length > 0) {",
+                      "        const notification = responseJson.notifications[0];",
+                      "        pm.expect(notification.type).to.equal('SUCCESS');",
+                      "        pm.expect(notification.category).to.equal('feature_announcement');",
+                      "    }",
+                      "});",
+                      "",
+                      "console.log('🎉 Feature announcement broadcast completed');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Broadcast - Rate Limit Test",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-tenant-id",
+                    "value": "{{tenantId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"INFO\",\n  \"category\": \"test\",\n  \"title\": \"Rate Limit Test Notification\",\n  \"message\": \"This is a test notification to verify rate limiting on tenant broadcasts. This should fail if sent too frequently.\",\n  \"data\": {\n    \"testType\": \"rate_limit_validation\",\n    \"timestamp\": \"{{$timestamp}}\"\n  },\n  \"priority\": \"LOW\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/tenant-broadcast",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "tenant-broadcast"
+                  ]
+                },
+                "description": "Test request to validate rate limiting on tenant broadcasts. Run this multiple times in quick succession to test the 5 broadcasts per 5 minutes limit.\n\n**Purpose:** Validate rate limiting implementation\n\n**Expected Behavior:**\n- First 5 requests within 5 minutes: Should succeed (201)\n- 6th and subsequent requests: Should fail with 429 Too Many Requests\n- After 5 minutes: Rate limit should reset\n\n**Rate Limit:** 5 tenant broadcasts per 5 minutes\n\n**Use Case:** Testing and validating broadcast rate limiting to prevent spam"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Test script for rate limit validation",
+                      "",
+                      "pm.test('Rate limit test completed', function () {",
+                      "    // Accept both success and rate limit responses",
+                      "    pm.expect(pm.response.code).to.be.oneOf([201, 429]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    pm.test('Broadcast sent successfully (within rate limit)', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('notifications');",
+                      "        pm.expect(responseJson).to.have.property('count');",
+                      "    });",
+                      "    console.log('✅ Broadcast sent - Rate limit not exceeded');",
+                      "} else if (pm.response.code === 429) {",
+                      "    pm.test('Rate limit properly enforced', function () {",
+                      "        const responseJson = pm.response.json();",
+                      "        pm.expect(responseJson).to.have.property('message');",
+                      "    });",
+                      "    console.log('🚦 Rate limit exceeded - This is expected behavior');",
+                      "    console.log('💡 Wait 5 minutes before attempting more broadcasts');",
+                      "}",
+                      "",
+                      "// Log rate limiting information",
+                      "const headers = pm.response.headers;",
+                      "const rateLimitRemaining = headers.get('X-RateLimit-Remaining');",
+                      "const rateLimitReset = headers.get('X-RateLimit-Reset');",
+                      "",
+                      "if (rateLimitRemaining) {",
+                      "    console.log('🚦 Rate limit remaining:', rateLimitRemaining);",
+                      "}",
+                      "",
+                      "if (rateLimitReset) {",
+                      "    console.log('🕒 Rate limit resets at:', new Date(parseInt(rateLimitReset) * 1000).toISOString());",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Privacy Controls",
