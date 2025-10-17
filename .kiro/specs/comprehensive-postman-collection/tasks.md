@@ -6,21 +6,21 @@
   - Set up collection-level authentication and security configurations
   - _Requirements: 1.4, 2.4_
 
-- [ ] 2. Implement core authentication endpoints
-  - [ ] 2.1 Create basic authentication requests
+- [x] 2. Implement core authentication endpoints
+  - [x] 2.1 Create basic authentication requests
     - Implement POST /auth/login with proper test scripts
     - Add environment variable capture for accessToken
     - Include realistic request body examples
     - _Requirements: 1.1, 2.1, 3.2_
 
-  - [ ] 2.2 Implement Google OAuth flow endpoints
+  - [x] 2.2 Implement Google OAuth flow endpoints
     - Create GET /auth/google request with tenant header
     - Implement POST /auth/google/callback with state validation
     - Add Google account linking endpoints (GET and POST)
     - Include Google account unlinking and auth methods endpoints
     - _Requirements: 1.1, 3.4_
 
-  - [ ] 2.3 Add authentication test scripts and validation
+  - [x] 2.3 Add authentication test scripts and validation
     - Implement token capture and validation scripts
     - Add response time and status code validations
     - Create authentication error handling examples
