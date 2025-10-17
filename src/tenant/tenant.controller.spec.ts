@@ -1,11 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TenantController } from './tenant.controller';
 import { TenantService } from './tenant.service';
-import {
-  ConflictException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { RegisterTenantDto } from '../auth/dto/register-tenant.dto';
 import { UpdateGoogleSettingsDto } from '../auth/dto/update-google-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -200,7 +196,16 @@ describe('TenantController', () => {
     const mockUser: RequestUser = {
       id: 'user-1',
       tenantId: 'tenant-1',
-      roles: ['admin'],
+      roles: [
+        {
+          id: 'role-1',
+          name: 'Admin',
+          tenantId: 'tenant-1',
+        },
+      ],
+      email: '',
+      firstName: null,
+      lastName: null,
     };
 
     const mockUpdatedTenant = {

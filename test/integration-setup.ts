@@ -1,8 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { execSync } from 'child_process';
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { createTenantScopingMiddleware } from '../src/database/prisma-tenant.middleware';
 
 // Load test environment variables
 if (process.env.NODE_ENV === 'test') {
@@ -25,6 +23,7 @@ function registerTenantMiddleware(tenantContext: any) {
     // Skip middleware registration in tests for now
     // The newer Prisma version doesn't support $use method
     // (prisma as any).$use(createTenantScopingMiddleware(tenantContext));
+    console.log(tenantContext);
     middlewareRegistered = true;
   }
 }

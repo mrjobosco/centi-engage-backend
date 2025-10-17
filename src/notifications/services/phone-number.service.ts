@@ -167,11 +167,11 @@ export class PhoneNumberService {
   /**
    * Store phone number in user preferences
    */
-  async storeUserPhoneNumber(
+  storeUserPhoneNumber(
     userId: string,
     tenantId: string,
     phoneNumber: string,
-  ): Promise<void> {
+  ): void {
     try {
       if (!this.isValidPhoneNumber(phoneNumber)) {
         throw new Error('Invalid phone number format');

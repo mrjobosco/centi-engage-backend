@@ -187,9 +187,7 @@ export class MetricsService {
   async getDeliveryRate(channel: NotificationChannelType): Promise<number> {
     try {
       // Get metrics from Prometheus registry
-      const metrics = await register.getSingleMetric(
-        'notification_delivery_total',
-      );
+      const metrics = register.getSingleMetric('notification_delivery_total');
 
       if (!metrics) {
         return 0;
@@ -228,9 +226,7 @@ export class MetricsService {
   ): Promise<{ depth: number; lag: number }> {
     try {
       // Get queue depth from Prometheus metrics
-      const depthMetric = await register.getSingleMetric(
-        'notification_queue_depth',
-      );
+      const depthMetric = register.getSingleMetric('notification_queue_depth');
       const lagMetric = register.getSingleMetric(
         'notification_queue_lag_seconds',
       );

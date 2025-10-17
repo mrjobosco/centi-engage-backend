@@ -39,6 +39,9 @@ describe('TenantIsolationGuard', () => {
       id: 'user-123',
       tenantId: 'tenant-123',
       email: 'test@example.com',
+      firstName: null,
+      lastName: null,
+      roles: [],
     };
 
     it('should throw ForbiddenException when user is not authenticated', async () => {
@@ -51,18 +54,18 @@ describe('TenantIsolationGuard', () => {
 
     it('should throw ForbiddenException when tenant context is missing', async () => {
       const context = createMockContext(mockUser);
-      tenantContextService.getTenantId.mockReturnValue(null);
+      tenantContextService.getTenantId.mockReturnValue(undefined);
 
       await expect(guard.canActivate(context)).rejects.toThrow(
         new ForbiddenException('Tenant context is required'),
       );
     });
 
-    it('should allow access when user tenant matches tenant context', async () => {
+    it('should allow access when user tenant matches tenant context', () => {
       const context = createMockContext(mockUser);
       tenantContextService.getTenantId.mockReturnValue('tenant-123');
 
-      const result = await guard.canActivate(context);
+      const result = guard.canActivate(context);
       expect(result).toBe(true);
     });
 
@@ -89,6 +92,9 @@ describe('TenantIsolationGuard', () => {
         id: 'user-456',
         tenantId: 'tenant-456',
         email: 'other@example.com',
+        firstName: null,
+        lastName: null,
+        roles: [],
       };
 
       const context = createMockContext(userWithDifferentTenant);

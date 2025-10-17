@@ -1,7 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 import {
   setupTestApp,
   cleanDatabase,
@@ -11,7 +9,6 @@ import {
   TestUser,
 } from './e2e-setup';
 import { PrismaService } from '../src/database/prisma.service';
-import { NotificationType } from '../src/notifications/enums/notification-type.enum';
 
 describe('Notification Authentication & Authorization (e2e)', () => {
   let app: INestApplication;

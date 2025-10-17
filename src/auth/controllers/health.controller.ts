@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { GoogleOAuthService } from '../services/google-oauth.service';
 import { Public } from '../decorators/public.decorator';
 import { SkipGoogleOAuthRateLimit } from '../decorators/skip-google-oauth-rate-limit.decorator';

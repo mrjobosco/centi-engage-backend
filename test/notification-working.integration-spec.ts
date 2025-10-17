@@ -17,7 +17,6 @@ import { PrismaService } from '../src/database/prisma.service';
 import { MetricsService } from '../src/notifications/services/metrics.service';
 import { NotificationLoggerService } from '../src/notifications/services/notification-logger.service';
 import { PhoneNumberService } from '../src/notifications/services/phone-number.service';
-import { DeliveryStatus } from '@prisma/client';
 import { NotificationType } from '../src/notifications/enums/notification-type.enum';
 import { NotificationChannelType } from '../src/notifications/enums/notification-channel.enum';
 import { prisma } from './integration-setup';

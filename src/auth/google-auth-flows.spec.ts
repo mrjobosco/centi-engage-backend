@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { AuthAuditService } from './services/auth-audit.service';
@@ -10,7 +10,6 @@ import {
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
-  ConflictException,
   NotFoundException,
   Scope,
 } from '@nestjs/common';
@@ -44,8 +43,8 @@ const mockAuthAuditService = {
 
 // Mock Config Service
 const mockConfigService = {
-  get: jest.fn((key: string) => {
-    const config = {
+  get: jest.fn((key: string): string => {
+    const config: Record<string, string> = {
       'config.google.clientId': 'test-client-id',
       'config.google.clientSecret': 'test-client-secret',
       'config.google.callbackUrl': 'http://localhost:3000/auth/google/callback',
@@ -57,9 +56,7 @@ const mockConfigService = {
 describe('Google Authentication Flow Tests', () => {
   let googleAuthService: GoogleAuthService;
   let googleOAuthService: GoogleOAuthService;
-  let authAuditService: AuthAuditService;
   let jwtService: JwtService;
-  let prismaService: any;
   let mockTenantContext: any;
 
   const mockTenant = {
@@ -132,9 +129,7 @@ describe('Google Authentication Flow Tests', () => {
 
     googleAuthService = module.get<GoogleAuthService>(GoogleAuthService);
     googleOAuthService = module.get<GoogleOAuthService>(GoogleOAuthService);
-    authAuditService = module.get<AuthAuditService>(AuthAuditService);
     jwtService = module.get<JwtService>(JwtService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   beforeEach(() => {
@@ -732,15 +727,15 @@ describe('Google Authentication Flow Tests', () => {
     it('should verify all service methods are available', () => {
       // Assert all methods exist
       expect(googleAuthService).toBeDefined();
-      expect(googleAuthService.validateTenantGoogleSSO).toBeDefined();
-      expect(googleAuthService.authenticateWithGoogle).toBeDefined();
-      expect(googleAuthService.linkGoogleAccount).toBeDefined();
-      expect(googleAuthService.unlinkGoogleAccount).toBeDefined();
-      expect(googleAuthService.getUserAuthMethods).toBeDefined();
+      expect(typeof googleAuthService.validateTenantGoogleSSO).toBe('function');
+      expect(typeof googleAuthService.authenticateWithGoogle).toBe('function');
+      expect(typeof googleAuthService.linkGoogleAccount).toBe('function');
+      expect(typeof googleAuthService.unlinkGoogleAccount).toBe('function');
+      expect(typeof googleAuthService.getUserAuthMethods).toBe('function');
 
       expect(googleOAuthService).toBeDefined();
-      expect(googleOAuthService.generateAuthUrl).toBeDefined();
-      expect(googleOAuthService.isConfigured).toBeDefined();
+      expect(typeof googleOAuthService.generateAuthUrl).toBe('function');
+      expect(typeof googleOAuthService.isConfigured).toBe('function');
     });
   });
 });

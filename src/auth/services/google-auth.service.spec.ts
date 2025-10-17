@@ -122,6 +122,7 @@ describe('GoogleAuthService', () => {
       const result = await service.validateTenantGoogleSSO('tenant-1');
 
       expect(result).toEqual(mockTenant);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.tenant.findUnique).toHaveBeenCalledWith({
         where: { id: 'tenant-1' },
         select: {
@@ -175,11 +176,13 @@ describe('GoogleAuthService', () => {
       );
 
       expect(result).toEqual({ accessToken: 'mock-jwt-token' });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(jwtService.sign).toHaveBeenCalledWith({
         userId: 'user-1',
         tenantId: 'tenant-1',
         roles: ['role-1'],
       });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleSignIn).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -201,6 +204,7 @@ describe('GoogleAuthService', () => {
         service.authenticateWithGoogle(mockGoogleProfile, 'tenant-1'),
       ).rejects.toThrow(UnauthorizedException);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleSignIn).toHaveBeenCalledWith(
         'unknown',
         'tenant-1',
@@ -235,6 +239,7 @@ describe('GoogleAuthService', () => {
       );
 
       expect(result).toEqual({ accessToken: 'mock-jwt-token' });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: {
@@ -299,6 +304,7 @@ describe('GoogleAuthService', () => {
         service.authenticateWithGoogle(mockGoogleProfile, 'tenant-1'),
       ).rejects.toThrow(UnauthorizedException);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleSignIn).toHaveBeenCalledWith(
         'unknown',
         'tenant-1',
@@ -377,6 +383,7 @@ describe('GoogleAuthService', () => {
 
       await service.linkGoogleAccount('user-1', mockGoogleProfile);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: {
@@ -385,6 +392,7 @@ describe('GoogleAuthService', () => {
           authMethods: ['password', 'google'],
         },
       });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -401,6 +409,7 @@ describe('GoogleAuthService', () => {
         service.linkGoogleAccount('invalid-user', mockGoogleProfile),
       ).rejects.toThrow(NotFoundException);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
         'invalid-user',
         'unknown',
@@ -421,6 +430,7 @@ describe('GoogleAuthService', () => {
         service.linkGoogleAccount('user-1', mockGoogleProfile),
       ).rejects.toThrow(BadRequestException);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -449,6 +459,7 @@ describe('GoogleAuthService', () => {
         service.linkGoogleAccount('user-1', mockGoogleProfile),
       ).rejects.toThrow(ConflictException);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -482,6 +493,7 @@ describe('GoogleAuthService', () => {
 
       await service.unlinkGoogleAccount('user-1');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: {
@@ -490,6 +502,7 @@ describe('GoogleAuthService', () => {
           authMethods: ['password'],
         },
       });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -506,6 +519,7 @@ describe('GoogleAuthService', () => {
         NotFoundException,
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
         'invalid-user',
         'unknown',
@@ -529,6 +543,7 @@ describe('GoogleAuthService', () => {
         BadRequestException,
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -552,6 +567,7 @@ describe('GoogleAuthService', () => {
         BadRequestException,
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
         'user-1',
         'tenant-1',
@@ -572,6 +588,7 @@ describe('GoogleAuthService', () => {
       const result = await service.getUserAuthMethods('user-1');
 
       expect(result).toEqual(['password', 'google']);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         select: { authMethods: true },

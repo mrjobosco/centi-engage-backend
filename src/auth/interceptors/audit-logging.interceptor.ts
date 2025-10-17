@@ -6,9 +6,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Observable, tap, catchError, throwError } from 'rxjs';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { AuthAuditService } from '../services/auth-audit.service';
-import { RequestUser } from '../interfaces/request-with-user.interface';
 import { ErrorResponseFormatter } from '../errors/error-response.formatter';
 
 /**
@@ -23,11 +22,10 @@ export class AuditLoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
-    const user = request.user as RequestUser | undefined;
 
     // Extract request metadata
     const metadata = this.extractRequestMetadata(request);
-    const auditContext = this.determineAuditContext(request, user);
+    const auditContext = this.determineAuditContext(request);
 
     // Skip if not an auditable endpoint
     if (!auditContext) {
@@ -161,10 +159,7 @@ export class AuditLoggingInterceptor implements NestInterceptor {
   /**
    * Determine if this request should be audited and what context to use
    */
-  private determineAuditContext(
-    request: Request,
-    user?: RequestUser,
-  ): AuditContext | null {
+  private determineAuditContext(request: Request): AuditContext | null {
     const path = request.path;
     const method = request.method;
 

@@ -20,7 +20,6 @@ import { PhoneNumberService } from '../src/notifications/services/phone-number.s
 import { NotificationType } from '../src/notifications/enums/notification-type.enum';
 import { NotificationChannelType } from '../src/notifications/enums/notification-channel.enum';
 import { prisma } from './integration-setup';
-import { NotificationPayload } from '../src/notifications/interfaces/notification-payload.interface';
 
 // Mock Redis for BullMQ
 jest.mock('ioredis', () => {

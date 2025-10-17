@@ -78,6 +78,7 @@ describe('NotificationPrivacyService', () => {
         'user-123',
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.findFirst).toHaveBeenCalledWith({
         where: {
           id: 'notification-123',
@@ -87,6 +88,7 @@ describe('NotificationPrivacyService', () => {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.update).toHaveBeenCalledWith({
         where: {
           id: 'notification-123',
@@ -117,6 +119,7 @@ describe('NotificationPrivacyService', () => {
         'admin-456',
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notificationAuditLog.create).toHaveBeenCalledWith({
         data: {
           notificationId: 'notification-123',
@@ -179,6 +182,7 @@ describe('NotificationPrivacyService', () => {
 
       await service.restoreNotification('notification-123', 'user-123');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.findFirst).toHaveBeenCalledWith({
         where: {
           id: 'notification-123',
@@ -188,6 +192,7 @@ describe('NotificationPrivacyService', () => {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.update).toHaveBeenCalledWith({
         where: {
           id: 'notification-123',
@@ -225,6 +230,7 @@ describe('NotificationPrivacyService', () => {
         metadata: { test: 'data' },
       });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notificationAuditLog.create).toHaveBeenCalledWith({
         data: {
           notificationId: 'notification-123',
@@ -264,6 +270,7 @@ describe('NotificationPrivacyService', () => {
 
       await service.markAsSensitive('notification-123');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.update).toHaveBeenCalledWith({
         where: {
           id: 'notification-123',
@@ -310,6 +317,7 @@ describe('NotificationPrivacyService', () => {
 
       await service.enforceRetentionPolicy();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.findMany).toHaveBeenCalledWith({
         where: {
           OR: [
@@ -335,7 +343,9 @@ describe('NotificationPrivacyService', () => {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.delete).toHaveBeenCalledTimes(2);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notificationAuditLog.create).toHaveBeenCalledTimes(
         1,
       ); // Only for sensitive data
@@ -389,6 +399,7 @@ describe('NotificationPrivacyService', () => {
         totalPages: 1,
       });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-123',

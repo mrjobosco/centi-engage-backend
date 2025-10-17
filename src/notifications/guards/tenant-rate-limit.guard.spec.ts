@@ -1,6 +1,5 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ThrottlerOptions } from '@nestjs/throttler';
 import { TenantRateLimitGuard } from './tenant-rate-limit.guard';
 import { RequestUser } from '../../auth/interfaces/request-with-user.interface';
 

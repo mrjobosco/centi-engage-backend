@@ -175,7 +175,6 @@ describe('Notification API (e2e) - Simple Tests', () => {
 
   describe('Tenant Isolation Tests', () => {
     let tenant2: TestTenant;
-    let tenant2UserToken: string;
 
     beforeEach(async () => {
       // Register second tenant

@@ -125,7 +125,7 @@ export class NotificationEventListener {
       await this.notificationService.sendToTenant(adminNotification);
 
       // Clean up any pending notifications for the deleted user
-      await this.cleanupUserNotifications(event.userId, event.tenantId);
+      this.cleanupUserNotifications(event.userId, event.tenantId);
     } catch (error) {
       this.handleError(error, 'Failed to handle user deleted event');
     }

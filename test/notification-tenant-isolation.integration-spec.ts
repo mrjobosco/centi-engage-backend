@@ -18,9 +18,7 @@ import { MetricsService } from '../src/notifications/services/metrics.service';
 import { NotificationLoggerService } from '../src/notifications/services/notification-logger.service';
 import { PhoneNumberService } from '../src/notifications/services/phone-number.service';
 import { NotificationType } from '../src/notifications/enums/notification-type.enum';
-import { NotificationChannelType } from '../src/notifications/enums/notification-channel.enum';
 import { prisma } from './integration-setup';
-import { NotificationPayload } from '../src/notifications/interfaces/notification-payload.interface';
 
 // Mock Redis for BullMQ
 jest.mock('ioredis', () => {
@@ -69,7 +67,6 @@ const mockSmsProviderFactory = {
 
 describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
   let notificationService: NotificationService;
-  let notificationPreferenceService: NotificationPreferenceService;
   let channelFactory: NotificationChannelFactory;
   let tenantContextService: TenantContextService;
   let prismaService: PrismaService;
@@ -79,8 +76,6 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
 
   let tenant1: any;
   let tenant2: any;
-  let user1: any; // belongs to tenant1
-  let user2: any; // belongs to tenant2
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -164,9 +159,6 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
     }).compile();
 
     notificationService = module.get<NotificationService>(NotificationService);
-    notificationPreferenceService = module.get<NotificationPreferenceService>(
-      NotificationPreferenceService,
-    );
     channelFactory = module.get<NotificationChannelFactory>(
       NotificationChannelFactory,
     );
@@ -208,7 +200,7 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
     });
 
     // Create users for each tenant
-    user1 = await prismaService.user.create({
+    await prismaService.user.create({
       data: {
         email: 'user1@tenant1.com',
         password: 'hashedpassword1',
@@ -218,7 +210,7 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
       },
     });
 
-    user2 = await prismaService.user.create({
+    await prismaService.user.create({
       data: {
         email: 'user2@tenant2.com',
         password: 'hashedpassword2',
@@ -277,7 +269,7 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
         tenant1Data.id,
       );
 
-      const notification1 = await notificationService.create({
+      await notificationService.create({
         tenantId: tenant1Data.id,
         userId: user1Data.id,
         category: 'system',
@@ -294,7 +286,7 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
         tenant2Data.id,
       );
 
-      const notification2 = await notificationService.create({
+      await notificationService.create({
         tenantId: tenant2Data.id,
         userId: user2Data.id,
         category: 'system',
@@ -352,7 +344,7 @@ describe('Notification Tenant Isolation Integration Tests (Simple)', () => {
         tenant1Data.id,
       );
 
-      const notification = await notificationService.create({
+      await notificationService.create({
         tenantId: tenant1Data.id,
         userId: user1Data.id,
         category: 'system',

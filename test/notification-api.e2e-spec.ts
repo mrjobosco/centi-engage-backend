@@ -1,7 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 import {
   setupTestApp,
   cleanDatabase,
@@ -11,7 +9,6 @@ import {
   TestUser,
 } from './e2e-setup';
 import { PrismaService } from '../src/database/prisma.service';
-import { NotificationType } from '../src/notifications/enums/notification-type.enum';
 
 describe('Notification API (e2e)', () => {
   let app: INestApplication;
@@ -21,7 +18,6 @@ describe('Notification API (e2e)', () => {
   let user1: TestUser;
   let user2: TestUser;
   let user1Token: string;
-  let user2Token: string;
   let tenant2UserToken: string;
 
   beforeAll(async () => {
@@ -72,7 +68,7 @@ describe('Notification API (e2e)', () => {
 
     // Get tokens
     user1Token = await loginUser(app, tenant1.id, user1.email, user1.password);
-    user2Token = await loginUser(app, tenant1.id, user2.email, user2.password);
+    await loginUser(app, tenant1.id, user2.email, user2.password);
     tenant2UserToken = await loginUser(
       app,
       tenant2.id,

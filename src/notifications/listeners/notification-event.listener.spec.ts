@@ -51,6 +51,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleUserCreated(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.create).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         userId: 'user-1',
@@ -96,6 +97,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleProjectCreated(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.create).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         userId: 'user-1',
@@ -126,6 +128,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleRoleAssigned(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.create).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         userId: 'user-1',
@@ -156,6 +159,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleSystemMaintenance(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.sendToTenant).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         category: 'system',
@@ -182,6 +186,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleSystemMaintenance(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.sendToTenant).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         category: 'system',
@@ -213,6 +218,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleSecurityAlert(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.create).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         userId: 'user-1',
@@ -241,6 +247,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleSecurityAlert(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.sendToTenant).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         userId: undefined,
@@ -278,6 +285,7 @@ describe('NotificationEventListener', () => {
 
         await listener.handleSecurityAlert(event);
 
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(notificationService.create).toHaveBeenCalledWith(
           expect.objectContaining({
             priority,
@@ -303,6 +311,7 @@ describe('NotificationEventListener', () => {
 
       await listener.handleInvoiceGenerated(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationService.create).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         userId: 'user-1',

@@ -448,9 +448,6 @@ export class AlertingService {
    */
   private async calculateFailureRate(): Promise<number> {
     try {
-      // Calculate failure rate from the last hour of delivery logs
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-
       // This would typically use a metrics service or database query
       // For now, we'll use the metrics service to get delivery rates
       const emailRate = await this.metricsService.getDeliveryRate(

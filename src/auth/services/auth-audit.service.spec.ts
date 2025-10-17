@@ -48,10 +48,10 @@ describe('AuthAuditService', () => {
   beforeEach(async () => {
     const mockPrismaService = {
       notification: {
-        create: jest.fn(),
+        create: jest.fn().mockResolvedValue(mockNotification),
       },
       notificationAuditLog: {
-        create: jest.fn(),
+        create: jest.fn().mockResolvedValue(mockAuditLog),
         findMany: jest.fn(),
       },
     };
@@ -80,8 +80,12 @@ describe('AuthAuditService', () => {
 
   describe('logAuthEvent', () => {
     it('should log successful authentication event', async () => {
-      prismaService.notification.create.mockResolvedValue(mockNotification);
-      prismaService.notificationAuditLog.create.mockResolvedValue(mockAuditLog);
+      (prismaService.notification.create as jest.Mock).mockResolvedValue(
+        mockNotification,
+      );
+      (
+        prismaService.notificationAuditLog.create as jest.Mock
+      ).mockResolvedValue(mockAuditLog);
 
       await service.logAuthEvent(mockAuditEvent);
 
@@ -100,6 +104,7 @@ describe('AuthAuditService', () => {
         test: 'data',
       });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.create).toHaveBeenCalledWith({
         data: {
           tenantId: 'tenant-1',
@@ -122,7 +127,10 @@ describe('AuthAuditService', () => {
         },
       });
 
-      expect(prismaService.notificationAuditLog.create).toHaveBeenCalledWith({
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        prismaService.notificationAuditLog.create as jest.Mock,
+      ).toHaveBeenCalledWith({
         data: {
           notificationId: 'notification-1',
           action: 'google_login',
@@ -149,12 +157,17 @@ describe('AuthAuditService', () => {
         errorMessage: 'Invalid Google token',
       };
 
-      prismaService.notification.create.mockResolvedValue(mockNotification);
-      prismaService.notificationAuditLog.create.mockResolvedValue(mockAuditLog);
+      (prismaService.notification.create as jest.Mock).mockResolvedValue(
+        mockNotification,
+      );
+      (
+        prismaService.notificationAuditLog.create as jest.Mock
+      ).mockResolvedValue(mockAuditLog);
 
       await service.logAuthEvent(failedEvent);
 
-      expect(Logger.prototype.error).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(Logger.prototype.error as jest.Mock).toHaveBeenCalledWith({
         event: 'auth_event',
         user_id: 'user-1',
         tenant_id: 'tenant-1',
@@ -180,19 +193,26 @@ describe('AuthAuditService', () => {
       await service.logAuthEvent(passwordEvent);
 
       expect(loggerSpy).toHaveBeenCalled();
-      expect(prismaService.notification.create).not.toHaveBeenCalled();
-      expect(prismaService.notificationAuditLog.create).not.toHaveBeenCalled();
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        prismaService.notification.create as jest.Mock,
+      ).toHaveBeenCalledTimes(0);
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        prismaService.notificationAuditLog.create as jest.Mock,
+      ).toHaveBeenCalledTimes(0);
     });
 
     it('should handle database errors gracefully', async () => {
-      prismaService.notification.create.mockRejectedValue(
+      (prismaService.notification.create as jest.Mock).mockRejectedValue(
         new Error('Database error'),
       );
 
       await service.logAuthEvent(mockAuditEvent);
 
       expect(loggerSpy).toHaveBeenCalled();
-      expect(Logger.prototype.error).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(Logger.prototype.error as jest.Mock).toHaveBeenCalledWith(
         'Failed to create database audit log',
         expect.objectContaining({
           error: 'Database error',
@@ -339,7 +359,9 @@ describe('AuthAuditService', () => {
         },
       ];
 
-      prismaService.notificationAuditLog.findMany.mockResolvedValue(mockLogs);
+      (
+        prismaService.notificationAuditLog.findMany as jest.Mock
+      ).mockResolvedValue(mockLogs);
 
       const result = await service.getUserAuthAuditLogs(
         'user-1',
@@ -348,7 +370,10 @@ describe('AuthAuditService', () => {
       );
 
       expect(result).toEqual(mockLogs);
-      expect(prismaService.notificationAuditLog.findMany).toHaveBeenCalledWith({
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        prismaService.notificationAuditLog.findMany as jest.Mock,
+      ).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           tenantId: 'tenant-1',
@@ -404,7 +429,10 @@ describe('AuthAuditService', () => {
       const result = await service.getTenantAuthAuditLogs('tenant-1', 50, 10);
 
       expect(result).toEqual(mockLogs);
-      expect(prismaService.notificationAuditLog.findMany).toHaveBeenCalledWith({
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        prismaService.notificationAuditLog.findMany as jest.Mock,
+      ).toHaveBeenCalledWith({
         where: {
           tenantId: 'tenant-1',
           action: {

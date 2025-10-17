@@ -597,6 +597,7 @@ export class NotificationService {
   deleteNotification(notificationId: string, userId: string): void {
     // This method is now deprecated in favor of the privacy service
     // Keeping for backward compatibility
+    console.warn({ notificationId, userId });
     throw new Error(
       'Use NotificationPrivacyService.softDeleteNotification instead',
     );

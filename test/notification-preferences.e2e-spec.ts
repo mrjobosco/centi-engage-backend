@@ -1,7 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 import {
   setupTestApp,
   cleanDatabase,
@@ -137,7 +135,7 @@ describe('Notification Preferences API (e2e)', () => {
 
     it('should return empty array for user with no preferences', async () => {
       // Create a new user with no preferences
-      const newUserResponse = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/users')
         .set('x-tenant-id', tenant1.id)
         .set('Authorization', `Bearer ${user1Token}`)

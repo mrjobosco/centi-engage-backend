@@ -94,6 +94,7 @@ describe('NotificationOwnershipGuard', () => {
       const result = await guard.canActivate(context);
       expect(result).toBe(true);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prismaService.notification.findFirst).toHaveBeenCalledWith({
         where: {
           id: 'notification-123',

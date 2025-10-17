@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
-import { GoogleOAuthService, GoogleProfile } from './google-oauth.service';
+import { GoogleOAuthService } from './google-oauth.service';
 import { OAuth2Client } from 'google-auth-library';
 
 // Mock the google-auth-library
@@ -9,7 +9,6 @@ jest.mock('google-auth-library');
 
 describe('GoogleOAuthService', () => {
   let service: GoogleOAuthService;
-  let configService: jest.Mocked<ConfigService>;
   let mockOAuth2Client: jest.Mocked<OAuth2Client>;
 
   const mockConfig = {
@@ -44,7 +43,6 @@ describe('GoogleOAuthService', () => {
     }).compile();
 
     service = module.get<GoogleOAuthService>(GoogleOAuthService);
-    configService = module.get(ConfigService);
   });
 
   afterEach(() => {
@@ -83,6 +81,7 @@ describe('GoogleOAuthService', () => {
 
       const result = service.generateAuthUrl();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockOAuth2Client.generateAuthUrl).toHaveBeenCalledWith({
         access_type: 'offline',
         scope: ['email', 'profile'],
@@ -99,6 +98,7 @@ describe('GoogleOAuthService', () => {
 
       const result = service.generateAuthUrl(state);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockOAuth2Client.generateAuthUrl).toHaveBeenCalledWith({
         access_type: 'offline',
         scope: ['email', 'profile'],
@@ -122,6 +122,7 @@ describe('GoogleOAuthService', () => {
 
       const result = await service.exchangeCodeForTokens(code);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockOAuth2Client.getToken).toHaveBeenCalledWith(code);
       expect(result).toEqual({
         idToken: 'test-id-token',
@@ -180,6 +181,7 @@ describe('GoogleOAuthService', () => {
 
       const result = await service.verifyIdToken(idToken);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockOAuth2Client.verifyIdToken).toHaveBeenCalledWith({
         idToken,
         audience: 'test-client-id',

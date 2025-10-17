@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
-import { ThrottlerGuard, type ThrottlerOptions } from '@nestjs/throttler';
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { ThrottlerModuleOptions } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { TenantContextService } from '../../tenant/tenant-context.service';
@@ -28,11 +23,13 @@ export class TenantRateLimitGuard extends ThrottlerGuard {
   }
 
   protected async getTracker(req: Record<string, any>): Promise<string> {
+    await Promise.resolve(); // Ensure async context
     const user = req.user as RequestUser;
     return user?.tenantId || req.ip || 'unknown';
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    await Promise.resolve(); // Ensure async context
     // Check if this endpoint should skip tenant rate limiting
     const skipRateLimit = this.reflector.get<boolean>(
       'skipTenantRateLimit',

@@ -116,7 +116,7 @@ describe('HealthController', () => {
   });
 
   describe('getGoogleOAuthStatus', () => {
-    it('should return healthy status when Google OAuth is working', async () => {
+    it('should return healthy status when Google OAuth is working', () => {
       googleOAuthService.isConfigured.mockReturnValue(true);
       googleOAuthService.generateAuthUrl.mockReturnValue(
         'https://accounts.google.com/oauth/authorize?test=true',

@@ -71,8 +71,8 @@ export class EnhancedAuditService extends AuthAuditService {
       await super.logAuthEvent(enhancedEvent);
 
       // Additional enhanced logging
-      await this.logSecurityMetrics(enhancedEvent);
-      await this.checkForSuspiciousActivity(enhancedEvent);
+      this.logSecurityMetrics(enhancedEvent);
+      void this.checkForSuspiciousActivity(enhancedEvent);
 
       // Log structured data for analytics
       this.logStructuredEvent(enhancedEvent);
@@ -137,7 +137,7 @@ export class EnhancedAuditService extends AuthAuditService {
   /**
    * Log security metrics for monitoring
    */
-  private async logSecurityMetrics(event: EnhancedAuditEvent): Promise<void> {
+  private logSecurityMetrics(event: EnhancedAuditEvent): void {
     try {
       const metrics = {
         event_type: 'security_metric',
@@ -164,7 +164,7 @@ export class EnhancedAuditService extends AuthAuditService {
 
       // Store high-risk events for immediate attention
       if (event.riskScore && event.riskScore > 70) {
-        await this.alertHighRiskEvent(event);
+        this.alertHighRiskEvent(event);
       }
     } catch (error) {
       this.enhancedLogger.error('Failed to log security metrics', error);
@@ -187,7 +187,7 @@ export class EnhancedAuditService extends AuthAuditService {
         );
 
         if (recentFailures >= 5) {
-          await this.alertSuspiciousActivity('multiple_failed_attempts', {
+          this.alertSuspiciousActivity('multiple_failed_attempts', {
             ipAddress: event.ipAddress,
             tenantId: event.tenantId,
             failureCount: recentFailures,
@@ -198,7 +198,7 @@ export class EnhancedAuditService extends AuthAuditService {
 
       // Check for unusual login patterns
       if (event.success && event.action.includes('login')) {
-        await this.checkUnusualLoginPatterns(event);
+        this.checkUnusualLoginPatterns(event);
       }
 
       // Check for rapid account linking/unlinking
@@ -293,9 +293,7 @@ export class EnhancedAuditService extends AuthAuditService {
   /**
    * Check for unusual login patterns
    */
-  private async checkUnusualLoginPatterns(
-    event: EnhancedAuditEvent,
-  ): Promise<void> {
+  private checkUnusualLoginPatterns(event: EnhancedAuditEvent): void {
     // Implementation would check for:
     // - Logins from new geographic locations
     // - Logins at unusual times
@@ -329,7 +327,7 @@ export class EnhancedAuditService extends AuthAuditService {
     });
 
     if (recentChanges > 3) {
-      await this.alertSuspiciousActivity('rapid_account_changes', {
+      this.alertSuspiciousActivity('rapid_account_changes', {
         userId: event.userId,
         tenantId: event.tenantId,
         changeCount: recentChanges,
@@ -341,7 +339,7 @@ export class EnhancedAuditService extends AuthAuditService {
   /**
    * Alert high-risk events
    */
-  private async alertHighRiskEvent(event: EnhancedAuditEvent): Promise<void> {
+  private alertHighRiskEvent(event: EnhancedAuditEvent): void {
     this.enhancedLogger.warn('High-risk authentication event detected', {
       userId: event.userId,
       tenantId: event.tenantId,
@@ -358,10 +356,10 @@ export class EnhancedAuditService extends AuthAuditService {
   /**
    * Alert suspicious activity
    */
-  private async alertSuspiciousActivity(
+  private alertSuspiciousActivity(
     activityType: string,
     details: Record<string, any>,
-  ): Promise<void> {
+  ): void {
     this.enhancedLogger.warn(
       `Suspicious activity detected: ${activityType}`,
       details,
@@ -388,7 +386,6 @@ export class EnhancedAuditService extends AuthAuditService {
         uniqueIpAddresses,
         topActions,
         topErrorCodes,
-        hourlyDistribution,
       ] = await Promise.all([
         this.prisma.notificationAuditLog.count({ where: whereClause } as any),
         this.prisma.notificationAuditLog.count({
@@ -407,7 +404,6 @@ export class EnhancedAuditService extends AuthAuditService {
         this.getUniqueIpCount(whereClause),
         this.getTopActions(whereClause),
         this.getTopErrorCodes(whereClause),
-        this.getHourlyDistribution(whereClause),
       ]);
 
       return {
@@ -418,7 +414,7 @@ export class EnhancedAuditService extends AuthAuditService {
         uniqueIpAddresses,
         topActions,
         topErrorCodes,
-        hourlyDistribution,
+        hourlyDistribution: [], // Would implement with hourly data
         geographicDistribution: [], // Would implement with geolocation data
       };
     } catch (error) {
@@ -439,6 +435,7 @@ export class EnhancedAuditService extends AuthAuditService {
 
   private isUnusualGeolocation(geolocation?: { country?: string }): boolean {
     // Implementation would check against user's typical locations
+    console.log(geolocation);
     return false; // Placeholder
   }
 
@@ -528,19 +525,21 @@ export class EnhancedAuditService extends AuthAuditService {
     }));
   }
 
-  private async getTopErrorCodes(
+  private getTopErrorCodes(
     whereClause: any,
   ): Promise<Array<{ errorCode: string; count: number }>> {
     // This would require a more complex query to extract error codes from metadata
     // For now, return empty array
-    return [];
+    console.log(whereClause);
+    return [] as any;
   }
 
-  private async getHourlyDistribution(
+  private getHourlyDistribution(
     whereClause: any,
-  ): Promise<Array<{ hour: number; count: number }>> {
+  ): Array<{ hour: number; count: number }> {
     // This would require a more complex query to group by hour
     // For now, return empty array
+    console.log(whereClause);
     return [];
   }
 }

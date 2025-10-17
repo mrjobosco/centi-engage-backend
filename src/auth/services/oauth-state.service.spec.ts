@@ -39,6 +39,7 @@ describe('OAuthStateService', () => {
 
       expect(state).toBeDefined();
       expect(state).toHaveLength(64); // 32 bytes * 2 (hex)
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.setex).toHaveBeenCalledWith(
         `oauth_state:${state}`,
         600,
@@ -46,7 +47,7 @@ describe('OAuthStateService', () => {
       );
 
       // Verify the stored data doesn't contain userId
-      const storedData = JSON.parse(mockRedis.setex.mock.calls[0][2]);
+      const storedData = JSON.parse(mockRedis.setex.mock.calls[0][2] as string);
       expect(storedData.userId).toBeUndefined();
       expect(storedData.timestamp).toBeCloseTo(Date.now(), -2); // Within 100ms
     });
@@ -59,6 +60,7 @@ describe('OAuthStateService', () => {
 
       expect(state).toBeDefined();
       expect(state).toHaveLength(64);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.setex).toHaveBeenCalledWith(
         `oauth_state:${state}`,
         600,
@@ -66,7 +68,7 @@ describe('OAuthStateService', () => {
       );
 
       // Verify the stored data contains userId
-      const storedData = JSON.parse(mockRedis.setex.mock.calls[0][2]);
+      const storedData = JSON.parse(mockRedis.setex.mock.calls[0][2] as string);
       expect(storedData.userId).toBe(userId);
     });
 
@@ -98,6 +100,7 @@ describe('OAuthStateService', () => {
     it('should return false for empty state', async () => {
       const result = await service.validateState('');
       expect(result).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.get).not.toHaveBeenCalled();
     });
 
@@ -107,6 +110,7 @@ describe('OAuthStateService', () => {
       const result = await service.validateState(mockState);
 
       expect(result).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.get).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 
@@ -117,7 +121,9 @@ describe('OAuthStateService', () => {
       const result = await service.validateState(mockState);
 
       expect(result).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.get).toHaveBeenCalledWith(`oauth_state:${mockState}`);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 
@@ -134,6 +140,7 @@ describe('OAuthStateService', () => {
       const result = await service.validateState(mockState, userId);
 
       expect(result).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 
@@ -149,6 +156,7 @@ describe('OAuthStateService', () => {
       const result = await service.validateState(mockState);
 
       expect(result).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 
@@ -167,6 +175,7 @@ describe('OAuthStateService', () => {
       );
 
       expect(result).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 
@@ -182,6 +191,7 @@ describe('OAuthStateService', () => {
       const result = await service.validateState(mockState); // No expected user ID
 
       expect(result).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 
@@ -227,8 +237,11 @@ describe('OAuthStateService', () => {
       const deletedCount = await service.cleanupExpiredStates();
 
       expect(deletedCount).toBe(2); // state1 (expired) + state3 (invalid JSON)
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith('oauth_state:state1');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).toHaveBeenCalledWith('oauth_state:state3');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.del).not.toHaveBeenCalledWith('oauth_state:state2');
     });
 
@@ -262,6 +275,7 @@ describe('OAuthStateService', () => {
       const result = await service.getStateInfo(mockState);
 
       expect(result).toEqual(mockStateData);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRedis.get).toHaveBeenCalledWith(`oauth_state:${mockState}`);
     });
 

@@ -152,7 +152,7 @@ describe('GoogleAuthMetricsService', () => {
   });
 
   describe('getSuccessRate', () => {
-    it('should return success rate', async () => {
+    it('should return success rate', () => {
       const tenantId = 'tenant-123';
       const successRate = service.getSuccessRate(tenantId);
 
@@ -163,7 +163,7 @@ describe('GoogleAuthMetricsService', () => {
   });
 
   describe('getAverageCallbackLatency', () => {
-    it('should return average callback latency', async () => {
+    it('should return average callback latency', () => {
       const tenantId = 'tenant-123';
       const latency = service.getAverageCallbackLatency(tenantId);
 
