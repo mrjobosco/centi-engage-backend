@@ -1,4 +1,4 @@
-import { InvitationStatus } from '../enums';
+import type { InvitationStatus } from '@prisma/client';
 
 /**
  * Interface representing a tenant invitation entity
@@ -11,10 +11,10 @@ export interface TenantInvitation {
   token: string;
   invitedBy: string;
   expiresAt: Date;
-  acceptedAt?: Date;
-  cancelledAt?: Date;
+  acceptedAt: Date | null;
+  cancelledAt: Date | null;
   status: InvitationStatus;
-  message?: string;
+  message: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,13 +26,13 @@ export interface TenantInvitationWithRelations extends TenantInvitation {
   tenant?: {
     id: string;
     name: string;
-    subdomain?: string;
+    subdomain: string | null;
   };
   inviter?: {
     id: string;
     email: string;
-    firstName?: string;
-    lastName?: string;
+    firstName: string | null;
+    lastName: string | null;
   };
   roles?: Array<{
     id: string;
