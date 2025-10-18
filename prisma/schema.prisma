@@ -35,17 +35,20 @@ model Tenant {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String
-  password       String
-  firstName      String?
-  lastName       String?
-  tenantId       String
-  googleId       String?   @unique @map("google_id") @db.VarChar(255)
-  googleLinkedAt DateTime? @map("google_linked_at")
-  authMethods    String[]  @default(["password"]) @map("auth_methods")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  email                   String
+  password                String
+  firstName               String?
+  lastName                String?
+  tenantId                String
+  googleId                String?   @unique @map("google_id") @db.VarChar(255)
+  googleLinkedAt          DateTime? @map("google_linked_at")
+  authMethods             String[]  @default(["password"]) @map("auth_methods")
+  emailVerified           Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt         DateTime? @map("email_verified_at")
+  verificationTokenSentAt DateTime? @map("verification_token_sent_at")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   roles                   UserRole[]
@@ -60,6 +63,7 @@ model User {
   @@unique([email, tenantId])
   @@index([tenantId])
   @@index([authMethods], type: Gin)
+  @@index([emailVerified])
   @@map("users")
 }
 

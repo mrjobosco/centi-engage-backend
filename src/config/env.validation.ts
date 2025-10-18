@@ -231,6 +231,23 @@ class EnvironmentVariables {
   @IsNumber()
   @IsOptional()
   AUDIT_LOG_RETENTION_DAYS: number = 365;
+
+  // OTP Configuration
+  @IsNumber()
+  @IsOptional()
+  OTP_EXPIRATION_MINUTES: number = 30;
+
+  @IsNumber()
+  @IsOptional()
+  OTP_LENGTH: number = 6;
+
+  @IsNumber()
+  @IsOptional()
+  OTP_RATE_LIMIT_ATTEMPTS: number = 3;
+
+  @IsNumber()
+  @IsOptional()
+  OTP_RATE_LIMIT_WINDOW_MS: number = 3600000;
 }
 
 export function validate(config: Record<string, unknown>) {

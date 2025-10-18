@@ -23,4 +23,16 @@ export default registerAs('config', () => ({
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
   },
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  },
+  otp: {
+    expirationMinutes: parseInt(process.env.OTP_EXPIRATION_MINUTES || '30', 10),
+    length: parseInt(process.env.OTP_LENGTH || '6', 10),
+    rateLimitAttempts: parseInt(process.env.OTP_RATE_LIMIT_ATTEMPTS || '3', 10),
+    rateLimitWindowMs: parseInt(
+      process.env.OTP_RATE_LIMIT_WINDOW_MS || '3600000',
+      10,
+    ),
+  },
 }));
