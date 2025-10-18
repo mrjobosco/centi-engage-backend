@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 interface StateData {
   timestamp: number;
   userId?: string;
+  tenantId?: string;
 }
 
 @Injectable()
@@ -21,7 +22,7 @@ export class OAuthStateService {
    * @param userId - Optional user ID for linking flows
    * @returns Generated state string
    */
-  async generateState(userId?: string): Promise<string> {
+  async generateState(userId?: string, tenantId?: string): Promise<string> {
     try {
       // Generate cryptographically secure random state
       const state = crypto.randomBytes(32).toString('hex');
@@ -29,6 +30,7 @@ export class OAuthStateService {
       const stateData: StateData = {
         timestamp: Date.now(),
         userId: userId || undefined,
+        tenantId: tenantId || undefined,
       };
 
       // Store state in Redis with expiration
@@ -56,15 +58,15 @@ export class OAuthStateService {
    * Validate state parameter and clean up
    * @param state - State parameter to validate
    * @param expectedUserId - Expected user ID for linking flows
-   * @returns True if state is valid
+   * @returns StateData if state is valid
    */
   async validateState(
     state: string,
     expectedUserId?: string,
-  ): Promise<boolean> {
+  ): Promise<StateData | null> {
     if (!state) {
       this.logger.warn('Empty state parameter provided');
-      return false;
+      return null;
     }
 
     try {
@@ -73,7 +75,7 @@ export class OAuthStateService {
 
       if (!stateDataStr) {
         this.logger.warn(`State not found or expired: ${state}`);
-        return false;
+        return null;
       }
 
       const stateData: StateData = JSON.parse(stateDataStr);
@@ -84,7 +86,7 @@ export class OAuthStateService {
       if (stateAge > this.STATE_EXPIRATION * 1000) {
         this.logger.warn(`State expired: ${state}, age: ${stateAge}ms`);
         await this.redis.del(redisKey);
-        return false;
+        return null;
       }
 
       // For linking flow, validate user ID matches
@@ -93,7 +95,7 @@ export class OAuthStateService {
           `State user ID mismatch. Expected: ${expectedUserId}, Got: ${stateData.userId}`,
         );
         await this.redis.del(redisKey);
-        return false;
+        return null;
       }
 
       // For sign-in flow, ensure no user ID is stored
@@ -102,19 +104,19 @@ export class OAuthStateService {
           `State contains user ID but none expected: ${stateData.userId}`,
         );
         await this.redis.del(redisKey);
-        return false;
+        return null;
       }
 
       // Clean up used state (one-time use)
       await this.redis.del(redisKey);
 
       this.logger.debug(`State validated successfully: ${state}`);
-      return true;
+      return stateData;
     } catch (error) {
       this.logger.error(
         `Failed to validate state: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      return false;
+      return null;
     }
   }
 

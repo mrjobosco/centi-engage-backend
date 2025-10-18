@@ -8,6 +8,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Query,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -31,7 +34,7 @@ export class AuthController {
     private readonly googleOAuthService: GoogleOAuthService,
     private readonly oauthStateService: OAuthStateService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
-  ) {}
+  ) { }
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for login
@@ -134,7 +137,10 @@ export class AuthController {
     await this.googleAuthService.validateTenantGoogleSSO(tenantId);
 
     // Generate state for CSRF protection
-    const state = await this.oauthStateService.generateState();
+    const state = await this.oauthStateService.generateState(
+      undefined,
+      tenantId,
+    );
 
     // Generate Google OAuth URL
     const authUrl = this.googleOAuthService.generateAuthUrl(state);
@@ -144,8 +150,18 @@ export class AuthController {
 
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute for OAuth callback
-  @Post('google/callback')
+  @Get('google/callback')
   @HttpCode(HttpStatus.OK)
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: false, // Allow extra properties beyond the defined ones
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  )
   @ApiOperation({
     summary: 'Complete Google OAuth flow',
     description:
@@ -176,17 +192,17 @@ export class AuthController {
     status: 403,
     description: 'Forbidden - Google SSO not enabled or user not allowed',
   })
-  async googleAuthCallback(@Body() callbackDto: GoogleCallbackDto) {
-    const { code, state, tenantId } = callbackDto;
+  async googleAuthCallback(@Query() callbackDto: GoogleCallbackDto) {
+    const { code, state } = callbackDto;
 
     // Start timing OAuth callback processing
     const callbackTimer =
-      this.googleAuthMetricsService.startOAuthCallbackTimer(tenantId);
+      this.googleAuthMetricsService.startOAuthCallbackTimer(state);
 
     try {
       // Validate state parameter
       const isValidState = await this.oauthStateService.validateState(state);
-      if (!isValidState) {
+      if (isValidState === null) {
         callbackTimer(false);
         throw new BadRequestException('Invalid or expired state parameter');
       }
@@ -202,7 +218,7 @@ export class AuthController {
       // Handle authentication
       const result = await this.googleAuthService.authenticateWithGoogle(
         googleProfile,
-        tenantId,
+        isValidState.tenantId!,
       );
 
       callbackTimer(true);

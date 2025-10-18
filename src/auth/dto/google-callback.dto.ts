@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class GoogleCallbackDto {
   @ApiProperty({
@@ -18,11 +18,31 @@ export class GoogleCallbackDto {
   @IsNotEmpty()
   state!: string;
 
+  // Optional Google OAuth parameters that may be included in the callback
   @ApiProperty({
-    description: 'Tenant ID for multi-tenant authentication',
-    example: 'cmge1zgeb0000vdcgu6ncw6h8',
+    description: 'OAuth scope returned by Google (optional)',
+    required: false,
+    example: 'email profile openid',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  tenantId!: string;
+  scope?: string;
+
+  @ApiProperty({
+    description: 'Authenticated user index (optional)',
+    required: false,
+    example: '0',
+  })
+  @IsOptional()
+  @IsString()
+  authuser?: string;
+
+  @ApiProperty({
+    description: 'Prompt parameter (optional)',
+    required: false,
+    example: 'consent',
+  })
+  @IsOptional()
+  @IsString()
+  prompt?: string;
 }

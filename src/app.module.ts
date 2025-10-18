@@ -64,6 +64,7 @@ export class AppModule implements NestModule {
         // Public endpoints that don't require tenant identification
         '/auth/login',
         '/auth/register',
+        '/auth/google/callback',
         '/tenants',
         '/',
       )
