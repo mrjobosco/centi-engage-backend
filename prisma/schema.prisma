@@ -11,40 +11,41 @@ datasource db {
 }
 
 model Tenant {
-  id                   String   @id @default(cuid())
-  name                 String
-  subdomain            String?  @unique
-  googleSsoEnabled     Boolean  @default(false) @map("google_sso_enabled")
-  googleAutoProvision  Boolean  @default(false) @map("google_auto_provision")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  subdomain           String?  @unique
+  googleSsoEnabled    Boolean  @default(false) @map("google_sso_enabled")
+  googleAutoProvision Boolean  @default(false) @map("google_auto_provision")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  users                     User[]
-  roles                     Role[]
-  permissions               Permission[]
-  projects                  Project[]
-  notifications             Notification[]
-  notificationPreferences   NotificationPreference[]
-  notificationTemplates     NotificationTemplate[]
-  tenantNotificationConfig  TenantNotificationConfig?
-  notificationAuditLogs     NotificationAuditLog[]
+  users                    User[]
+  roles                    Role[]
+  permissions              Permission[]
+  projects                 Project[]
+  notifications            Notification[]
+  notificationPreferences  NotificationPreference[]
+  notificationTemplates    NotificationTemplate[]
+  tenantNotificationConfig TenantNotificationConfig?
+  notificationAuditLogs    NotificationAuditLog[]
+  invitations              TenantInvitation[]
 
   @@index([googleSsoEnabled])
   @@map("tenants")
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String
-  password        String
-  firstName       String?
-  lastName        String?
-  tenantId        String
-  googleId        String?   @unique @map("google_id") @db.VarChar(255)
-  googleLinkedAt  DateTime? @map("google_linked_at")
-  authMethods     String[]  @default(["password"]) @map("auth_methods")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  email          String
+  password       String
+  firstName      String?
+  lastName       String?
+  tenantId       String
+  googleId       String?   @unique @map("google_id") @db.VarChar(255)
+  googleLinkedAt DateTime? @map("google_linked_at")
+  authMethods    String[]  @default(["password"]) @map("auth_methods")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   roles                   UserRole[]
@@ -53,6 +54,8 @@ model User {
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
   notificationAuditLogs   NotificationAuditLog[]
+  invitationsSent         TenantInvitation[]       @relation("InvitationInviter")
+  invitationAuditLogs     InvitationAuditLog[]     @relation("InvitationAuditUser")
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -67,9 +70,10 @@ model Role {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users       UserRole[]
-  permissions RolePermission[]
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users           UserRole[]
+  permissions     RolePermission[]
+  invitationRoles TenantInvitationRole[]
 
   @@unique([name, tenantId])
   @@index([tenantId])
@@ -286,6 +290,75 @@ model NotificationAuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("notification_audit_logs")
+}
+
+// Invitation System Models
+
+model TenantInvitation {
+  id          String           @id @default(cuid())
+  tenantId    String
+  email       String
+  token       String           @unique
+  invitedBy   String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  cancelledAt DateTime?
+  status      InvitationStatus @default(PENDING)
+  message     String?          @db.Text
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inviter   User                   @relation("InvitationInviter", fields: [invitedBy], references: [id], onDelete: Cascade)
+  roles     TenantInvitationRole[]
+  auditLogs InvitationAuditLog[]
+
+  @@unique([tenantId, email, status], name: "unique_pending_invitation")
+  @@index([tenantId])
+  @@index([token])
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("tenant_invitations")
+}
+
+model TenantInvitationRole {
+  invitationId String
+  roleId       String
+
+  invitation TenantInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  role       Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([invitationId, roleId])
+  @@index([invitationId])
+  @@index([roleId])
+  @@map("tenant_invitation_roles")
+}
+
+model InvitationAuditLog {
+  id           String   @id @default(cuid())
+  invitationId String
+  action       String
+  userId       String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  invitation TenantInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  user       User?            @relation("InvitationAuditUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([invitationId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("invitation_audit_logs")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
 }
 
 enum NotificationType {
