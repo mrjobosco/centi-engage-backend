@@ -1,4 +1,3 @@
-// src/auth/auth.module.ts
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -45,6 +44,8 @@ import { TenantModule } from '../tenant/tenant.module';
     AuthService,
     AuthAuditService,
     GoogleAuthService,
+    GoogleOAuthService,
+    OAuthStateService,
     GoogleAuthMetricsService,
   ],
 })

@@ -6,4 +6,5 @@ module.exports = {
   BaseEmailTemplate: () => 'MockedBaseEmailTemplate',
   NotificationDigestTemplate: () => 'MockedNotificationDigestTemplate',
   PasswordResetTemplate: () => 'MockedPasswordResetTemplate',
+  InvitationEmailTemplate: () => 'MockedInvitationEmailTemplate',
 };

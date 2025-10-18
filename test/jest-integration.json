@@ -11,7 +11,9 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/../src/$1"
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "\\.(tsx)$": "<rootDir>/mocks/react-component.mock.js",
+    "^.*\\.template$": "<rootDir>/mocks/react-component.mock.js"
   },
   "setupFilesAfterEnv": [
     "<rootDir>/integration-setup.ts"
