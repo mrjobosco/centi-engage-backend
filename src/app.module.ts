@@ -15,6 +15,7 @@ import { RoleModule } from './role/role.module';
 import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { InvitationModule } from './invitation/invitation.module';
 import { SharedMetricsModule } from './common/modules/metrics.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { SharedMetricsModule } from './common/modules/metrics.module';
     UserModule,
     ProjectModule,
     NotificationsModule,
+    InvitationModule,
   ],
   controllers: [AppController],
   providers: [
@@ -48,11 +50,11 @@ import { SharedMetricsModule } from './common/modules/metrics.module';
     // Only apply throttler guard in non-test environments
     ...(process.env.NODE_ENV !== 'test'
       ? [
-          {
-            provide: 'APP_GUARD',
-            useClass: ThrottlerGuard,
-          },
-        ]
+        {
+          provide: 'APP_GUARD',
+          useClass: ThrottlerGuard,
+        },
+      ]
       : []),
   ],
 })
@@ -66,6 +68,7 @@ export class AppModule implements NestModule {
         '/auth/register',
         '/auth/google/callback',
         '/tenants',
+        '/invitation-acceptance/(.*)', // Invitation acceptance endpoints are public
         '/',
       )
       .forRoutes('*');

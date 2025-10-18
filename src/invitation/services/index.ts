@@ -9,3 +9,7 @@ export {
   type InvitationEmailData,
   type InvitationDeliveryResult,
 } from './invitation-notification.service';
+export {
+  InvitationAcceptanceService,
+  type InvitationAcceptanceResult,
+} from './invitation-acceptance.service';

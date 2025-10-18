@@ -15,10 +15,11 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Public } from '../../auth/decorators/public.decorator';
 import { InvitationValidationService } from '../services/invitation-validation.service';
 import { InvitationService } from '../services/invitation.service';
-import {
-  InvitationAcceptanceDto,
-  AuthMethod,
-} from '../dto/invitation-acceptance.dto';
+import { InvitationAcceptanceService } from '../services/invitation-acceptance.service';
+import { GoogleOAuthService } from '../../auth/services/google-oauth.service';
+import { OAuthStateService } from '../../auth/services/oauth-state.service';
+import { PrismaService } from '../../database/prisma.service';
+import { InvitationAcceptanceDto } from '../dto/invitation-acceptance.dto';
 import { InvitationValidationResponseDto } from '../dto/invitation-validation-response.dto';
 
 @ApiTags('Invitation Acceptance')
@@ -29,7 +30,11 @@ export class InvitationAcceptanceController {
   constructor(
     private readonly invitationValidationService: InvitationValidationService,
     private readonly invitationService: InvitationService,
-  ) {}
+    private readonly invitationAcceptanceService: InvitationAcceptanceService,
+    private readonly googleOAuthService: GoogleOAuthService,
+    private readonly oauthStateService: OAuthStateService,
+    private readonly prisma: PrismaService,
+  ) { }
 
   @Get(':token')
   @Public()
@@ -171,6 +176,102 @@ export class InvitationAcceptanceController {
     }
   }
 
+  @Get(':token/google-auth')
+  @Public()
+  @ApiOperation({
+    summary: 'Initiate Google OAuth for invitation acceptance',
+    description:
+      'Initiates Google OAuth flow for invitation acceptance. Returns authorization URL and state parameter.',
+  })
+  @ApiParam({
+    name: 'token',
+    description: 'Invitation token from the invitation URL',
+    example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Google OAuth flow initiated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        authUrl: {
+          type: 'string',
+          example: 'https://accounts.google.com/oauth/authorize?...',
+        },
+        state: {
+          type: 'string',
+          example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - invalid invitation token',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Invitation not found',
+  })
+  async initiateGoogleAuth(@Param('token') token: string): Promise<{
+    authUrl: string;
+    state: string;
+  }> {
+    try {
+      // First validate the invitation token
+      const validationResult =
+        await this.invitationValidationService.validateToken(token);
+
+      if (!validationResult.isValid || !validationResult.invitation) {
+        throw new BadRequestException(
+          validationResult.reason || 'Invalid invitation token',
+        );
+      }
+
+      const invitation = validationResult.invitation;
+
+      // Check if tenant has Google SSO enabled
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: invitation.tenantId },
+        select: {
+          googleSsoEnabled: true,
+        },
+      });
+
+      if (!tenant?.googleSsoEnabled) {
+        throw new BadRequestException(
+          'Google SSO is not enabled for this tenant',
+        );
+      }
+
+      // Generate state with invitation token
+      const state = await this.oauthStateService.generateState(
+        undefined, // No user ID for invitation flow
+        invitation.tenantId,
+        token, // Include invitation token in state
+      );
+
+      // Generate Google OAuth URL
+      const authUrl = this.googleOAuthService.generateAuthUrl(state);
+
+      return { authUrl, state };
+    } catch (error) {
+      this.logger.error('Google OAuth initiation failed', {
+        token: token ? token.substring(0, 8) + '...' : 'null/undefined',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException('Failed to initiate Google OAuth');
+    }
+  }
+
   @Post(':token/accept')
   @Public()
   @HttpCode(HttpStatus.OK)
@@ -292,52 +393,13 @@ export class InvitationAcceptanceController {
     accessToken: string;
   }> {
     try {
-      // First validate the invitation
-      const invitation = await this.invitationService.validateInvitation(token);
+      // Use the invitation acceptance service to handle the complete flow
+      const result = await this.invitationAcceptanceService.acceptInvitation(
+        token,
+        acceptanceDto,
+      );
 
-      // TODO: This is a placeholder implementation
-      // In the actual implementation, this would integrate with:
-      // 1. AuthService for Google OAuth flow
-      // 2. UserService for user creation
-      // 3. JWT token generation
-      // 4. Role assignment
-
-      if (acceptanceDto.authMethod === AuthMethod.GOOGLE) {
-        // TODO: Implement Google OAuth flow
-        // - Validate Google auth code
-        // - Get user profile from Google
-        // - Create user with Google profile data
-        throw new BadRequestException(
-          'Google OAuth integration not yet implemented',
-        );
-      } else if (acceptanceDto.authMethod === AuthMethod.PASSWORD) {
-        // TODO: Implement password-based user creation
-        // - Validate password requirements
-        // - Hash password
-        // - Create user with provided details
-        // - Assign roles from invitation
-        throw new BadRequestException(
-          'Password-based registration not yet implemented',
-        );
-      }
-
-      // Mark invitation as accepted
-      await this.invitationService.acceptInvitation(token);
-
-      // This is a placeholder response
-      return {
-        message: 'Invitation accepted successfully',
-        user: {
-          id: 'placeholder-user-id',
-          email: invitation.email,
-          firstName: acceptanceDto.firstName || 'Unknown',
-          lastName: acceptanceDto.lastName || 'User',
-          tenantId: invitation.tenantId,
-        },
-        tenant: invitation.tenant,
-        roles: invitation.roles || [],
-        accessToken: 'placeholder-jwt-token',
-      };
+      return result;
     } catch (error) {
       this.logger.error('Invitation acceptance failed', {
         token: token ? token.substring(0, 8) + '...' : 'null/undefined',

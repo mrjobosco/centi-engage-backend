@@ -3,6 +3,10 @@ import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InvitationAcceptanceController } from './invitation-acceptance.controller';
 import { InvitationValidationService } from '../services/invitation-validation.service';
 import { InvitationService } from '../services/invitation.service';
+import { InvitationAcceptanceService } from '../services/invitation-acceptance.service';
+import { GoogleOAuthService } from '../../auth/services/google-oauth.service';
+import { OAuthStateService } from '../../auth/services/oauth-state.service';
+import { PrismaService } from '../../database/prisma.service';
 import {
   InvitationAcceptanceDto,
   AuthMethod,
@@ -14,6 +18,10 @@ describe('InvitationAcceptanceController', () => {
   let controller: InvitationAcceptanceController;
   let invitationValidationService: jest.Mocked<InvitationValidationService>;
   let invitationService: jest.Mocked<InvitationService>;
+  let invitationAcceptanceService: jest.Mocked<InvitationAcceptanceService>;
+  let googleOAuthService: jest.Mocked<GoogleOAuthService>;
+  let oauthStateService: jest.Mocked<OAuthStateService>;
+  let prismaService: jest.Mocked<PrismaService>;
 
   const validToken = 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567';
   const invalidToken = 'invalid-token';
@@ -60,6 +68,24 @@ describe('InvitationAcceptanceController', () => {
       acceptInvitation: jest.fn(),
     };
 
+    const mockInvitationAcceptanceService = {
+      acceptInvitation: jest.fn(),
+    };
+
+    const mockGoogleOAuthService = {
+      generateAuthUrl: jest.fn(),
+    };
+
+    const mockOAuthStateService = {
+      generateState: jest.fn(),
+    };
+
+    const mockPrismaService = {
+      tenant: {
+        findUnique: jest.fn(),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [InvitationAcceptanceController],
       providers: [
@@ -71,6 +97,22 @@ describe('InvitationAcceptanceController', () => {
           provide: InvitationService,
           useValue: mockInvitationService,
         },
+        {
+          provide: InvitationAcceptanceService,
+          useValue: mockInvitationAcceptanceService,
+        },
+        {
+          provide: GoogleOAuthService,
+          useValue: mockGoogleOAuthService,
+        },
+        {
+          provide: OAuthStateService,
+          useValue: mockOAuthStateService,
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
       ],
     }).compile();
 
@@ -79,6 +121,10 @@ describe('InvitationAcceptanceController', () => {
     );
     invitationValidationService = module.get(InvitationValidationService);
     invitationService = module.get(InvitationService);
+    invitationAcceptanceService = module.get(InvitationAcceptanceService);
+    googleOAuthService = module.get(GoogleOAuthService);
+    oauthStateService = module.get(OAuthStateService);
+    prismaService = module.get(PrismaService);
 
     // Mock the logger to avoid console output during tests
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
@@ -502,6 +548,160 @@ describe('InvitationAcceptanceController', () => {
       expect(invitationValidationService.validateToken).toHaveBeenCalledTimes(
         10,
       );
+    });
+  });
+
+  describe('initiateGoogleAuth', () => {
+    it('should initiate Google OAuth flow successfully', async () => {
+      invitationValidationService.validateToken.mockResolvedValue({
+        isValid: true,
+        invitation: mockInvitation,
+      });
+
+      prismaService.tenant.findUnique.mockResolvedValue({
+        googleSsoEnabled: true,
+      });
+
+      oauthStateService.generateState.mockResolvedValue('oauth-state-123');
+      googleOAuthService.generateAuthUrl.mockReturnValue(
+        'https://accounts.google.com/oauth/authorize?...',
+      );
+
+      const result = await controller.initiateGoogleAuth(validToken);
+
+      expect(result).toEqual({
+        authUrl: 'https://accounts.google.com/oauth/authorize?...',
+        state: 'oauth-state-123',
+      });
+
+      expect(invitationValidationService.validateToken).toHaveBeenCalledWith(
+        validToken,
+      );
+      expect(prismaService.tenant.findUnique).toHaveBeenCalledWith({
+        where: { id: mockInvitation.tenantId },
+        select: { googleSsoEnabled: true },
+      });
+      expect(oauthStateService.generateState).toHaveBeenCalledWith(
+        undefined,
+        mockInvitation.tenantId,
+        validToken,
+      );
+      expect(googleOAuthService.generateAuthUrl).toHaveBeenCalledWith(
+        'oauth-state-123',
+      );
+    });
+
+    it('should throw error for invalid invitation token', async () => {
+      invitationValidationService.validateToken.mockResolvedValue({
+        isValid: false,
+        reason: 'Invalid token',
+      });
+
+      await expect(controller.initiateGoogleAuth(invalidToken)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw error if Google SSO is not enabled for tenant', async () => {
+      invitationValidationService.validateToken.mockResolvedValue({
+        isValid: true,
+        invitation: mockInvitation,
+      });
+
+      prismaService.tenant.findUnique.mockResolvedValue({
+        googleSsoEnabled: false,
+      });
+
+      await expect(controller.initiateGoogleAuth(validToken)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should handle validation service errors', async () => {
+      const error = new Error('Validation service error');
+      invitationValidationService.validateToken.mockRejectedValue(error);
+
+      await expect(controller.initiateGoogleAuth(validToken)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should log errors appropriately', async () => {
+      const loggerSpy = jest.spyOn(Logger.prototype, 'error');
+      const error = new Error('Test error');
+      invitationValidationService.validateToken.mockRejectedValue(error);
+
+      await expect(controller.initiateGoogleAuth(validToken)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Google OAuth initiation failed',
+        expect.objectContaining({
+          token: validToken.substring(0, 8) + '...',
+          error: 'Test error',
+        }),
+      );
+    });
+  });
+
+  describe('acceptInvitation with new service', () => {
+    it('should use invitation acceptance service for processing', async () => {
+      const acceptanceDto: InvitationAcceptanceDto = {
+        token: validToken,
+        authMethod: AuthMethod.PASSWORD,
+        password: 'SecurePass123!',
+        firstName: 'John',
+        lastName: 'Doe',
+      };
+
+      const mockResult = {
+        message: 'Invitation accepted successfully',
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          tenantId: 'tenant-123',
+        },
+        tenant: {
+          id: 'tenant-123',
+          name: 'Test Tenant',
+          subdomain: 'test',
+        },
+        roles: [{ id: 'role-123', name: 'Member' }],
+        accessToken: 'jwt-token',
+      };
+
+      invitationAcceptanceService.acceptInvitation.mockResolvedValue(
+        mockResult,
+      );
+
+      const result = await controller.acceptInvitation(
+        validToken,
+        acceptanceDto,
+      );
+
+      expect(result).toEqual(mockResult);
+      expect(invitationAcceptanceService.acceptInvitation).toHaveBeenCalledWith(
+        validToken,
+        acceptanceDto,
+      );
+    });
+
+    it('should handle invitation acceptance service errors', async () => {
+      const acceptanceDto: InvitationAcceptanceDto = {
+        token: validToken,
+        authMethod: AuthMethod.GOOGLE,
+        googleAuthCode: 'google-code',
+      };
+
+      const error = new BadRequestException('Google authentication failed');
+      invitationAcceptanceService.acceptInvitation.mockRejectedValue(error);
+
+      await expect(
+        controller.acceptInvitation(validToken, acceptanceDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

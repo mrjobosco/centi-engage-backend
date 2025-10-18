@@ -7,6 +7,7 @@ interface StateData {
   timestamp: number;
   userId?: string;
   tenantId?: string;
+  invitationToken?: string;
 }
 
 @Injectable()
@@ -15,14 +16,20 @@ export class OAuthStateService {
   private readonly STATE_PREFIX = 'oauth_state';
   private readonly STATE_EXPIRATION = 600; // 10 minutes in seconds
 
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  constructor(@InjectRedis() private readonly redis: Redis) { }
 
   /**
    * Generate a cryptographically secure state parameter
    * @param userId - Optional user ID for linking flows
+   * @param tenantId - Optional tenant ID for sign-in flows
+   * @param invitationToken - Optional invitation token for invitation flows
    * @returns Generated state string
    */
-  async generateState(userId?: string, tenantId?: string): Promise<string> {
+  async generateState(
+    userId?: string,
+    tenantId?: string,
+    invitationToken?: string,
+  ): Promise<string> {
     try {
       // Generate cryptographically secure random state
       const state = crypto.randomBytes(32).toString('hex');
@@ -31,6 +38,7 @@ export class OAuthStateService {
         timestamp: Date.now(),
         userId: userId || undefined,
         tenantId: tenantId || undefined,
+        invitationToken: invitationToken || undefined,
       };
 
       // Store state in Redis with expiration

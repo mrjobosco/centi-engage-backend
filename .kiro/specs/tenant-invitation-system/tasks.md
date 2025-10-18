@@ -69,20 +69,20 @@
     - Test integration with existing notification providers
     - _Requirements: 1.2, 4.1_
 
-- [ ] 6. Build invitation acceptance flow
-  - [ ] 6.1 Create invitation acceptance page/API integration
+- [x] 6. Build invitation acceptance flow
+  - [x] 6.1 Create invitation acceptance page/API integration
     - Implement token validation endpoint that returns invitation details
     - Create user registration flow that integrates with existing auth system
     - Add support for both Google OAuth and password-based registration
     - _Requirements: 4.2, 4.3, 7.1, 7.2_
 
-  - [ ] 6.2 Integrate with existing authentication system
+  - [x] 6.2 Integrate with existing authentication system
     - Modify Google OAuth service to handle invitation token context
     - Update user creation flow to automatically assign invitation roles
     - Implement invitation completion logic that marks invitations as accepted
     - _Requirements: 4.4, 7.1, 7.2, 7.3_
 
-  - [ ] 6.3 Write authentication integration tests
+  - [x] 6.3 Write authentication integration tests
     - Test Google OAuth flow with invitation tokens
     - Test password registration flow with role assignment
     - Test user creation and automatic role assignment
