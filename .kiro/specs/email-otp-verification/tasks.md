@@ -6,14 +6,14 @@
   - Set up Redis module configuration for OTP storage
   - _Requirements: 1.2, 2.1, 6.3_
 
-- [ ] 2. Create core OTP storage and management services
-- [ ] 2.1 Implement OTP storage service with Redis
+- [x] 2. Create core OTP storage and management services
+- [x] 2.1 Implement OTP storage service with Redis
   - Create OTPStorageService with Redis operations for storing, retrieving, and deleting OTPs
   - Implement TTL management and rate limiting storage
   - Add error handling for Redis connection issues
   - _Requirements: 1.2, 1.3, 4.1, 4.4_
 
-- [ ] 2.2 Implement email OTP service with generation and validation
+- [x] 2.2 Implement email OTP service with generation and validation
   - Create EmailOTPService with OTP generation, validation, and user verification logic
   - Implement 6-digit numeric OTP generation with crypto randomness
   - Add OTP validation with attempt tracking and expiration checks

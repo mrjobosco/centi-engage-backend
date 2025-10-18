@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,73 +8,70 @@ datasource db {
 }
 
 model Tenant {
-  id                  String   @id @default(cuid())
-  name                String
-  subdomain           String?  @unique
-  googleSsoEnabled    Boolean  @default(false) @map("google_sso_enabled")
-  googleAutoProvision Boolean  @default(false) @map("google_auto_provision")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  users                    User[]
-  roles                    Role[]
-  permissions              Permission[]
-  projects                 Project[]
-  notifications            Notification[]
+  id                       String                    @id @default(cuid())
+  name                     String
+  subdomain                String?                   @unique
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  googleSsoEnabled         Boolean                   @default(false) @map("google_sso_enabled")
+  googleAutoProvision      Boolean                   @default(false) @map("google_auto_provision")
+  notificationAuditLogs    NotificationAuditLog[]
   notificationPreferences  NotificationPreference[]
   notificationTemplates    NotificationTemplate[]
-  tenantNotificationConfig TenantNotificationConfig?
-  notificationAuditLogs    NotificationAuditLog[]
+  notifications            Notification[]
+  permissions              Permission[]
+  projects                 Project[]
+  roles                    Role[]
   invitations              TenantInvitation[]
+  tenantNotificationConfig TenantNotificationConfig?
+  users                    User[]
 
   @@index([googleSsoEnabled])
   @@map("tenants")
 }
 
 model User {
-  id                      String    @id @default(cuid())
+  id                      String                   @id @default(cuid())
   email                   String
   password                String
   firstName               String?
   lastName                String?
   tenantId                String
-  googleId                String?   @unique @map("google_id") @db.VarChar(255)
-  googleLinkedAt          DateTime? @map("google_linked_at")
-  authMethods             String[]  @default(["password"]) @map("auth_methods")
-  emailVerified           Boolean   @default(false) @map("email_verified")
-  emailVerifiedAt         DateTime? @map("email_verified_at")
-  verificationTokenSentAt DateTime? @map("verification_token_sent_at")
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-
-  tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  roles                   UserRole[]
-  permissions             UserPermission[]
-  projects                Project[]
-  notifications           Notification[]
-  notificationPreferences NotificationPreference[]
-  notificationAuditLogs   NotificationAuditLog[]
-  invitationsSent         TenantInvitation[]       @relation("InvitationInviter")
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  googleId                String?                  @unique @map("google_id") @db.VarChar(255)
+  googleLinkedAt          DateTime?                @map("google_linked_at")
+  authMethods             String[]                 @default(["password"]) @map("auth_methods")
+  emailVerified           Boolean?                 @default(false) @map("email_verified")
+  emailVerifiedAt         DateTime?                @map("email_verified_at") @db.Timestamp(6)
+  verificationTokenSentAt DateTime?                @map("verification_token_sent_at") @db.Timestamp(6)
   invitationAuditLogs     InvitationAuditLog[]     @relation("InvitationAuditUser")
+  notificationAuditLogs   NotificationAuditLog[]
+  notificationPreferences NotificationPreference[]
+  notifications           Notification[]
+  projects                Project[]
+  invitationsSent         TenantInvitation[]       @relation("InvitationInviter")
+  permissions             UserPermission[]
+  roles                   UserRole[]
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([email, tenantId])
   @@index([tenantId])
   @@index([authMethods], type: Gin)
-  @@index([emailVerified])
+  @@index([emailVerified], map: "idx_users_email_verified")
   @@map("users")
 }
 
 model Role {
-  id        String   @id @default(cuid())
-  name      String
-  tenantId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users           UserRole[]
+  id              String                 @id @default(cuid())
+  name            String
+  tenantId        String
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
   permissions     RolePermission[]
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   invitationRoles TenantInvitationRole[]
+  users           UserRole[]
 
   @@unique([name, tenantId])
   @@index([tenantId])
@@ -85,29 +79,28 @@ model Role {
 }
 
 model Permission {
-  id        String   @id @default(cuid())
-  action    String // e.g., "create", "read", "update", "delete"
-  subject   String // e.g., "Project", "User", "Role"
+  id        String           @id @default(cuid())
+  action    String
+  subject   String
   tenantId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  roles  RolePermission[]
-  users  UserPermission[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles     RolePermission[]
+  users     UserPermission[]
 
   @@unique([action, subject, tenantId])
   @@index([tenantId])
+  @@index([action, subject], map: "idx_permissions_action_subject")
+  @@index([tenantId, subject], map: "idx_permissions_tenant_subject")
   @@map("permissions")
 }
 
-// Join table for User-Role many-to-many
 model UserRole {
   userId String
   roleId String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
   @@index([userId])
@@ -115,27 +108,24 @@ model UserRole {
   @@map("user_roles")
 }
 
-// Join table for Role-Permission many-to-many
 model RolePermission {
   roleId       String
   permissionId String
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
   @@index([roleId])
   @@index([permissionId])
+  @@index([roleId, permissionId], map: "idx_role_permissions_composite")
   @@map("role_permissions")
 }
 
-// Join table for User-Permission many-to-many (direct permissions)
 model UserPermission {
   userId       String
   permissionId String
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, permissionId])
   @@index([userId])
@@ -146,44 +136,40 @@ model UserPermission {
 model Project {
   id          String   @id @default(cuid())
   name        String
-  description String?
   tenantId    String
   ownerId     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner  User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  description String?
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([ownerId])
   @@map("projects")
 }
 
-// Notification System Models
-
 model Notification {
-  id            String           @id @default(cuid())
+  id            String                    @id @default(cuid())
   tenantId      String
   userId        String
   type          NotificationType
   category      String
   title         String
-  message       String           @db.Text
+  message       String
   data          Json?
   channelsSent  String[]
   readAt        DateTime?
-  createdAt     DateTime         @default(now())
+  createdAt     DateTime                  @default(now())
   expiresAt     DateTime?
   deletedAt     DateTime?
   deletedBy     String?
   retentionDate DateTime?
-  sensitiveData Boolean          @default(false)
-
-  tenant       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deliveryLogs NotificationDeliveryLog[]
-  auditLogs    NotificationAuditLog[]
+  sensitiveData Boolean                   @default(false)
+  auditLogs     NotificationAuditLog[]
+  deliveryLogs  NotificationDeliveryLog[]
+  tenant        Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([userId])
@@ -205,9 +191,8 @@ model NotificationPreference {
   smsEnabled   Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, userId, category])
   @@index([tenantId])
@@ -222,11 +207,10 @@ model NotificationDeliveryLog {
   status            DeliveryStatus
   provider          String?
   providerMessageId String?
-  errorMessage      String?                 @db.Text
+  errorMessage      String?
   sentAt            DateTime?
   createdAt         DateTime                @default(now())
-
-  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  notification      Notification            @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
   @@index([notificationId])
   @@index([status])
@@ -239,13 +223,12 @@ model NotificationTemplate {
   category     String
   channel      NotificationChannelType
   subject      String?
-  templateBody String                  @db.Text
+  templateBody String
   variables    Json
   isActive     Boolean                 @default(true)
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
-
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([category])
@@ -266,27 +249,25 @@ model TenantNotificationConfig {
   smsFromNumber    String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("tenant_notification_configs")
 }
 
 model NotificationAuditLog {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   notificationId String
   action         String
   userId         String
   tenantId       String
-  authMethod     String?  @map("auth_method") @db.VarChar(50)
   ipAddress      String?
   userAgent      String?
   metadata       Json?
-  createdAt      DateTime @default(now())
-
-  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  authMethod     String?      @map("auth_method") @db.VarChar(50)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([notificationId])
   @@index([userId])
@@ -296,26 +277,23 @@ model NotificationAuditLog {
   @@map("notification_audit_logs")
 }
 
-// Invitation System Models
-
 model TenantInvitation {
-  id          String           @id @default(cuid())
+  id          String                 @id @default(cuid())
   tenantId    String
   email       String
-  token       String           @unique
+  token       String                 @unique
   invitedBy   String
   expiresAt   DateTime
   acceptedAt  DateTime?
   cancelledAt DateTime?
-  status      InvitationStatus @default(PENDING)
-  message     String?          @db.Text
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  tenant    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  inviter   User                   @relation("InvitationInviter", fields: [invitedBy], references: [id], onDelete: Cascade)
-  roles     TenantInvitationRole[]
-  auditLogs InvitationAuditLog[]
+  status      InvitationStatus       @default(PENDING)
+  message     String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  auditLogs   InvitationAuditLog[]
+  roles       TenantInvitationRole[]
+  inviter     User                   @relation("InvitationInviter", fields: [invitedBy], references: [id], onDelete: Cascade)
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, email, status], name: "unique_pending_invitation")
   @@index([tenantId])
@@ -329,9 +307,8 @@ model TenantInvitation {
 model TenantInvitationRole {
   invitationId String
   roleId       String
-
-  invitation TenantInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
-  role       Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  invitation   TenantInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  role         Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([invitationId, roleId])
   @@index([invitationId])
@@ -340,17 +317,16 @@ model TenantInvitationRole {
 }
 
 model InvitationAuditLog {
-  id           String   @id @default(cuid())
+  id           String           @id @default(cuid())
   invitationId String
   action       String
   userId       String?
   ipAddress    String?
   userAgent    String?
   metadata     Json?
-  createdAt    DateTime @default(now())
-
-  invitation TenantInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
-  user       User?            @relation("InvitationAuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
+  invitation   TenantInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  user         User?            @relation("InvitationAuditUser", fields: [userId], references: [id])
 
   @@index([invitationId])
   @@index([action])
