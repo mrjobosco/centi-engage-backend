@@ -1,0 +1,63 @@
+import { InvitationStatus } from '../enums';
+
+/**
+ * Interface representing a tenant invitation entity
+ * Based on the TenantInvitation Prisma model
+ */
+export interface TenantInvitation {
+  id: string;
+  tenantId: string;
+  email: string;
+  token: string;
+  invitedBy: string;
+  expiresAt: Date;
+  acceptedAt?: Date;
+  cancelledAt?: Date;
+  status: InvitationStatus;
+  message?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Interface for tenant invitation with populated relationships
+ */
+export interface TenantInvitationWithRelations extends TenantInvitation {
+  tenant?: {
+    id: string;
+    name: string;
+    subdomain?: string;
+  };
+  inviter?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  roles?: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
+/**
+ * Interface for invitation role assignment
+ */
+export interface TenantInvitationRole {
+  invitationId: string;
+  roleId: string;
+}
+
+/**
+ * Interface for invitation audit log
+ */
+export interface InvitationAuditLog {
+  id: string;
+  invitationId: string;
+  action: string;
+  userId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+}

@@ -6,7 +6,7 @@
   - Update existing User and Role models to include invitation relationships
   - _Requirements: 1.1, 2.2, 3.2, 6.2_
 
-- [ ] 2. Implement core invitation data models and enums
+- [x] 2. Implement core invitation data models and enums
   - Create InvitationStatus enum with PENDING, ACCEPTED, EXPIRED, CANCELLED values
   - Implement TenantInvitation entity interface with all required fields and relationships
   - Create DTOs for CreateInvitationDto, InvitationAcceptanceDto, and InvitationFilterDto
