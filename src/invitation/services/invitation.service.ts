@@ -8,12 +8,16 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateInvitationDto } from '../dto/create-invitation.dto';
 import { InvitationFilterDto } from '../dto/invitation-filter.dto';
 import { TenantInvitation, TenantInvitationWithRelations } from '../interfaces';
+import { InvitationAuditService } from './invitation-audit.service';
 import { randomBytes } from 'crypto';
 // Using string literals for InvitationStatus enum values
 
 @Injectable()
 export class InvitationService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: InvitationAuditService,
+  ) { }
 
   /**
    * Creates a new tenant invitation with secure token generation
@@ -120,6 +124,20 @@ export class InvitationService {
       if (!invitation) {
         throw new Error('Failed to create invitation');
       }
+
+      // Log invitation creation for audit trail
+      await this.auditService.logInvitationCreated(
+        invitation.id,
+        invitedBy,
+        undefined, // IP address will be added by controllers
+        undefined, // User agent will be added by controllers
+        {
+          email: dto.email,
+          roleIds: dto.roleIds,
+          expiresAt: expiresAt.toISOString(),
+          tenantId,
+        },
+      );
 
       // Transform the result to match the expected interface
       return {
@@ -252,6 +270,19 @@ export class InvitationService {
       },
     });
 
+    // Log invitation acceptance for audit trail
+    await this.auditService.logInvitationAccepted(
+      invitation.id,
+      undefined, // User ID will be set by the acceptance service
+      undefined, // IP address will be added by controllers
+      undefined, // User agent will be added by controllers
+      {
+        email: invitation.email,
+        tenantId: invitation.tenantId,
+        acceptedAt: new Date().toISOString(),
+      },
+    );
+
     return {
       ...updatedInvitation,
       roles: updatedInvitation.roles.map((r: any) => r.role),
@@ -283,13 +314,30 @@ export class InvitationService {
       );
     }
 
-    return await (this.prisma as any).tenantInvitation.update({
+    const cancelledInvitation = await (
+      this.prisma as any
+    ).tenantInvitation.update({
       where: { id: invitationId },
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
       },
     });
+
+    // Log invitation cancellation for audit trail
+    await this.auditService.logInvitationCancelled(
+      invitationId,
+      invitation.invitedBy,
+      undefined, // IP address will be added by controllers
+      undefined, // User agent will be added by controllers
+      {
+        email: invitation.email,
+        tenantId,
+        previousStatus: invitation.status,
+      },
+    );
+
+    return cancelledInvitation;
   }
 
   /**
@@ -357,6 +405,22 @@ export class InvitationService {
         },
       },
     });
+
+    // Log invitation resend for audit trail
+    await this.auditService.logInvitationResent(
+      invitationId,
+      invitation.invitedBy,
+      undefined, // IP address will be added by controllers
+      undefined, // User agent will be added by controllers
+      true,
+      undefined,
+      undefined,
+      {
+        email: invitation.email,
+        tenantId,
+        newExpiresAt: newExpiresAt.toISOString(),
+      },
+    );
 
     return {
       ...updatedInvitation,

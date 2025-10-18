@@ -88,14 +88,14 @@
     - Test user creation and automatic role assignment
     - _Requirements: 4.3, 4.4, 7.1, 7.2_
 
-- [ ] 7. Implement security and rate limiting
-  - [ ] 7.1 Add rate limiting guards and services
+- [x] 7. Implement security and rate limiting
+  - [x] 7.1 Add rate limiting guards and services
     - Create InvitationRateLimitGuard for per-tenant and per-admin limits
     - Implement rate limiting service using Redis for invitation creation
     - Add IP-based rate limiting for invitation acceptance attempts
     - _Requirements: 6.4, 6.5_
 
-  - [ ] 7.2 Implement audit logging system
+  - [x] 7.2 Implement audit logging system
     - Create InvitationAuditService for comprehensive activity logging
     - Add audit logging to all invitation operations (create, accept, cancel, resend)
     - Implement security event logging for failed validation attempts

@@ -4,12 +4,15 @@ import { NotificationTemplateService } from '../../notifications/services/notifi
 import { NotificationChannelType } from '../../notifications/enums/notification-channel.enum';
 import { NotificationType } from '../../notifications/enums/notification-type.enum';
 import { NotificationPriority } from '../../notifications/enums/notification-priority.enum';
-import { TenantInvitation } from '../interfaces/tenant-invitation.interface';
+import {
+  TenantInvitation,
+  TenantInvitationWithRelations,
+} from '../interfaces/tenant-invitation.interface';
 import { renderEmailTemplate } from '../../notifications/templates/email/template-renderer';
 import { InvitationEmailTemplateProps } from '../../notifications/templates/email/invitation.template';
 
 export interface InvitationEmailData {
-  invitation: TenantInvitation;
+  invitation: TenantInvitationWithRelations;
   invitationUrl: string;
   customMessage?: string;
   companyName?: string;
@@ -51,7 +54,7 @@ export class InvitationNotificationService {
           ? `${emailData.invitation.inviter.firstName} ${emailData.invitation.inviter.lastName || ''}`.trim()
           : emailData.invitation.inviter?.email || 'Team Admin',
         tenantName: emailData.invitation.tenant?.name || 'Organization',
-        roles: emailData.invitation.roles?.map((role) => role.name) || [
+        roles: emailData.invitation.roles?.map((role: any) => role.name) || [
           'Member',
         ],
         invitationUrl: emailData.invitationUrl,
@@ -96,7 +99,7 @@ export class InvitationNotificationService {
       // Create notification payload
       const notificationPayload = {
         tenantId: emailData.invitation.tenantId,
-        userId: null, // No user ID since this is for an external email
+        userId: emailData.invitation.invitedBy, // Use inviter's ID for external invitations
         type: NotificationType.INFO,
         category: 'tenant-invitation',
         title: `Invitation to join ${templateVariables.tenantName}`,
@@ -172,7 +175,7 @@ export class InvitationNotificationService {
    * Send invitation status notification to the inviter
    */
   async sendInvitationStatusNotification(
-    invitation: TenantInvitation,
+    invitation: TenantInvitationWithRelations,
     status: 'accepted' | 'expired' | 'cancelled',
     inviterUserId: string,
   ): Promise<InvitationDeliveryResult> {
@@ -214,7 +217,7 @@ export class InvitationNotificationService {
           inviteeEmail: invitation.email,
           status,
           tenantName: invitation.tenant?.name,
-          roles: invitation.roles?.map((role) => role.name) || [],
+          roles: invitation.roles?.map((role: any) => role.name) || [],
         },
       };
 

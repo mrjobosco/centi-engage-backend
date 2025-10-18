@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { DatabaseModule } from '../database/database.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { TenantModule } from '../tenant/tenant.module';
 
 // Controllers
 import {
@@ -17,6 +19,8 @@ import {
   InvitationValidationService,
   InvitationNotificationService,
   InvitationAcceptanceService,
+  InvitationAuditService,
+  InvitationRateLimitService,
 } from './services';
 
 @Module({
@@ -24,6 +28,14 @@ import {
     DatabaseModule,
     AuthModule,
     NotificationsModule,
+    TenantModule,
+    RedisModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        type: 'single',
+        url: configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+      }),
+      inject: [ConfigService],
+    }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -41,12 +53,16 @@ import {
     InvitationValidationService,
     InvitationNotificationService,
     InvitationAcceptanceService,
+    InvitationAuditService,
+    InvitationRateLimitService,
   ],
   exports: [
     InvitationService,
     InvitationValidationService,
     InvitationNotificationService,
     InvitationAcceptanceService,
+    InvitationAuditService,
+    InvitationRateLimitService,
   ],
 })
 export class InvitationModule {}

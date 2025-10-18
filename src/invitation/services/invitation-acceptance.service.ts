@@ -11,6 +11,7 @@ import { GoogleOAuthService } from '../../auth/services/google-oauth.service';
 import { GoogleAuthService } from '../../auth/services/google-auth.service';
 import { InvitationValidationService } from './invitation-validation.service';
 import { InvitationService } from './invitation.service';
+import { InvitationAuditService } from './invitation-audit.service';
 import {
   AuthMethod,
   InvitationAcceptanceDto,
@@ -50,6 +51,7 @@ export class InvitationAcceptanceService {
     private readonly googleAuthService: GoogleAuthService,
     private readonly invitationValidationService: InvitationValidationService,
     private readonly invitationService: InvitationService,
+    private readonly auditService: InvitationAuditService,
   ) {}
 
   /**

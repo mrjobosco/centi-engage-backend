@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantInvitationWithRelations } from '../interfaces';
+import { InvitationAuditService } from './invitation-audit.service';
 import { createHash, timingSafeEqual } from 'crypto';
 // Using string literals for InvitationStatus enum values
 
@@ -20,7 +21,10 @@ export interface ValidationResult {
 export class InvitationValidationService {
   private readonly logger = new Logger(InvitationValidationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: InvitationAuditService,
+  ) {}
 
   /**
    * Validates invitation token with comprehensive security checks
@@ -393,30 +397,37 @@ export class InvitationValidationService {
   ): Promise<void> {
     try {
       if (invitationId) {
-        const auditData = {
-          invitationId,
+        // Use the audit service for consistent logging
+        if (action === 'token_validation_success') {
+          await this.auditService.logInvitationValidated(
+            invitationId,
+            true,
+            context.ipAddress,
+            context.userAgent,
+            undefined,
+            undefined,
+            metadata,
+          );
+        } else {
+          // For failed validations and security events
+          await this.auditService.logInvitationValidated(
+            invitationId,
+            false,
+            context.ipAddress,
+            context.userAgent,
+            action.toUpperCase(),
+            metadata.reason || 'Validation failed',
+            metadata,
+          );
+        }
+      } else {
+        // For cases where we don't have an invitation ID (e.g., invalid token format)
+        this.logger.warn('Security event without invitation ID', {
           action,
-          userId: context.userId || null,
-          ipAddress: context.ipAddress || null,
-          userAgent: context.userAgent || null,
-          metadata: {
-            ...metadata,
-            timestamp: new Date().toISOString(),
-          },
-        };
-
-        await (this.prisma as any).invitationAuditLog.create({
-          data: auditData,
+          context,
+          metadata,
         });
       }
-
-      // Also log to application logger for monitoring
-      this.logger.log('Security event logged', {
-        action,
-        invitationId,
-        context,
-        metadata,
-      });
     } catch (error) {
       this.logger.error('Failed to log security event', {
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -9,3 +9,9 @@ export * from './dto';
 
 // Services
 export * from './services';
+
+// Guards
+export * from './guards';
+
+// Decorators
+export * from './decorators';

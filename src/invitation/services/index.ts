@@ -13,3 +13,12 @@ export {
   InvitationAcceptanceService,
   type InvitationAcceptanceResult,
 } from './invitation-acceptance.service';
+export {
+  InvitationRateLimitService,
+  type RateLimitConfig,
+  type RateLimitResult,
+} from './invitation-rate-limit.service';
+export {
+  InvitationAuditService,
+  type InvitationAuditEvent,
+} from './invitation-audit.service';
