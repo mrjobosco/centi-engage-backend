@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateInvitationDto } from '../dto/create-invitation.dto';
+import { InvitationFilterDto } from '../dto/invitation-filter.dto';
 import { TenantInvitation, TenantInvitationWithRelations } from '../interfaces';
 import { randomBytes } from 'crypto';
 // Using string literals for InvitationStatus enum values
@@ -394,6 +395,136 @@ export class InvitationService {
         `Invalid role IDs for this tenant: ${invalidRoleIds.join(', ')}`,
       );
     }
+  }
+
+  /**
+   * Gets invitations with filtering and pagination
+   * Requirements: 5.1, 5.2
+   */
+  async getInvitations(
+    tenantId: string,
+    filters: InvitationFilterDto = {},
+  ): Promise<{
+    invitations: TenantInvitationWithRelations[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const {
+      status,
+      email,
+      invitedBy,
+      createdAfter,
+      createdBefore,
+      expiresAfter,
+      expiresBefore,
+      page = 1,
+      limit = 20,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = filters;
+
+    // Build where clause
+    const where: any = {
+      tenantId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (email) {
+      where.email = {
+        contains: email.toLowerCase(),
+        mode: 'insensitive',
+      };
+    }
+
+    if (invitedBy) {
+      where.invitedBy = invitedBy;
+    }
+
+    if (createdAfter || createdBefore) {
+      where.createdAt = {};
+      if (createdAfter) {
+        where.createdAt.gte = new Date(createdAfter);
+      }
+      if (createdBefore) {
+        where.createdAt.lte = new Date(createdBefore);
+      }
+    }
+
+    if (expiresAfter || expiresBefore) {
+      where.expiresAt = {};
+      if (expiresAfter) {
+        where.expiresAt.gte = new Date(expiresAfter);
+      }
+      if (expiresBefore) {
+        where.expiresAt.lte = new Date(expiresBefore);
+      }
+    }
+
+    // Build order by clause
+    const orderBy: any = {};
+    orderBy[sortBy] = sortOrder;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await (this.prisma as any).tenantInvitation.count({
+      where,
+    });
+
+    // Get invitations
+    const invitations = await (this.prisma as any).tenantInvitation.findMany({
+      where,
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            subdomain: true,
+          },
+        },
+        inviter: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy,
+      skip,
+      take: limit,
+    });
+
+    // Transform results
+    const transformedInvitations = invitations.map((invitation: any) => ({
+      ...invitation,
+      roles: invitation.roles.map((r: any) => r.role),
+    }));
+
+    return {
+      invitations: transformedInvitations,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /**

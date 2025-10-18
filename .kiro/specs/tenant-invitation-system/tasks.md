@@ -31,20 +31,20 @@
     - Test security measures and rate limiting enforcement
     - _Requirements: 1.1, 2.2, 3.1, 6.1_
 
-- [ ] 4. Create invitation management controllers
-  - [ ] 4.1 Implement InvitationController for admin operations
+- [x] 4. Create invitation management controllers
+  - [x] 4.1 Implement InvitationController for admin operations
     - Create POST /invitations endpoint with permission guards and validation
     - Implement GET /invitations with filtering and pagination support
     - Add POST /invitations/:id/resend and DELETE /invitations/:id endpoints
     - _Requirements: 1.2, 5.1, 5.2, 5.3_
 
-  - [ ] 4.2 Implement InvitationAcceptanceController for public access
+  - [x] 4.2 Implement InvitationAcceptanceController for public access
     - Create GET /invitation-acceptance/:token endpoint for invitation validation
     - Implement POST /invitation-acceptance/:token/accept for invitation acceptance
     - Add proper error handling for expired, invalid, and already accepted invitations
     - _Requirements: 4.2, 4.3, 4.5_
 
-  - [ ] 4.3 Write controller unit tests
+  - [x] 4.3 Write controller unit tests
     - Test all endpoints with various permission scenarios
     - Test input validation and error handling
     - Test rate limiting and security measures
