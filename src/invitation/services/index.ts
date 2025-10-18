@@ -22,3 +22,11 @@ export {
   InvitationAuditService,
   type InvitationAuditEvent,
 } from './invitation-audit.service';
+export { InvitationStatusService } from './invitation-status.service';
+export {
+  InvitationManagementService,
+  type BulkInvitationDto,
+  type BulkInvitationResult,
+  type InvitationReport,
+  type InvitationStatistics,
+} from './invitation-management.service';

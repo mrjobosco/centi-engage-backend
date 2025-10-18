@@ -126,20 +126,20 @@
     - Test end-to-end invitation flow across modules
     - _Requirements: All requirements_
 
-- [ ] 9. Add invitation status management and cleanup
-  - [ ] 9.1 Implement invitation status tracking
+- [x] 9. Add invitation status management and cleanup
+  - [x] 9.1 Implement invitation status tracking
     - Create service methods to update invitation status (accepted, cancelled, expired)
     - Implement automatic expiration checking with scheduled tasks
     - Add invitation cleanup service for expired and old invitations
     - _Requirements: 3.3, 5.1, 5.5_
 
-  - [ ] 9.2 Create invitation management utilities
+  - [x] 9.2 Create invitation management utilities
     - Implement bulk invitation operations for admin efficiency
     - Add invitation statistics and reporting capabilities
     - Create invitation export functionality for admin oversight
     - _Requirements: 5.1, 5.4_
 
-  - [ ] 9.3 Write status management tests
+  - [x] 9.3 Write status management tests
     - Test automatic status updates and expiration handling
     - Test cleanup operations and data retention
     - Test bulk operations and reporting features

@@ -13,7 +13,8 @@ export interface InvitationAuditEvent {
   | 'invitation_expired'
   | 'invitation_validated'
   | 'invitation_validation_failed'
-  | 'invitation_rate_limit_exceeded';
+  | 'invitation_rate_limit_exceeded'
+  | 'invitation_cleanup';
   userId?: string;
   ipAddress?: string;
   userAgent?: string;
@@ -187,7 +188,7 @@ export class InvitationAuditService {
    */
   async logInvitationCancelled(
     invitationId: string,
-    userId: string,
+    userId?: string,
     ipAddress?: string,
     userAgent?: string,
     metadata?: Record<string, any>,
@@ -541,6 +542,27 @@ export class InvitationAuditService {
         successRate: 100,
       };
     }
+  }
+
+  /**
+   * Log invitation cleanup
+   */
+  async logInvitationCleanup(
+    invitationId: string,
+    userId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    await this.logInvitationEvent({
+      invitationId,
+      action: 'invitation_cleanup',
+      userId,
+      ipAddress,
+      userAgent,
+      success: true,
+      metadata,
+    });
   }
 
   /**

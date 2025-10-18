@@ -24,6 +24,8 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { CurrentTenant } from '../../auth/decorators/current-tenant.decorator';
 import { InvitationService } from '../services/invitation.service';
+import { InvitationManagementService } from '../services/invitation-management.service';
+import type { BulkInvitationDto } from '../services/invitation-management.service';
 import { CreateInvitationDto } from '../dto/create-invitation.dto';
 import { InvitationFilterDto } from '../dto/invitation-filter.dto';
 import { TenantInvitationWithRelations } from '../interfaces';
@@ -42,7 +44,10 @@ interface AuthenticatedUser {
 @Controller('invitations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class InvitationController {
-  constructor(private readonly invitationService: InvitationService) { }
+  constructor(
+    private readonly invitationService: InvitationService,
+    private readonly managementService: InvitationManagementService,
+  ) { }
 
   @Post()
   @Permissions('create:invitation')
@@ -464,5 +469,248 @@ export class InvitationController {
       message: 'Invitation cancelled successfully',
       invitation,
     };
+  }
+
+  @Post('bulk')
+  @Permissions('create:invitation')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create multiple invitations in bulk',
+    description: 'Creates multiple tenant invitations at once for efficiency',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Bulk invitations created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - validation failed',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async createBulkInvitations(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() bulkDto: BulkInvitationDto,
+  ) {
+    return await this.managementService.createBulkInvitations(
+      tenantId,
+      user.id,
+      bulkDto,
+    );
+  }
+
+  @Post('bulk/cancel')
+  @Permissions('delete:invitation')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel multiple invitations in bulk',
+    description: 'Cancels multiple pending invitations at once',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk cancellation completed',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async cancelBulkInvitations(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { invitationIds: string[] },
+  ) {
+    return await this.managementService.cancelBulkInvitations(
+      tenantId,
+      body.invitationIds,
+      user.id,
+    );
+  }
+
+  @Post('bulk/resend')
+  @Permissions('update:invitation')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend multiple invitations in bulk',
+    description: 'Resends multiple pending invitations at once',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk resend completed',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async resendBulkInvitations(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { invitationIds: string[] },
+  ) {
+    return await this.managementService.resendBulkInvitations(
+      tenantId,
+      body.invitationIds,
+      user.id,
+    );
+  }
+
+  @Get('statistics')
+  @Permissions('read:invitation')
+  @ApiOperation({
+    summary: 'Get invitation statistics',
+    description: 'Returns comprehensive invitation statistics and analytics',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics retrieved successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async getInvitationStatistics(@CurrentTenant() tenantId: string) {
+    return await this.managementService.getInvitationStatistics(tenantId);
+  }
+
+  @Get('activity-summary')
+  @Permissions('read:invitation')
+  @ApiOperation({
+    summary: 'Get invitation activity summary',
+    description: 'Returns recent invitation activity for dashboard display',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Activity summary retrieved successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async getInvitationActivitySummary(@CurrentTenant() tenantId: string) {
+    return await this.managementService.getInvitationActivitySummary(tenantId);
+  }
+
+  @Get('export/csv')
+  @Permissions('read:invitation')
+  @ApiOperation({
+    summary: 'Export invitations as CSV',
+    description: 'Exports invitation data in CSV format for reporting',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by invitation status',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Filter by start date (ISO string)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Filter by end date (ISO string)',
+  })
+  @ApiQuery({
+    name: 'includeExpired',
+    required: false,
+    description: 'Include expired invitations',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CSV export generated successfully',
+    headers: {
+      'Content-Type': {
+        description: 'text/csv',
+      },
+      'Content-Disposition': {
+        description: 'attachment; filename="invitations.csv"',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async exportInvitationsAsCSV(
+    @CurrentTenant() tenantId: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('includeExpired') includeExpired?: string,
+  ) {
+    const options = {
+      status: status as any,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      includeExpired: includeExpired === 'true',
+    };
+
+    const csvContent = await this.managementService.exportInvitationReportAsCSV(
+      tenantId,
+      options,
+    );
+
+    return {
+      content: csvContent,
+      filename: `invitations-${tenantId}-${new Date().toISOString().split('T')[0]}.csv`,
+      contentType: 'text/csv',
+    };
+  }
+
+  @Get('report')
+  @Permissions('read:invitation')
+  @ApiOperation({
+    summary: 'Generate invitation report',
+    description: 'Generates a comprehensive invitation report with statistics',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by invitation status',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Filter by start date (ISO string)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Filter by end date (ISO string)',
+  })
+  @ApiQuery({
+    name: 'includeExpired',
+    required: false,
+    description: 'Include expired invitations',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Report generated successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async generateInvitationReport(
+    @CurrentTenant() tenantId: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('includeExpired') includeExpired?: string,
+  ) {
+    const options = {
+      status: status as any,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      includeExpired: includeExpired === 'true',
+    };
+
+    return await this.managementService.generateInvitationReport(
+      tenantId,
+      options,
+    );
   }
 }
