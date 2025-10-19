@@ -63,7 +63,7 @@
   - Add verification status to JWT payload or user context
   - _Requirements: 5.1, 5.2_
 
-- [ ]* 4.3 Write unit tests for guards and middleware
+- [x] 4.3 Write unit tests for guards and middleware
   - Test guard behavior with verified and unverified users
   - Test decorator functionality and error responses
   - Test integration with existing authentication guards
