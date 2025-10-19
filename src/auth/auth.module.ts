@@ -3,8 +3,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { HealthController } from './controllers/health.controller';
+import { OTPMonitoringController } from './controllers/otp-monitoring.controller';
 import { AuthService } from './auth.service';
 import { AuthAuditService } from './services/auth-audit.service';
+import { OTPAuditService } from './services/otp-audit.service';
+import { OTPMetricsService } from './services/otp-metrics.service';
 import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { OAuthStateService } from './services/oauth-state.service';
@@ -38,10 +41,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, HealthController],
+  controllers: [AuthController, HealthController, OTPMonitoringController],
   providers: [
     AuthService,
     AuthAuditService,
+    OTPAuditService,
+    OTPMetricsService,
     GoogleAuthService,
     GoogleOAuthService,
     OAuthStateService,
@@ -53,6 +58,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
   exports: [
     AuthService,
     AuthAuditService,
+    OTPAuditService,
+    OTPMetricsService,
     GoogleAuthService,
     GoogleOAuthService,
     OAuthStateService,
@@ -62,4 +69,4 @@ import { NotificationsModule } from '../notifications/notifications.module';
     EmailVerificationGuard,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

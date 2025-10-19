@@ -7,8 +7,6 @@ import { EmailVerificationRequiredException } from '../exceptions/email-verifica
 
 describe('EmailVerificationGuard', () => {
   let guard: EmailVerificationGuard;
-  let reflector: Reflector;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     $queryRaw: jest.fn(),
@@ -44,8 +42,6 @@ describe('EmailVerificationGuard', () => {
     }).compile();
 
     guard = module.get<EmailVerificationGuard>(EmailVerificationGuard);
-    reflector = module.get<Reflector>(Reflector);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

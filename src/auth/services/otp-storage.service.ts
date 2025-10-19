@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import { OTPMetricsService } from './otp-metrics.service';
 
 export interface OTPRecord {
   otp: string;
@@ -25,6 +26,8 @@ export class OTPStorageService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => OTPMetricsService))
+    private readonly otpMetrics?: OTPMetricsService,
   ) {
     this.otpTTL =
       (this.configService.get<number>('config.otp.expirationMinutes') ?? 30) *
@@ -39,6 +42,12 @@ export class OTPStorageService {
    * Store OTP in Redis with TTL
    */
   async storeOTP(userId: string, otp: string, email: string): Promise<void> {
+    const performanceTimer = this.otpMetrics?.startPerformanceTimer(
+      'redis_operation',
+      'unknown',
+      userId,
+    );
+
     try {
       const otpRecord: OTPRecord = {
         otp,
@@ -51,8 +60,10 @@ export class OTPStorageService {
       await this.redis.setex(key, this.otpTTL, JSON.stringify(otpRecord));
 
       this.logger.log(`OTP stored for user ${userId} with TTL ${this.otpTTL}s`);
+      performanceTimer?.(true);
     } catch (error) {
       this.logger.error(`Failed to store OTP for user ${userId}:`, error);
+      performanceTimer?.(false);
       throw new Error('Failed to store OTP');
     }
   }
@@ -61,17 +72,27 @@ export class OTPStorageService {
    * Retrieve OTP record from Redis
    */
   async getOTP(userId: string): Promise<OTPRecord | null> {
+    const performanceTimer = this.otpMetrics?.startPerformanceTimer(
+      'redis_operation',
+      'unknown',
+      userId,
+    );
+
     try {
       const key = this.getOTPKey(userId);
       const data = await this.redis.get(key);
 
       if (!data) {
+        performanceTimer?.(true);
         return null;
       }
 
-      return JSON.parse(data) as OTPRecord;
+      const result = JSON.parse(data) as OTPRecord;
+      performanceTimer?.(true);
+      return result;
     } catch (error) {
       this.logger.error(`Failed to retrieve OTP for user ${userId}:`, error);
+      performanceTimer?.(false);
       throw new Error('Failed to retrieve OTP');
     }
   }

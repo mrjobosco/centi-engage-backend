@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../database/prisma.service';
 import { EmailVerificationRequiredException } from '../exceptions/email-verification-required.exception';
+import { OTPAuditService } from '../services/otp-audit.service';
 
 const SKIP_EMAIL_VERIFICATION_KEY = 'skipEmailVerification';
 
@@ -10,6 +11,7 @@ export class EmailVerificationGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private prisma: PrismaService,
+    private otpAudit: OTPAuditService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -45,6 +47,35 @@ export class EmailVerificationGuard implements CanActivate {
 
     const isEmailVerified = result[0].email_verified;
     if (!isEmailVerified) {
+      // Extract request context for audit logging
+      const ipAddress =
+        (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+        (request.headers['x-real-ip'] as string) ||
+        request.connection?.remoteAddress ||
+        request.socket?.remoteAddress ||
+        request.ip;
+
+      const userAgent = request.headers['user-agent'];
+      const blockedAction = `${request.method} ${request.url}`;
+
+      // Log email verification requirement
+      try {
+        await this.otpAudit.logEmailVerificationRequired(
+          user.id,
+          user.tenantId,
+          user.email || 'unknown',
+          ipAddress,
+          userAgent,
+          blockedAction,
+        );
+      } catch (auditError) {
+        // Don't let audit logging failures break the guard
+        console.error(
+          'Failed to log email verification requirement:',
+          auditError,
+        );
+      }
+
       throw new EmailVerificationRequiredException(
         'Please verify your email address before accessing this resource. Check your email for the verification code.',
       );

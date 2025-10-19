@@ -5,6 +5,8 @@ import { OTPStorageService } from './otp-storage.service';
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/enums/notification-type.enum';
 import { NotificationPriority } from '../../notifications/enums/notification-priority.enum';
+import { OTPAuditService } from './otp-audit.service';
+import { OTPMetricsService } from './otp-metrics.service';
 import { randomBytes } from 'crypto';
 
 export interface OTPGenerationResult {
@@ -30,6 +32,8 @@ export class EmailOTPService {
     private readonly otpStorage: OTPStorageService,
     private readonly configService: ConfigService,
     private readonly notificationService: NotificationService,
+    private readonly otpAudit: OTPAuditService,
+    private readonly otpMetrics: OTPMetricsService,
   ) {
     this.otpLength = this.configService.get<number>('config.otp.length') ?? 6;
   }
@@ -57,12 +61,45 @@ export class EmailOTPService {
   async generateOTP(
     userId: string,
     email: string,
+    ipAddress?: string,
+    userAgent?: string,
   ): Promise<OTPGenerationResult> {
+    const performanceTimer = this.otpMetrics.startPerformanceTimer(
+      'generation',
+      'unknown',
+      userId,
+    );
+
     try {
+      // Get user's tenant ID for audit logging
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { tenantId: true },
+      });
+
+      if (!user) {
+        performanceTimer(false);
+        throw new BadRequestException('User not found');
+      }
+
+      const tenantId = user.tenantId;
+
       // Check rate limiting
       const rateLimitCheck = await this.otpStorage.checkRateLimit(userId);
       if (!rateLimitCheck.allowed) {
         this.logger.warn(`Rate limit exceeded for user ${userId}`);
+
+        // Log rate limit event
+        await this.otpAudit.logOTPRateLimit(
+          userId,
+          tenantId,
+          email,
+          ipAddress,
+          userAgent,
+          rateLimitCheck.retryAfter,
+        );
+
+        performanceTimer(false);
         return {
           success: false,
           message: 'Too many OTP requests. Please try again later.',
@@ -77,7 +114,7 @@ export class EmailOTPService {
       await this.otpStorage.storeOTP(userId, otp, email);
 
       // Send OTP via email through notification service
-      await this.sendOTPEmail(userId, email, otp);
+      const emailDeliveryStatus = await this.sendOTPEmail(userId, email, otp);
 
       // Update user's verification token sent timestamp
       await this.prisma.$executeRaw`
@@ -86,7 +123,25 @@ export class EmailOTPService {
         WHERE id = ${userId}
       `;
 
+      // Log successful OTP generation
+      await this.otpAudit.logOTPGeneration(
+        userId,
+        tenantId,
+        email,
+        true,
+        ipAddress,
+        userAgent,
+        {
+          otpLength: this.otpLength,
+          emailDeliveryStatus,
+          otpTTL:
+            this.configService.get<number>('config.otp.expirationMinutes') ??
+            30,
+        },
+      );
+
       this.logger.log(`OTP generated and sent successfully for user ${userId}`);
+      performanceTimer(true);
 
       return {
         success: true,
@@ -94,6 +149,33 @@ export class EmailOTPService {
       };
     } catch (error) {
       this.logger.error(`Failed to generate OTP for user ${userId}:`, error);
+
+      // Log failed OTP generation
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { tenantId: true },
+        });
+
+        if (user) {
+          await this.otpAudit.logOTPGeneration(
+            userId,
+            user.tenantId,
+            email,
+            false,
+            ipAddress,
+            userAgent,
+            {
+              errorMessage:
+                error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+        }
+      } catch (auditError) {
+        this.logger.error('Failed to log OTP generation failure', auditError);
+      }
+
+      performanceTimer(false);
       throw new BadRequestException('Failed to generate OTP');
     }
   }
@@ -105,7 +187,13 @@ export class EmailOTPService {
     userId: string,
     email: string,
     otp: string,
-  ): Promise<void> {
+  ): Promise<'sent' | 'failed' | 'pending'> {
+    const emailTimer = this.otpMetrics.startPerformanceTimer(
+      'email_delivery',
+      'unknown',
+      userId,
+    );
+
     try {
       // Get user details for personalization
       const user = await this.prisma.user.findUnique({
@@ -147,13 +235,19 @@ export class EmailOTPService {
       this.logger.log(
         `OTP email sent successfully to ${email} for user ${userId}`,
       );
+
+      emailTimer(true);
+      return 'sent';
     } catch (error) {
       this.logger.error(
         `Failed to send OTP email to ${email} for user ${userId}:`,
         error,
       );
+
+      emailTimer(false);
       // Don't throw error here - OTP generation should succeed even if email fails
       // User can request resend if needed
+      return 'failed';
     }
   }
 
@@ -163,13 +257,49 @@ export class EmailOTPService {
   async verifyOTP(
     userId: string,
     providedOTP: string,
+    ipAddress?: string,
+    userAgent?: string,
   ): Promise<OTPVerificationResult> {
+    const performanceTimer = this.otpMetrics.startPerformanceTimer(
+      'verification',
+      'unknown',
+      userId,
+    );
+
     try {
+      // Get user details for audit logging
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { tenantId: true, email: true },
+      });
+
+      if (!user) {
+        performanceTimer(false);
+        throw new BadRequestException('User not found');
+      }
+
+      const { tenantId, email } = user;
+
       // Get stored OTP record
       const otpRecord = await this.otpStorage.getOTP(userId);
 
       if (!otpRecord) {
         this.logger.warn(`No OTP found for user ${userId}`);
+
+        // Log verification failure
+        await this.otpAudit.logOTPVerification(
+          userId,
+          tenantId,
+          email,
+          false,
+          ipAddress,
+          userAgent,
+          'OTP_NOT_FOUND',
+          'No OTP found for user',
+          { otpAttempts: 0 },
+        );
+
+        performanceTimer(false);
         return {
           success: false,
           message: 'No OTP found. Please request a new one.',
@@ -181,7 +311,25 @@ export class EmailOTPService {
         this.logger.warn(
           `Max verification attempts exceeded for user ${userId}`,
         );
+
+        // Log verification failure
+        await this.otpAudit.logOTPVerification(
+          userId,
+          tenantId,
+          email,
+          false,
+          ipAddress,
+          userAgent,
+          'MAX_ATTEMPTS_EXCEEDED',
+          'Maximum verification attempts exceeded',
+          {
+            otpAttempts: otpRecord.attempts,
+            maxAttempts: this.maxVerificationAttempts,
+          },
+        );
+
         await this.otpStorage.deleteOTP(userId);
+        performanceTimer(false);
         return {
           success: false,
           message:
@@ -199,8 +347,26 @@ export class EmailOTPService {
           `Invalid OTP provided for user ${userId}. Attempts: ${newAttempts}`,
         );
 
+        // Log verification failure
+        await this.otpAudit.logOTPVerification(
+          userId,
+          tenantId,
+          email,
+          false,
+          ipAddress,
+          userAgent,
+          'INVALID_OTP',
+          'Invalid OTP provided',
+          {
+            otpAttempts: newAttempts,
+            remainingAttempts,
+            maxAttempts: this.maxVerificationAttempts,
+          },
+        );
+
         if (remainingAttempts <= 0) {
           await this.otpStorage.deleteOTP(userId);
+          performanceTimer(false);
           return {
             success: false,
             message:
@@ -208,6 +374,7 @@ export class EmailOTPService {
           };
         }
 
+        performanceTimer(false);
         return {
           success: false,
           message: 'Invalid OTP. Please try again.',
@@ -221,7 +388,34 @@ export class EmailOTPService {
       // Clean up OTP from storage
       await this.otpStorage.deleteOTP(userId);
 
+      // Log successful verification
+      await this.otpAudit.logOTPVerification(
+        userId,
+        tenantId,
+        email,
+        true,
+        ipAddress,
+        userAgent,
+        undefined,
+        undefined,
+        {
+          otpAttempts: otpRecord.attempts + 1,
+          verificationMethod: 'email_password',
+        },
+      );
+
+      // Log email verification completion
+      await this.otpAudit.logEmailVerificationCompleted(
+        userId,
+        tenantId,
+        email,
+        'email_password',
+        ipAddress,
+        userAgent,
+      );
+
       this.logger.log(`Email verification successful for user ${userId}`);
+      performanceTimer(true);
 
       return {
         success: true,
@@ -229,6 +423,31 @@ export class EmailOTPService {
       };
     } catch (error) {
       this.logger.error(`Failed to verify OTP for user ${userId}:`, error);
+
+      // Log verification error
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { tenantId: true, email: true },
+        });
+
+        if (user) {
+          await this.otpAudit.logOTPVerification(
+            userId,
+            user.tenantId,
+            user.email,
+            false,
+            ipAddress,
+            userAgent,
+            'VERIFICATION_ERROR',
+            error instanceof Error ? error.message : 'Unknown error',
+          );
+        }
+      } catch (auditError) {
+        this.logger.error('Failed to log OTP verification error', auditError);
+      }
+
+      performanceTimer(false);
       throw new BadRequestException('Failed to verify OTP');
     }
   }
@@ -236,16 +455,21 @@ export class EmailOTPService {
   /**
    * Resend OTP to user (invalidates previous OTP)
    */
-  async resendOTP(userId: string): Promise<OTPGenerationResult> {
+  async resendOTP(
+    userId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<OTPGenerationResult> {
     try {
       // Get user details using raw query to avoid type issues
       const user = await this.prisma.$queryRaw<
         Array<{
           email: string;
           email_verified: boolean | null;
+          tenant_id: string;
         }>
       >`
-        SELECT email, email_verified 
+        SELECT email, email_verified, tenant_id 
         FROM users 
         WHERE id = ${userId}
       `;
@@ -254,7 +478,23 @@ export class EmailOTPService {
         throw new BadRequestException('User not found');
       }
 
-      if (user[0].email_verified) {
+      const { email, email_verified, tenant_id: tenantId } = user[0];
+
+      if (email_verified) {
+        // Log resend attempt for already verified user
+        await this.otpAudit.logOTPResend(
+          userId,
+          tenantId,
+          email,
+          false,
+          ipAddress,
+          userAgent,
+          {
+            errorMessage: 'Email is already verified',
+            previousVerificationStatus: true,
+          },
+        );
+
         return {
           success: false,
           message: 'Email is already verified',
@@ -264,10 +504,49 @@ export class EmailOTPService {
       // Delete existing OTP if any
       await this.otpStorage.deleteOTP(userId);
 
+      // Log resend event
+      await this.otpAudit.logOTPResend(
+        userId,
+        tenantId,
+        email,
+        true,
+        ipAddress,
+        userAgent,
+        {
+          previousVerificationStatus: false,
+        },
+      );
+
       // Generate new OTP
-      return await this.generateOTP(userId, user[0].email);
+      return await this.generateOTP(userId, email, ipAddress, userAgent);
     } catch (error) {
       this.logger.error(`Failed to resend OTP for user ${userId}:`, error);
+
+      // Log resend error
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { tenantId: true, email: true },
+        });
+
+        if (user) {
+          await this.otpAudit.logOTPResend(
+            userId,
+            user.tenantId,
+            user.email,
+            false,
+            ipAddress,
+            userAgent,
+            {
+              errorMessage:
+                error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+        }
+      } catch (auditError) {
+        this.logger.error('Failed to log OTP resend error', auditError);
+      }
+
       throw new BadRequestException('Failed to resend OTP');
     }
   }

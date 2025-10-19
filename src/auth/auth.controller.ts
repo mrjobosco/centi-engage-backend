@@ -11,7 +11,9 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -44,6 +46,25 @@ export class AuthController {
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
     private readonly emailOTPService: EmailOTPService,
   ) {}
+
+  /**
+   * Extract IP address and user agent from request for audit logging
+   */
+  private extractRequestContext(req: Request): {
+    ipAddress?: string;
+    userAgent?: string;
+  } {
+    const ipAddress =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      req.connection?.remoteAddress ||
+      req.socket?.remoteAddress ||
+      req.ip;
+
+    const userAgent = req.headers['user-agent'];
+
+    return { ipAddress, userAgent };
+  }
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for login
@@ -192,10 +213,15 @@ export class AuthController {
   async verifyEmailAuthenticated(
     @Body() verifyEmailDto: VerifyEmailDto,
     @CurrentUser() user: User,
+    @Req() req: Request,
   ) {
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
+
     const result = await this.emailOTPService.verifyOTP(
       user.id,
       verifyEmailDto.otp,
+      ipAddress,
+      userAgent,
     );
 
     return {
@@ -242,6 +268,7 @@ export class AuthController {
   })
   async resendOTP(
     @Body() resendOTPDto: ResendOTPDto,
+    @Req() req: Request,
     @Headers('x-tenant-id') tenantId?: string,
   ) {
     if (!tenantId) {
@@ -257,7 +284,12 @@ export class AuthController {
       throw new BadRequestException('User not found');
     }
 
-    const result = await this.emailOTPService.resendOTP(user.id);
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
+    const result = await this.emailOTPService.resendOTP(
+      user.id,
+      ipAddress,
+      userAgent,
+    );
 
     return {
       success: result.success,
@@ -299,8 +331,13 @@ export class AuthController {
     status: 429,
     description: 'Too many requests - Rate limit exceeded',
   })
-  async resendOTPAuthenticated(@CurrentUser() user: User) {
-    const result = await this.emailOTPService.resendOTP(user.id);
+  async resendOTPAuthenticated(@CurrentUser() user: User, @Req() req: Request) {
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
+    const result = await this.emailOTPService.resendOTP(
+      user.id,
+      ipAddress,
+      userAgent,
+    );
 
     return {
       success: result.success,
