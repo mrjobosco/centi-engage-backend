@@ -20,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
     private prisma: PrismaService,
     private reflector: Reflector,
     private tenantContext: TenantContextService,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if route is marked as public
@@ -53,7 +53,7 @@ export class JwtAuthGuard implements CanActivate {
         );
       }
 
-      // Load user from database with roles
+      // Load user from database with roles and verification status
       const user = await this.prisma.user.findUnique({
         where: {
           id: payload.userId,
@@ -72,13 +72,24 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException('User not found or invalid token');
       }
 
-      // Attach user to request
+      // Get email verification status using raw query to avoid Prisma client issues
+      const verificationResult = await this.prisma.$queryRaw<
+        Array<{ email_verified: boolean }>
+      >`
+        SELECT email_verified FROM users 
+        WHERE id = ${user.id} AND tenant_id = ${user.tenantId}
+      `;
+
+      const emailVerified = verificationResult?.[0]?.email_verified || false;
+
+      // Attach user to request with verification status
       request['user'] = {
         id: user.id,
         email: user.email,
         tenantId: user.tenantId,
         firstName: user.firstName,
         lastName: user.lastName,
+        emailVerified,
         roles: user.roles.map((ur) => ur.role),
       };
     } catch (error) {

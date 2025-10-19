@@ -29,6 +29,7 @@ import {
 import { EmailOTPService } from './services/email-otp.service';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { SkipEmailVerification } from './decorators/skip-email-verification.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { User } from '@prisma/client';
 
@@ -157,6 +158,7 @@ export class AuthController {
 
   @Post('verify-email/authenticated')
   @UseGuards(JwtAuthGuard)
+  @SkipEmailVerification()
   @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 requests per 15 minutes for OTP verification
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -266,6 +268,7 @@ export class AuthController {
 
   @Post('resend-otp/authenticated')
   @UseGuards(JwtAuthGuard)
+  @SkipEmailVerification()
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour for OTP resend
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

@@ -50,14 +50,14 @@
   - Test rate limiting and error scenarios
   - _Requirements: 1.1, 2.1, 6.1_
 
-- [ ] 4. Implement verification guards and middleware
-- [ ] 4.1 Create email verification guard
+- [x] 4. Implement verification guards and middleware
+- [x] 4.1 Create email verification guard
   - Implement EmailVerificationGuard to check user verification status
   - Add decorator for easy application to protected routes
   - Handle unverified user access with appropriate error responses
   - _Requirements: 2.6, 5.1, 5.3_
 
-- [ ] 4.2 Update existing guards to respect verification status
+- [x] 4.2 Update existing guards to respect verification status
   - Modify JWT auth guard to include verification checks where needed
   - Ensure login flow checks verification status and returns appropriate response
   - Add verification status to JWT payload or user context

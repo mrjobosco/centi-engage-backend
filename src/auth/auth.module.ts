@@ -12,6 +12,7 @@ import { GoogleAuthMetricsService } from './services/google-auth-metrics.service
 import { GoogleAuthMetricsModule } from './modules/google-auth-metrics.module';
 import { EmailOTPService } from './services/email-otp.service';
 import { OTPStorageService } from './services/otp-storage.service';
+import { EmailVerificationGuard } from './guards/email-verification.guard';
 import { DatabaseModule } from '../database/database.module';
 import { TenantModule } from '../tenant/tenant.module';
 import { RedisModule } from '../redis/redis.module';
@@ -47,6 +48,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     GoogleAuthMetricsService,
     EmailOTPService,
     OTPStorageService,
+    EmailVerificationGuard,
   ],
   exports: [
     AuthService,
@@ -57,6 +59,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     GoogleAuthMetricsService,
     EmailOTPService,
     OTPStorageService,
+    EmailVerificationGuard,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }

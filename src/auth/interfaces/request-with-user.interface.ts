@@ -6,6 +6,7 @@ export interface RequestUser {
   tenantId: string;
   firstName: string | null;
   lastName: string | null;
+  emailVerified: boolean;
   roles: Array<{
     id: string;
     name: string;
