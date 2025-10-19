@@ -7,6 +7,7 @@ import { PrismaService } from '../database/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { UpdateGoogleSettingsDto } from '../auth/dto/update-google-settings.dto';
 import { AuthAuditService } from '../auth/services/auth-audit.service';
+import { EmailOTPService } from '../auth/services/email-otp.service';
 
 export interface CreateTenantInput {
   tenantName: string;
@@ -32,7 +33,9 @@ export interface CreateTenantResult {
     tenantId: string;
     createdAt: Date;
     updatedAt: Date;
+    email_verified: boolean | null;
   };
+  verificationRequired: boolean;
 }
 
 @Injectable()
@@ -40,7 +43,8 @@ export class TenantService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authAuditService: AuthAuditService,
-  ) {}
+    private readonly emailOTPService: EmailOTPService,
+  ) { }
 
   async createTenant(input: CreateTenantInput): Promise<CreateTenantResult> {
     const {
@@ -147,7 +151,7 @@ export class TenantService {
         ),
       );
 
-      // 4. Create admin User record
+      // 4. Create admin User record (unverified for email/password registration)
       const adminUser = await tx.user.create({
         data: {
           email: adminEmail,
@@ -155,7 +159,8 @@ export class TenantService {
           firstName: adminFirstName,
           lastName: adminLastName,
           tenantId: tenant.id,
-        },
+          email_verified: false, // Email verification required for new registrations
+        } as any,
       });
 
       // 5. Assign Admin role to user via UserRole join table
@@ -167,8 +172,16 @@ export class TenantService {
       });
 
       // Return created tenant and user (without password)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...userWithoutPassword } = adminUser;
+      const userWithoutPassword = {
+        id: adminUser.id,
+        email: adminUser.email,
+        firstName: adminUser.firstName,
+        lastName: adminUser.lastName,
+        tenantId: adminUser.tenantId,
+        createdAt: adminUser.createdAt,
+        updatedAt: adminUser.updatedAt,
+        email_verified: (adminUser as any).email_verified,
+      };
 
       return {
         tenant,
@@ -176,7 +189,21 @@ export class TenantService {
       };
     });
 
-    return result;
+    // Generate and send OTP for email verification
+    try {
+      await this.emailOTPService.generateOTP(
+        result.adminUser.id,
+        result.adminUser.email,
+      );
+    } catch (error) {
+      // Log error but don't fail the registration - user can request resend
+      console.error('Failed to generate OTP during registration:', error);
+    }
+
+    return {
+      ...result,
+      verificationRequired: true,
+    };
   }
 
   async findById(id: string) {

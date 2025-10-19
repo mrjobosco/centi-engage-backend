@@ -28,7 +28,7 @@ import type { RequestUser } from '../auth/interfaces/request-with-user.interface
 @ApiTags('Tenants')
 @Controller('tenants')
 export class TenantController {
-  constructor(private readonly tenantService: TenantService) {}
+  constructor(private readonly tenantService: TenantService) { }
 
   @Public()
   @Post()
@@ -68,8 +68,10 @@ export class TenantController {
                 tenantId: { type: 'string' },
                 createdAt: { type: 'string', format: 'date-time' },
                 updatedAt: { type: 'string', format: 'date-time' },
+                email_verified: { type: 'boolean' },
               },
             },
+            verificationRequired: { type: 'boolean', example: true },
           },
         },
       },

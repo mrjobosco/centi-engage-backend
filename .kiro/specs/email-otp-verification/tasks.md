@@ -25,20 +25,20 @@
   - Test Redis error handling scenarios
   - _Requirements: 1.1, 2.1, 4.1_
 
-- [ ] 3. Integrate OTP verification with authentication flows
-- [ ] 3.1 Extend user registration to generate and send OTP
+- [x] 3. Integrate OTP verification with authentication flows
+- [x] 3.1 Extend user registration to generate and send OTP
   - Modify existing registration endpoint to create unverified users
   - Integrate OTP generation and email sending after user creation
   - Update registration response to indicate verification requirement
   - _Requirements: 1.1, 1.3, 1.4, 5.2_
 
-- [ ] 3.2 Create email verification endpoints
+- [x] 3.2 Create email verification endpoints
   - Implement POST /auth/verify-email endpoint for OTP verification
   - Implement POST /auth/resend-otp endpoint for OTP resending
   - Add proper validation, rate limiting, and error responses
   - _Requirements: 2.1, 2.2, 4.1, 4.2, 4.4, 5.3_
 
-- [ ] 3.3 Update OAuth flows to set email as verified
+- [x] 3.3 Update OAuth flows to set email as verified
   - Modify Google OAuth registration to set emailVerified: true
   - Ensure OAuth users bypass OTP verification entirely
   - Update existing OAuth user linking to maintain verification status

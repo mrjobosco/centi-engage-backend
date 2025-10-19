@@ -2,6 +2,9 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { OTPStorageService } from './otp-storage.service';
+import { NotificationService } from '../../notifications/services/notification.service';
+import { NotificationType } from '../../notifications/enums/notification-type.enum';
+import { NotificationPriority } from '../../notifications/enums/notification-priority.enum';
 import { randomBytes } from 'crypto';
 
 export interface OTPGenerationResult {
@@ -26,6 +29,7 @@ export class EmailOTPService {
     private readonly prisma: PrismaService,
     private readonly otpStorage: OTPStorageService,
     private readonly configService: ConfigService,
+    private readonly notificationService: NotificationService,
   ) {
     this.otpLength = this.configService.get<number>('config.otp.length') ?? 6;
   }
@@ -72,6 +76,9 @@ export class EmailOTPService {
       // Store OTP in Redis
       await this.otpStorage.storeOTP(userId, otp, email);
 
+      // Send OTP via email through notification service
+      await this.sendOTPEmail(userId, email, otp);
+
       // Update user's verification token sent timestamp
       await this.prisma.$executeRaw`
         UPDATE users 
@@ -79,15 +86,75 @@ export class EmailOTPService {
         WHERE id = ${userId}
       `;
 
-      this.logger.log(`OTP generated successfully for user ${userId}`);
+      this.logger.log(`OTP generated and sent successfully for user ${userId}`);
 
       return {
         success: true,
-        message: 'OTP generated successfully',
+        message: 'OTP generated and sent successfully',
       };
     } catch (error) {
       this.logger.error(`Failed to generate OTP for user ${userId}:`, error);
       throw new BadRequestException('Failed to generate OTP');
+    }
+  }
+
+  /**
+   * Send OTP email through notification service
+   */
+  private async sendOTPEmail(
+    userId: string,
+    email: string,
+    otp: string,
+  ): Promise<void> {
+    try {
+      // Get user details for personalization
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          firstName: true,
+          lastName: true,
+          tenantId: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const firstName = user.firstName || 'User';
+      const expirationMinutes =
+        this.configService.get<number>('config.otp.expirationMinutes') ?? 30;
+
+      // Send notification through the notification service
+      await this.notificationService.sendToUser(userId, {
+        type: NotificationType.INFO,
+        category: 'email_verification',
+        title: 'Email Verification Required',
+        message: `Your verification code is ${otp}. This code will expire in ${expirationMinutes} minutes.`,
+        priority: NotificationPriority.HIGH,
+        templateId: 'otp-verification',
+        templateVariables: {
+          firstName,
+          otp,
+          expirationTime: `${expirationMinutes} minutes`,
+          companyName:
+            this.configService.get<string>('config.app.name') ?? 'Your Company',
+          supportEmail:
+            this.configService.get<string>('config.support.email') ??
+            'support@company.com',
+        },
+      });
+
+      this.logger.log(
+        `OTP email sent successfully to ${email} for user ${userId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send OTP email to ${email} for user ${userId}:`,
+        error,
+      );
+      // Don't throw error here - OTP generation should succeed even if email fails
+      // User can request resend if needed
     }
   }
 

@@ -243,7 +243,9 @@ export class GoogleAuthService {
           googleLinkedAt: new Date(),
           authMethods: ['google'],
           password: '', // Empty password for Google-only users
-        },
+          email_verified: true, // OAuth users have pre-verified emails
+          email_verified_at: new Date(),
+        } as any,
       });
 
       // Assign Member role to the new user
@@ -400,7 +402,9 @@ export class GoogleAuthService {
         googleId: profile.id,
         googleLinkedAt: new Date(),
         authMethods: updatedAuthMethods,
-      },
+        email_verified: true, // Mark email as verified when linking Google account
+        email_verified_at: new Date(),
+      } as any,
     });
   }
 

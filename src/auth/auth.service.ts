@@ -56,9 +56,23 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    // Return access token
+    // Return access token with verification status
     return {
       accessToken,
+      emailVerified: (user as any).email_verified || false,
+      requiresVerification:
+        !(user as any).email_verified && !user.authMethods.includes('google'),
     };
+  }
+
+  async findUserByEmailAndTenant(email: string, tenantId: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        email_tenantId: {
+          email,
+          tenantId,
+        },
+      },
+    });
   }
 }

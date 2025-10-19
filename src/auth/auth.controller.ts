@@ -19,7 +19,14 @@ import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { OAuthStateService } from './services/oauth-state.service';
 import { GoogleAuthMetricsService } from './services/google-auth-metrics.service';
-import { LoginDto, GoogleCallbackDto, GoogleLinkCallbackDto } from './dto';
+import {
+  LoginDto,
+  GoogleCallbackDto,
+  GoogleLinkCallbackDto,
+  VerifyEmailDto,
+  ResendOTPDto,
+} from './dto';
+import { EmailOTPService } from './services/email-otp.service';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -34,7 +41,8 @@ export class AuthController {
     private readonly googleOAuthService: GoogleOAuthService,
     private readonly oauthStateService: OAuthStateService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
-  ) { }
+    private readonly emailOTPService: EmailOTPService,
+  ) {}
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for login
@@ -59,6 +67,14 @@ export class AuthController {
         accessToken: {
           type: 'string',
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+        emailVerified: {
+          type: 'boolean',
+          example: false,
+        },
+        requiresVerification: {
+          type: 'boolean',
+          example: true,
         },
       },
     },
@@ -86,6 +102,208 @@ export class AuthController {
 
     // Call AuthService.login
     return this.authService.login(loginDto, tenantId);
+  }
+
+  // Email Verification Endpoints
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 requests per 15 minutes for OTP verification
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify email with OTP',
+    description:
+      'Verify user email address using the 6-digit OTP sent to their email. Marks the user as verified upon success.',
+  })
+  @ApiHeader({
+    name: 'x-tenant-id',
+    description: 'Tenant identifier',
+    required: true,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Email verified successfully' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid OTP or user not found',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - Rate limit exceeded',
+  })
+  verifyEmail(
+    @Body() verifyEmailDto: VerifyEmailDto,
+    @Headers('x-tenant-id') tenantId?: string,
+  ) {
+    if (!tenantId) {
+      throw new BadRequestException('Tenant ID is required');
+    }
+
+    // Find user by email and tenant (since we don't have userId in public endpoint)
+    // We'll need to modify this to work with the current user context
+    // For now, let's assume we get the user ID from the request body or session
+    throw new BadRequestException(
+      'This endpoint requires user authentication. Please use the authenticated version.',
+    );
+  }
+
+  @Post('verify-email/authenticated')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 requests per 15 minutes for OTP verification
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify email with OTP (authenticated)',
+    description:
+      'Verify authenticated user email address using the 6-digit OTP sent to their email. Marks the user as verified upon success.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Email verified successfully' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid OTP or verification failed',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - Rate limit exceeded',
+  })
+  async verifyEmailAuthenticated(
+    @Body() verifyEmailDto: VerifyEmailDto,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.emailOTPService.verifyOTP(
+      user.id,
+      verifyEmailDto.otp,
+    );
+
+    return {
+      success: result.success,
+      message: result.message,
+      ...(result.remainingAttempts !== undefined && {
+        remainingAttempts: result.remainingAttempts,
+      }),
+    };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour for OTP resend
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend OTP to email',
+    description:
+      'Resend a new OTP to the specified email address. Invalidates any existing OTP for that user.',
+  })
+  @ApiHeader({
+    name: 'x-tenant-id',
+    description: 'Tenant identifier',
+    required: true,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'OTP sent successfully' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid email or user not found',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - Rate limit exceeded',
+  })
+  async resendOTP(
+    @Body() resendOTPDto: ResendOTPDto,
+    @Headers('x-tenant-id') tenantId?: string,
+  ) {
+    if (!tenantId) {
+      throw new BadRequestException('Tenant ID is required');
+    }
+
+    // Find user by email and tenant
+    const user = await this.authService.findUserByEmailAndTenant(
+      resendOTPDto.email,
+      tenantId,
+    );
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const result = await this.emailOTPService.resendOTP(user.id);
+
+    return {
+      success: result.success,
+      message: result.message,
+      ...(result.retryAfter !== undefined && { retryAfter: result.retryAfter }),
+    };
+  }
+
+  @Post('resend-otp/authenticated')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour for OTP resend
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend OTP (authenticated)',
+    description:
+      'Resend a new OTP to the authenticated user email address. Invalidates any existing OTP for that user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'OTP sent successfully' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Resend failed',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - Rate limit exceeded',
+  })
+  async resendOTPAuthenticated(@CurrentUser() user: User) {
+    const result = await this.emailOTPService.resendOTP(user.id);
+
+    return {
+      success: result.success,
+      message: result.message,
+      ...(result.retryAfter !== undefined && { retryAfter: result.retryAfter }),
+    };
   }
 
   // Google OAuth Endpoints

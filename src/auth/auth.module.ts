@@ -10,14 +10,20 @@ import { GoogleOAuthService } from './services/google-oauth.service';
 import { OAuthStateService } from './services/oauth-state.service';
 import { GoogleAuthMetricsService } from './services/google-auth-metrics.service';
 import { GoogleAuthMetricsModule } from './modules/google-auth-metrics.module';
+import { EmailOTPService } from './services/email-otp.service';
+import { OTPStorageService } from './services/otp-storage.service';
 import { DatabaseModule } from '../database/database.module';
 import { TenantModule } from '../tenant/tenant.module';
+import { RedisModule } from '../redis/redis.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Global()
 @Module({
   imports: [
     DatabaseModule,
     TenantModule,
+    RedisModule,
+    NotificationsModule,
     GoogleAuthMetricsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -39,6 +45,8 @@ import { TenantModule } from '../tenant/tenant.module';
     GoogleOAuthService,
     OAuthStateService,
     GoogleAuthMetricsService,
+    EmailOTPService,
+    OTPStorageService,
   ],
   exports: [
     AuthService,
@@ -47,6 +55,8 @@ import { TenantModule } from '../tenant/tenant.module';
     GoogleOAuthService,
     OAuthStateService,
     GoogleAuthMetricsService,
+    EmailOTPService,
+    OTPStorageService,
   ],
 })
 export class AuthModule {}
