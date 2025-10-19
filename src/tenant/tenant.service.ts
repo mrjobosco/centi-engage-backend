@@ -33,7 +33,7 @@ export interface CreateTenantResult {
     tenantId: string;
     createdAt: Date;
     updatedAt: Date;
-    email_verified: boolean | null;
+    emailVerified: boolean | null;
   };
   verificationRequired: boolean;
 }
@@ -159,8 +159,8 @@ export class TenantService {
           firstName: adminFirstName,
           lastName: adminLastName,
           tenantId: tenant.id,
-          email_verified: false, // Email verification required for new registrations
-        } as any,
+          emailVerified: false, // Email verification required for new registrations
+        },
       });
 
       // 5. Assign Admin role to user via UserRole join table
@@ -180,7 +180,7 @@ export class TenantService {
         tenantId: adminUser.tenantId,
         createdAt: adminUser.createdAt,
         updatedAt: adminUser.updatedAt,
-        email_verified: (adminUser as any).email_verified,
+        emailVerified: adminUser.emailVerified,
       };
 
       return {
