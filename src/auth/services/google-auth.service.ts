@@ -34,7 +34,7 @@ export class GoogleAuthService {
     private readonly jwtService: JwtService,
     private readonly authAuditService: AuthAuditService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
-  ) {}
+  ) { }
 
   /**
    * Validate that a tenant has Google SSO enabled
@@ -65,12 +65,17 @@ export class GoogleAuthService {
   }
 
   /**
-   * Authenticate a user with Google profile information
+   * Authenticate a user with Google profile information - supports tenant-less registration
    */
   async authenticateWithGoogle(
     profile: GoogleProfile,
-    tenantId: string,
+    tenantId?: string,
   ): Promise<AuthenticationResult> {
+    if (!tenantId) {
+      // Handle tenant-less Google OAuth
+      return this.authenticateWithGoogleTenantless(profile);
+    }
+
     // Record authentication attempt
     this.googleAuthMetricsService.recordSignInAttempt(tenantId, 'callback');
 
@@ -518,5 +523,123 @@ export class GoogleAuthService {
     }
 
     return user.authMethods;
+  }
+
+  /**
+   * Handle tenant-less Google OAuth authentication
+   */
+  private async authenticateWithGoogleTenantless(
+    profile: GoogleProfile,
+  ): Promise<AuthenticationResult> {
+    // Check if user exists by Google ID
+    let user = await this.prisma.user.findUnique({
+      where: { googleId: profile.id },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (user) {
+      // Existing Google user
+      if (user.tenantId === null) {
+        // Tenant-less user signing in
+        return this.generateTokenForUser(user);
+      } else {
+        // User has tenant - redirect to tenant-specific flow
+        throw new BadRequestException(
+          'User belongs to a tenant. Please use tenant-specific login.',
+        );
+      }
+    }
+
+    // Check if user exists by email (tenant-less)
+    user = await this.prisma.user.findFirst({
+      where: {
+        email: profile.email,
+        tenantId: null,
+      },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (user) {
+      // Auto-link Google account to existing tenant-less user
+      await this.linkGoogleAccountInternal(user.id, profile);
+      user = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          roles: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      });
+    } else {
+      // Create new tenant-less user
+      user = await this.createTenantlessUserFromGoogle(profile);
+    }
+
+    return this.generateTokenForUser(user!);
+  }
+
+  /**
+   * Generate JWT token for a user
+   */
+  private generateTokenForUser(user: UserWithRoles): AuthenticationResult {
+    const payload: JwtPayload = {
+      userId: user.id,
+      tenantId: user.tenantId,
+      roles: user.roles.map((ur) => ur.role.id),
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    return { accessToken };
+  }
+
+  /**
+   * Create a new tenant-less user from Google profile
+   */
+  private async createTenantlessUserFromGoogle(
+    profile: GoogleProfile,
+  ): Promise<UserWithRoles> {
+    // Create tenant-less user
+    const user = await this.prisma.user.create({
+      data: {
+        email: profile.email,
+        firstName: profile.firstName || null,
+        lastName: profile.lastName || null,
+        tenantId: null, // Explicitly null for tenant-less users
+        googleId: profile.id,
+        googleLinkedAt: new Date(),
+        authMethods: ['google'],
+        password: '', // Empty password for Google-only users
+        email_verified: true, // OAuth users have pre-verified emails
+        email_verified_at: new Date(),
+      } as any,
+      include: {
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return user as UserWithRoles;
   }
 }

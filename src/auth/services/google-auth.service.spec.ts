@@ -1,15 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import {
-  NotFoundException,
-  ForbiddenException,
-  UnauthorizedException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { GoogleAuthService } from './google-auth.service';
-import { AuthAuditService } from './auth-audit.service';
 import { PrismaService } from '../../database/prisma.service';
+import { AuthAuditService } from './auth-audit.service';
+import { GoogleAuthMetricsService } from './google-auth-metrics.service';
 import { GoogleProfile } from '../interfaces/google-profile.interface';
 
 describe('GoogleAuthService', () => {
@@ -17,29 +12,37 @@ describe('GoogleAuthService', () => {
   let prismaService: jest.Mocked<PrismaService>;
   let jwtService: jest.Mocked<JwtService>;
   let authAuditService: jest.Mocked<AuthAuditService>;
+  let googleAuthMetricsService: jest.Mocked<GoogleAuthMetricsService>;
 
-  const mockTenant = {
-    id: 'tenant-1',
-    name: 'Test Tenant',
-    googleSsoEnabled: true,
-    googleAutoProvision: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    subdomain: 'test',
-  };
-
-  const mockUser = {
-    id: 'user-1',
+  const mockGoogleProfile: GoogleProfile = {
+    id: 'google-123',
     email: 'test@example.com',
-    password: 'hashedpassword',
     firstName: 'John',
     lastName: 'Doe',
-    tenantId: 'tenant-1',
-    googleId: null,
-    googleLinkedAt: null,
-    authMethods: ['password'],
+  };
+
+  const mockTenantlessUser = {
+    id: 'user-1',
+    email: 'test@example.com',
+    firstName: 'John',
+    lastName: 'Doe',
+    tenantId: null,
+    googleId: 'google-123',
+    authMethods: ['google'],
+    roles: [],
     createdAt: new Date(),
     updatedAt: new Date(),
+    password: '',
+    googleLinkedAt: new Date(),
+    email_verified: true,
+    email_verified_at: new Date(),
+    verificationToken: null,
+    verificationTokenSentAt: null,
+  };
+
+  const mockTenantUser = {
+    ...mockTenantlessUser,
+    tenantId: 'tenant-1',
     roles: [
       {
         role: {
@@ -50,31 +53,17 @@ describe('GoogleAuthService', () => {
     ],
   };
 
-  const mockGoogleProfile: GoogleProfile = {
-    id: 'google-123',
-    email: 'test@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    picture: 'https://example.com/photo.jpg',
-  };
-
   beforeEach(async () => {
     const mockPrismaService = {
-      tenant: {
-        findUnique: jest.fn(),
-      },
       user: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       },
-      role: {
-        findFirst: jest.fn(),
+      tenant: {
+        findUnique: jest.fn(),
       },
-      userRole: {
-        create: jest.fn(),
-      },
-      $transaction: jest.fn(),
     };
 
     const mockJwtService = {
@@ -83,24 +72,24 @@ describe('GoogleAuthService', () => {
 
     const mockAuthAuditService = {
       logGoogleSignIn: jest.fn(),
-      logGoogleLink: jest.fn(),
-      logGoogleUnlink: jest.fn(),
+    };
+
+    const mockGoogleAuthMetricsService = {
+      recordSignInAttempt: jest.fn(),
+      startTenantLookupTimer: jest.fn(),
+      recordSignInSuccess: jest.fn(),
+      recordSignInFailure: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GoogleAuthService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: AuthAuditService, useValue: mockAuthAuditService },
         {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: AuthAuditService,
-          useValue: mockAuthAuditService,
+          provide: GoogleAuthMetricsService,
+          useValue: mockGoogleAuthMetricsService,
         },
       ],
     }).compile();
@@ -109,498 +98,209 @@ describe('GoogleAuthService', () => {
     prismaService = module.get(PrismaService);
     jwtService = module.get(JwtService);
     authAuditService = module.get(AuthAuditService);
+    googleAuthMetricsService = module.get(GoogleAuthMetricsService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
+  describe('authenticateWithGoogle - tenant-less', () => {
+    it('should authenticate existing tenant-less Google user', async () => {
+      // Arrange
+      prismaService.user.findUnique.mockResolvedValue(mockTenantlessUser);
+      jwtService.sign.mockReturnValue('jwt-token');
 
-  describe('validateTenantGoogleSSO', () => {
-    it('should return tenant when Google SSO is enabled', async () => {
-      prismaService.tenant.findUnique.mockResolvedValue(mockTenant);
+      // Act
+      const result = await service.authenticateWithGoogle(mockGoogleProfile);
 
-      const result = await service.validateTenantGoogleSSO('tenant-1');
-
-      expect(result).toEqual(mockTenant);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prismaService.tenant.findUnique).toHaveBeenCalledWith({
-        where: { id: 'tenant-1' },
-        select: {
-          id: true,
-          googleSsoEnabled: true,
-          googleAutoProvision: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
-          subdomain: true,
+      // Assert
+      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { googleId: mockGoogleProfile.id },
+        include: {
+          roles: {
+            include: {
+              role: true,
+            },
+          },
         },
+      });
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        userId: mockTenantlessUser.id,
+        tenantId: null,
+        roles: [],
+      });
+      expect(result).toEqual({
+        accessToken: 'jwt-token',
       });
     });
 
-    it('should throw NotFoundException when tenant does not exist', async () => {
-      prismaService.tenant.findUnique.mockResolvedValue(null);
+    it('should throw BadRequestException if Google user belongs to tenant', async () => {
+      // Arrange
+      prismaService.user.findUnique.mockResolvedValue(mockTenantUser);
 
+      // Act & Assert
       await expect(
-        service.validateTenantGoogleSSO('invalid-tenant'),
-      ).rejects.toThrow(NotFoundException);
+        service.authenticateWithGoogle(mockGoogleProfile),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw ForbiddenException when Google SSO is disabled', async () => {
-      const disabledTenant = { ...mockTenant, googleSsoEnabled: false };
-      prismaService.tenant.findUnique.mockResolvedValue(disabledTenant);
+    it('should create new tenant-less user from Google profile', async () => {
+      // Arrange
+      prismaService.user.findUnique.mockResolvedValue(null);
+      prismaService.user.findFirst.mockResolvedValue(null);
+      prismaService.user.create.mockResolvedValue(mockTenantlessUser);
+      jwtService.sign.mockReturnValue('jwt-token');
 
-      await expect(service.validateTenantGoogleSSO('tenant-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      // Act
+      const result = await service.authenticateWithGoogle(mockGoogleProfile);
+
+      // Assert
+      expect(prismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          email: mockGoogleProfile.email,
+          firstName: mockGoogleProfile.firstName,
+          lastName: mockGoogleProfile.lastName,
+          tenantId: null,
+          googleId: mockGoogleProfile.id,
+          googleLinkedAt: expect.any(Date),
+          authMethods: ['google'],
+          password: '',
+          email_verified: true,
+          email_verified_at: expect.any(Date),
+        },
+        include: {
+          roles: {
+            include: {
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(result).toEqual({
+        accessToken: 'jwt-token',
+      });
+    });
+
+    it('should link Google account to existing tenant-less user', async () => {
+      // Arrange
+      const existingUser = {
+        ...mockTenantlessUser,
+        googleId: null,
+        authMethods: ['password'],
+      };
+      prismaService.user.findUnique
+        .mockResolvedValueOnce(null) // First call for Google ID lookup
+        .mockResolvedValueOnce(existingUser) // Second call after linking
+        .mockResolvedValueOnce(existingUser); // Third call for auth methods
+      prismaService.user.findFirst.mockResolvedValue(existingUser);
+      prismaService.user.update.mockResolvedValue({
+        ...existingUser,
+        googleId: mockGoogleProfile.id,
+        authMethods: ['password', 'google'],
+      });
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      // Act
+      const result = await service.authenticateWithGoogle(mockGoogleProfile);
+
+      // Assert
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: existingUser.id },
+        data: {
+          googleId: mockGoogleProfile.id,
+          googleLinkedAt: expect.any(Date),
+          authMethods: ['password', 'google'],
+          email_verified: true,
+          email_verified_at: expect.any(Date),
+        },
+      });
+      expect(result).toEqual({
+        accessToken: 'jwt-token',
+      });
     });
   });
 
-  describe('authenticateWithGoogle', () => {
-    beforeEach(() => {
-      prismaService.tenant.findUnique.mockResolvedValue(mockTenant);
-      jwtService.sign.mockReturnValue('mock-jwt-token');
-      authAuditService.logGoogleSignIn.mockResolvedValue(undefined);
-    });
+  describe('createTenantlessUserFromGoogle', () => {
+    it('should create tenant-less user from Google profile', async () => {
+      // Arrange
+      prismaService.user.create.mockResolvedValue(mockTenantlessUser);
 
-    it('should authenticate existing Google user successfully', async () => {
-      const googleUser = {
-        ...mockUser,
-        googleId: 'google-123',
-        authMethods: ['google'],
-      };
-      prismaService.user.findUnique.mockResolvedValueOnce(googleUser);
-
-      const result = await service.authenticateWithGoogle(
+      // Act
+      const result = await (service as any).createTenantlessUserFromGoogle(
         mockGoogleProfile,
-        'tenant-1',
       );
 
-      expect(result).toEqual({ accessToken: 'mock-jwt-token' });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+      // Assert
+      expect(prismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          email: mockGoogleProfile.email,
+          firstName: mockGoogleProfile.firstName,
+          lastName: mockGoogleProfile.lastName,
+          tenantId: null,
+          googleId: mockGoogleProfile.id,
+          googleLinkedAt: expect.any(Date),
+          authMethods: ['google'],
+          password: '',
+          email_verified: true,
+          email_verified_at: expect.any(Date),
+        },
+        include: {
+          roles: {
+            include: {
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(result).toBe(mockTenantlessUser);
+    });
+  });
+
+  describe('generateTokenForUser', () => {
+    it('should generate JWT token for user', () => {
+      // Arrange
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      // Act
+      const result = (service as any).generateTokenForUser(mockTenantlessUser);
+
+      // Assert
       expect(jwtService.sign).toHaveBeenCalledWith({
-        userId: 'user-1',
+        userId: mockTenantlessUser.id,
+        tenantId: null,
+        roles: [],
+      });
+      expect(result).toEqual({
+        accessToken: 'jwt-token',
+      });
+    });
+
+    it('should generate JWT token for user with roles', () => {
+      // Arrange
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      // Act
+      const result = (service as any).generateTokenForUser(mockTenantUser);
+
+      // Assert
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        userId: mockTenantUser.id,
         tenantId: 'tenant-1',
         roles: ['role-1'],
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleSignIn).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        true,
-        undefined,
-        undefined,
-      );
-    });
-
-    it('should throw UnauthorizedException when Google user belongs to different tenant', async () => {
-      const googleUser = {
-        ...mockUser,
-        googleId: 'google-123',
-        tenantId: 'other-tenant',
-      };
-      prismaService.user.findUnique.mockResolvedValueOnce(googleUser);
-
-      await expect(
-        service.authenticateWithGoogle(mockGoogleProfile, 'tenant-1'),
-      ).rejects.toThrow(UnauthorizedException);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleSignIn).toHaveBeenCalledWith(
-        'unknown',
-        'tenant-1',
-        false,
-        undefined,
-        undefined,
-        'UnauthorizedException',
-        'User belongs to different tenant',
-        { googleEmail: 'test@example.com' },
-      );
-    });
-
-    it('should auto-link existing user by email', async () => {
-      const existingUser = { ...mockUser };
-      const linkedUser = {
-        ...mockUser,
-        googleId: 'google-123',
-        authMethods: ['password', 'google'],
-      };
-
-      prismaService.user.findUnique
-        .mockResolvedValueOnce(null) // No user found by Google ID
-        .mockResolvedValueOnce(existingUser) // User found by email
-        .mockResolvedValueOnce({ authMethods: ['password'] }) // User for linkGoogleAccountInternal
-        .mockResolvedValueOnce(linkedUser); // User after linking
-
-      prismaService.user.update.mockResolvedValue(linkedUser);
-
-      const result = await service.authenticateWithGoogle(
-        mockGoogleProfile,
-        'tenant-1',
-      );
-
-      expect(result).toEqual({ accessToken: 'mock-jwt-token' });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: {
-          googleId: 'google-123',
-          googleLinkedAt: expect.any(Date),
-          authMethods: ['password', 'google'],
-        },
+      expect(result).toEqual({
+        accessToken: 'jwt-token',
       });
-    });
-
-    it('should create new user when auto-provisioning is enabled', async () => {
-      const newUser = {
-        ...mockUser,
-        id: 'new-user-1',
-        googleId: 'google-123',
-        authMethods: ['google'],
-      };
-      const memberRole = {
-        id: 'role-member',
-        name: 'Member',
-        tenantId: 'tenant-1',
-      };
-
-      prismaService.user.findUnique
-        .mockResolvedValueOnce(null) // No user found by Google ID
-        .mockResolvedValueOnce(null); // No user found by email
-
-      prismaService.role.findFirst.mockResolvedValue(memberRole);
-      prismaService.$transaction.mockImplementation(async (callback) => {
-        return callback({
-          user: {
-            create: jest.fn().mockResolvedValue(newUser),
-            findUnique: jest.fn().mockResolvedValue(newUser),
-          },
-          userRole: {
-            create: jest.fn(),
-          },
-        });
-      });
-
-      const result = await service.authenticateWithGoogle(
-        mockGoogleProfile,
-        'tenant-1',
-      );
-
-      expect(result).toEqual({ accessToken: 'mock-jwt-token' });
-    });
-
-    it('should throw UnauthorizedException when auto-provisioning is disabled and user not found', async () => {
-      const tenantWithoutAutoProvision = {
-        ...mockTenant,
-        googleAutoProvision: false,
-      };
-      prismaService.tenant.findUnique.mockResolvedValue(
-        tenantWithoutAutoProvision,
-      );
-      prismaService.user.findUnique
-        .mockResolvedValueOnce(null) // No user found by Google ID
-        .mockResolvedValueOnce(null); // No user found by email
-
-      await expect(
-        service.authenticateWithGoogle(mockGoogleProfile, 'tenant-1'),
-      ).rejects.toThrow(UnauthorizedException);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleSignIn).toHaveBeenCalledWith(
-        'unknown',
-        'tenant-1',
-        false,
-        undefined,
-        undefined,
-        'UnauthorizedException',
-        'User not found and auto-provisioning is disabled',
-        { googleEmail: 'test@example.com' },
-      );
-    });
-  });
-
-  describe('createUserFromGoogle', () => {
-    it('should create new user with Member role', async () => {
-      const memberRole = {
-        id: 'role-member',
-        name: 'Member',
-        tenantId: 'tenant-1',
-      };
-      const newUser = {
-        ...mockUser,
-        id: 'new-user-1',
-        googleId: 'google-123',
-        authMethods: ['google'],
-        password: '',
-      };
-
-      prismaService.role.findFirst.mockResolvedValue(memberRole);
-      prismaService.$transaction.mockImplementation(async (callback) => {
-        return callback({
-          user: {
-            create: jest.fn().mockResolvedValue(newUser),
-            findUnique: jest.fn().mockResolvedValue(newUser),
-          },
-          userRole: {
-            create: jest.fn(),
-          },
-        });
-      });
-
-      const result = await service.createUserFromGoogle(
-        mockGoogleProfile,
-        'tenant-1',
-      );
-
-      expect(result).toEqual(newUser);
-    });
-
-    it('should throw NotFoundException when Member role not found', async () => {
-      prismaService.role.findFirst.mockResolvedValue(null);
-
-      await expect(
-        service.createUserFromGoogle(mockGoogleProfile, 'tenant-1'),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('linkGoogleAccount', () => {
-    beforeEach(() => {
-      authAuditService.logGoogleLink.mockResolvedValue(undefined);
-    });
-
-    it('should link Google account successfully', async () => {
-      const user = { ...mockUser };
-      prismaService.user.findUnique
-        .mockResolvedValueOnce(user) // Get current user
-        .mockResolvedValueOnce(null) // No existing Google user
-        .mockResolvedValueOnce({ authMethods: ['password'] }); // User for linkGoogleAccountInternal
-
-      prismaService.user.update.mockResolvedValue({
-        ...user,
-        googleId: 'google-123',
-        authMethods: ['password', 'google'],
-      });
-
-      await service.linkGoogleAccount('user-1', mockGoogleProfile);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: {
-          googleId: 'google-123',
-          googleLinkedAt: expect.any(Date),
-          authMethods: ['password', 'google'],
-        },
-      });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        true,
-        undefined,
-        undefined,
-      );
-    });
-
-    it('should throw NotFoundException when user not found', async () => {
-      prismaService.user.findUnique.mockResolvedValueOnce(null);
-
-      await expect(
-        service.linkGoogleAccount('invalid-user', mockGoogleProfile),
-      ).rejects.toThrow(NotFoundException);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
-        'invalid-user',
-        'unknown',
-        false,
-        undefined,
-        undefined,
-        'NotFoundException',
-        'User not found',
-        { googleEmail: 'test@example.com' },
-      );
-    });
-
-    it('should throw BadRequestException when emails do not match', async () => {
-      const user = { ...mockUser, email: 'different@example.com' };
-      prismaService.user.findUnique.mockResolvedValueOnce(user);
-
-      await expect(
-        service.linkGoogleAccount('user-1', mockGoogleProfile),
-      ).rejects.toThrow(BadRequestException);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        false,
-        undefined,
-        undefined,
-        'BadRequestException',
-        'Google email must match your account email',
-        { googleEmail: 'test@example.com' },
-      );
-    });
-
-    it('should throw ConflictException when Google account already linked to another user', async () => {
-      const user = { ...mockUser };
-      const existingGoogleUser = {
-        ...mockUser,
-        id: 'other-user',
-        googleId: 'google-123',
-      };
-
-      prismaService.user.findUnique
-        .mockResolvedValueOnce(user) // Get current user
-        .mockResolvedValueOnce(existingGoogleUser); // Existing Google user
-
-      await expect(
-        service.linkGoogleAccount('user-1', mockGoogleProfile),
-      ).rejects.toThrow(ConflictException);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleLink).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        false,
-        undefined,
-        undefined,
-        'ConflictException',
-        'Google account is already linked to another user',
-        { googleEmail: 'test@example.com' },
-      );
-    });
-  });
-
-  describe('unlinkGoogleAccount', () => {
-    beforeEach(() => {
-      authAuditService.logGoogleUnlink.mockResolvedValue(undefined);
-    });
-
-    it('should unlink Google account successfully', async () => {
-      const user = {
-        authMethods: ['password', 'google'],
-        googleId: 'google-123',
-        tenantId: 'tenant-1',
-      };
-      prismaService.user.findUnique.mockResolvedValue(user);
-      prismaService.user.update.mockResolvedValue({
-        ...user,
-        googleId: null,
-        authMethods: ['password'],
-      });
-
-      await service.unlinkGoogleAccount('user-1');
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: {
-          googleId: null,
-          googleLinkedAt: null,
-          authMethods: ['password'],
-        },
-      });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        true,
-        undefined,
-        undefined,
-      );
-    });
-
-    it('should throw NotFoundException when user not found', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
-
-      await expect(service.unlinkGoogleAccount('invalid-user')).rejects.toThrow(
-        NotFoundException,
-      );
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
-        'invalid-user',
-        'unknown',
-        false,
-        undefined,
-        undefined,
-        'NotFoundException',
-        'User not found',
-      );
-    });
-
-    it('should throw BadRequestException when Google account is not linked', async () => {
-      const user = {
-        authMethods: ['password'],
-        googleId: null,
-        tenantId: 'tenant-1',
-      };
-      prismaService.user.findUnique.mockResolvedValue(user);
-
-      await expect(service.unlinkGoogleAccount('user-1')).rejects.toThrow(
-        BadRequestException,
-      );
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        false,
-        undefined,
-        undefined,
-        'BadRequestException',
-        'Google account is not linked',
-      );
-    });
-
-    it('should throw BadRequestException when no other auth methods available', async () => {
-      const user = {
-        authMethods: ['google'],
-        googleId: 'google-123',
-        tenantId: 'tenant-1',
-      };
-      prismaService.user.findUnique.mockResolvedValue(user);
-
-      await expect(service.unlinkGoogleAccount('user-1')).rejects.toThrow(
-        BadRequestException,
-      );
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authAuditService.logGoogleUnlink).toHaveBeenCalledWith(
-        'user-1',
-        'tenant-1',
-        false,
-        undefined,
-        undefined,
-        'BadRequestException',
-        'Cannot unlink Google account - no other authentication methods available',
-      );
-    });
-  });
-
-  describe('getUserAuthMethods', () => {
-    it('should return user auth methods', async () => {
-      const user = { authMethods: ['password', 'google'] };
-      prismaService.user.findUnique.mockResolvedValue(user);
-
-      const result = await service.getUserAuthMethods('user-1');
-
-      expect(result).toEqual(['password', 'google']);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        select: { authMethods: true },
-      });
-    });
-
-    it('should throw NotFoundException when user not found', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
-
-      await expect(service.getUserAuthMethods('invalid-user')).rejects.toThrow(
-        NotFoundException,
-      );
     });
   });
 });

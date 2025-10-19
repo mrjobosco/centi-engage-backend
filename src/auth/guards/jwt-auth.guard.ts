@@ -54,6 +54,7 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       // Load user from database with roles and verification status
+      // Handle both tenant-less (null tenantId) and tenant-bound users
       const user = await this.prisma.user.findUnique({
         where: {
           id: payload.userId,
@@ -73,11 +74,15 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       // Get email verification status using raw query to avoid Prisma client issues
+      // Handle nullable tenant_id in the query
       const verificationResult = await this.prisma.$queryRaw<
         Array<{ email_verified: boolean }>
       >`
         SELECT email_verified FROM users 
-        WHERE id = ${user.id} AND tenant_id = ${user.tenantId}
+        WHERE id = ${user.id} AND (
+          (tenant_id IS NULL AND ${user.tenantId} IS NULL) OR 
+          tenant_id = ${user.tenantId}
+        )
       `;
 
       const emailVerified = verificationResult?.[0]?.email_verified || false;

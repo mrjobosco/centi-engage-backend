@@ -25,26 +25,26 @@
     - Verify existing data integrity is maintained
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
 
-- [ ] 2. Update authentication services for tenant-less users
-  - [ ] 2.1 Enhance AuthService to support tenant-less registration
+- [x] 2. Update authentication services for tenant-less users
+  - [x] 2.1 Enhance AuthService to support tenant-less registration
     - Implement registerTenantlessUser method for email/password registration
     - Update login method to handle both tenant-less and tenant-specific authentication
     - Modify JWT token generation to support null tenantId
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ] 2.2 Enhance GoogleAuthService for tenant-less Google OAuth
+  - [x] 2.2 Enhance GoogleAuthService for tenant-less Google OAuth
     - Update authenticateWithGoogle to support tenant-less flow
     - Implement createTenantlessUserFromGoogle method
     - Modify token generation for tenant-less Google users
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ] 2.3 Update JWT payload interface and validation
+  - [x] 2.3 Update JWT payload interface and validation
     - Make tenantId nullable in JwtPayload interface
     - Update JWT strategy to handle null tenantId
     - Ensure JWT validation works for both tenant-less and tenant-bound users
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ] 2.4 Write unit tests for enhanced authentication services
+  - [x] 2.4 Write unit tests for enhanced authentication services
     - Test tenant-less user registration with email/password
     - Test tenant-less Google OAuth authentication
     - Test JWT token generation and validation for null tenantId

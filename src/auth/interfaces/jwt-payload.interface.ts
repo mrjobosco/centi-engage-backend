@@ -1,5 +1,5 @@
 export interface JwtPayload {
   userId: string;
-  tenantId: string;
+  tenantId: string | null;
   roles: string[];
 }
