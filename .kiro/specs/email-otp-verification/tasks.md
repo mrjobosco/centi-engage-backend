@@ -88,14 +88,14 @@
   - Test error handling for email failures
   - _Requirements: 1.3, 7.4_
 
-- [ ] 6. Add comprehensive error handling and validation
-- [ ] 6.1 Create custom exceptions for OTP operations
+- [x] 6. Add comprehensive error handling and validation
+- [x] 6.1 Create custom exceptions for OTP operations
   - Implement EmailVerificationRequiredException for unverified access
   - Implement InvalidOTPException for invalid/expired OTPs
   - Implement OTPRateLimitException for rate limit violations
   - _Requirements: 2.3, 2.4, 4.4, 5.1_
 
-- [ ] 6.2 Implement DTOs with validation
+- [x] 6.2 Implement DTOs with validation
   - Create VerifyEmailDto with OTP format validation
   - Create ResendOTPDto with email validation
   - Add proper validation decorators and error messages
