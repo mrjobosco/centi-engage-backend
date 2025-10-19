@@ -69,14 +69,14 @@
   - Test integration with existing authentication guards
   - _Requirements: 5.1, 5.2_
 
-- [ ] 5. Create email templates and notification integration
-- [ ] 5.1 Create OTP email template
+- [x] 5. Create email templates and notification integration
+- [x] 5.1 Create OTP email template
   - Design email template for OTP delivery with clear instructions
   - Include OTP code, expiration time, and security warnings
   - Add template to notification system with proper categorization
   - _Requirements: 1.3, 5.3_
 
-- [ ] 5.2 Integrate OTP sending with notification service
+- [x] 5.2 Integrate OTP sending with notification service
   - Create notification payload for OTP emails
   - Ensure proper tenant context and user preferences are respected
   - Add error handling for email delivery failures

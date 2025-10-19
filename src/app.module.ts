@@ -52,7 +52,7 @@ import { SharedMetricsModule } from './common/modules/metrics.module';
       ? [
         {
           provide: 'APP_GUARD',
-          useClass: ThrottlerGuard,
+            useClass: ThrottlerGuard,
         },
       ]
       : []),

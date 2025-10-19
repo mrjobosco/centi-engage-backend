@@ -608,6 +608,113 @@ async function main() {
 
   console.log(`✅ Created ${techStartProjects.length} projects for TechStart`);
 
+  // Create notification templates
+  console.log('\n📧 Creating notification templates...');
+
+  const otpVerificationTemplate = await prisma.notificationTemplate.create({
+    data: {
+      tenantId: null, // Global template
+      category: 'email_verification',
+      channel: 'EMAIL',
+      subject: 'Verify your email address',
+      templateBody: 'otp-verification', // React-email template type
+      variables: {
+        firstName: {
+          type: 'string',
+          required: true,
+          description: 'User first name for personalization',
+        },
+        otp: {
+          type: 'string',
+          required: true,
+          description: 'The 6-digit OTP code',
+        },
+        expirationTime: {
+          type: 'string',
+          required: true,
+          description: 'Human-readable expiration time (e.g., "30 minutes")',
+        },
+        companyName: {
+          type: 'string',
+          required: false,
+          description: 'Company name for branding',
+          default: 'Your Company',
+        },
+        supportEmail: {
+          type: 'string',
+          required: false,
+          description: 'Support email for help',
+          default: 'support@company.com',
+        },
+      },
+      isActive: true,
+    },
+  });
+
+  const invitationTemplate = await prisma.notificationTemplate.create({
+    data: {
+      tenantId: null, // Global template
+      category: 'tenant_invitation',
+      channel: 'EMAIL',
+      subject: "You've been invited to join {{tenantName}}",
+      templateBody: 'tenant-invitation', // React-email template type
+      variables: {
+        inviteeEmail: {
+          type: 'string',
+          required: true,
+          description: 'Email of the person being invited',
+        },
+        inviterName: {
+          type: 'string',
+          required: true,
+          description: 'Name of the person sending the invitation',
+        },
+        tenantName: {
+          type: 'string',
+          required: true,
+          description: 'Name of the tenant/organization',
+        },
+        roles: {
+          type: 'array',
+          required: true,
+          description: 'Array of role names being assigned',
+        },
+        invitationUrl: {
+          type: 'string',
+          required: true,
+          description: 'URL to accept the invitation',
+        },
+        expiresAt: {
+          type: 'date',
+          required: true,
+          description: 'Invitation expiration date',
+        },
+        customMessage: {
+          type: 'string',
+          required: false,
+          description: 'Optional custom message from inviter',
+        },
+        companyName: {
+          type: 'string',
+          required: false,
+          description: 'Company name for branding',
+          default: 'Your Company',
+        },
+        supportEmail: {
+          type: 'string',
+          required: false,
+          description: 'Support email for help',
+          default: 'support@company.com',
+        },
+      },
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Created notification templates:`);
+  console.log(`   - OTP Verification: ${otpVerificationTemplate.id}`);
+  console.log(`   - Tenant Invitation: ${invitationTemplate.id}`);
+
   console.log('\n🎉 Comprehensive database seeding completed successfully!');
   console.log('\n📋 Summary:');
   console.log(`   - Tenants: 2`);
@@ -617,6 +724,7 @@ async function main() {
     `   - Permissions: ${acmePermissions.length + techStartPermissions.length}`,
   );
   console.log(`   - Projects: 6`);
+  console.log(`   - Notification Templates: 2`);
   console.log('\n🔑 Login credentials (password for all users: password123):');
   console.log('   Acme Corp (x-tenant-id: ' + acmeTenant.id + '):');
   console.log('     - admin@acme.com (Admin role - full access)');

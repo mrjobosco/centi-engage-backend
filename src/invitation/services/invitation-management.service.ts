@@ -3,13 +3,13 @@ import { PrismaService } from '../../database/prisma.service';
 import { InvitationAuditService } from './invitation-audit.service';
 import { InvitationService } from './invitation.service';
 import { CreateInvitationDto } from '../dto/create-invitation.dto';
-import { InvitationStatus } from '../enums/invitation-status.enum';
-import { TenantInvitationWithRelations } from '../interfaces';
+import { $Enums } from '@prisma/client';
+const { InvitationStatus } = $Enums;
 
 export interface BulkInvitationDto {
   emails: string[];
   roleIds: string[];
-  expiresAt?: Date;
+  expiresAt?: string;
   message?: string;
 }
 
@@ -96,7 +96,7 @@ export class InvitationManagementService {
     private readonly prisma: PrismaService,
     private readonly auditService: InvitationAuditService,
     private readonly invitationService: InvitationService,
-  ) {}
+  ) { }
 
   /**
    * Creates multiple invitations in bulk
@@ -234,9 +234,7 @@ export class InvitationManagementService {
         await this.invitationService.cancelInvitation(invitationId, tenantId);
 
         // Get invitation email for result
-        const invitation = await (
-          this.prisma as any
-        ).tenantInvitation.findUnique({
+        const invitation = await this.prisma.tenantInvitation.findUnique({
           where: { id: invitationId },
           select: { email: true },
         });
@@ -314,9 +312,7 @@ export class InvitationManagementService {
         await this.invitationService.resendInvitation(invitationId, tenantId);
 
         // Get invitation email for result
-        const invitation = await (
-          this.prisma as any
-        ).tenantInvitation.findUnique({
+        const invitation = await this.prisma.tenantInvitation.findUnique({
           where: { id: invitationId },
           select: { email: true },
         });
@@ -374,7 +370,7 @@ export class InvitationManagementService {
     const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     // Get overview statistics
-    const statusCounts = await (this.prisma as any).tenantInvitation.groupBy({
+    const statusCounts = await this.prisma.tenantInvitation.groupBy({
       by: ['status'],
       where: { tenantId },
       _count: { id: true },
@@ -388,14 +384,15 @@ export class InvitationManagementService {
       cancelled: 0,
     };
 
-    statusCounts.forEach(({ status, _count }) => {
-      overview.total += _count.id;
-      overview[status.toLowerCase() as keyof typeof overview] = _count.id;
+    statusCounts.forEach((item: { status: string; _count: { id: number } }) => {
+      overview.total += item._count.id;
+      overview[item.status.toLowerCase() as keyof typeof overview] =
+        item._count.id;
     });
 
     // Get trend data
     const [recent24h, recent7d, recent30d] = await Promise.all([
-      (this.prisma as any).tenantInvitation.count({
+      this.prisma.tenantInvitation.count({
         where: { tenantId, createdAt: { gte: last24Hours } },
       }),
       this.prisma.tenantInvitation.count({
@@ -443,16 +440,18 @@ export class InvitationManagementService {
     });
 
     const topInvitersWithEmails = await Promise.all(
-      topInviters.map(async ({ invitedBy, _count }) => {
-        const user = await this.prisma.user.findUnique({
-          where: { id: invitedBy },
-          select: { email: true },
-        });
-        return {
-          inviterEmail: user?.email || 'Unknown',
-          invitationCount: _count.id,
-        };
-      }),
+      topInviters.map(
+        async (item: { invitedBy: string; _count: { id: number } }) => {
+          const user = await this.prisma.user.findUnique({
+            where: { id: item.invitedBy },
+            select: { email: true },
+          });
+          return {
+            inviterEmail: user?.email || 'Unknown',
+            invitationCount: item._count.id,
+          };
+        },
+      ),
     );
 
     // Get role distribution
@@ -467,16 +466,18 @@ export class InvitationManagementService {
     });
 
     const roleDistributionWithNames = await Promise.all(
-      roleDistribution.map(async ({ roleId, _count }) => {
-        const role = await this.prisma.role.findUnique({
-          where: { id: roleId },
-          select: { name: true },
-        });
-        return {
-          roleName: role?.name || 'Unknown',
-          count: _count.roleId,
-        };
-      }),
+      roleDistribution.map(
+        async (item: { roleId: string; _count: { roleId: number } }) => {
+          const role = await this.prisma.role.findUnique({
+            where: { id: item.roleId },
+            select: { name: true },
+          });
+          return {
+            roleName: role?.name || 'Unknown',
+            count: item._count.roleId,
+          };
+        },
+      ),
     );
 
     // Get expiration analysis
@@ -521,7 +522,7 @@ export class InvitationManagementService {
   async generateInvitationReport(
     tenantId: string,
     options: {
-      status?: InvitationStatus;
+      status?: typeof InvitationStatus;
       startDate?: Date;
       endDate?: Date;
       includeExpired?: boolean;
@@ -585,22 +586,23 @@ export class InvitationManagementService {
       cancelled: 0,
     };
 
-    statusCounts.forEach(({ status, _count }) => {
-      summary.total += _count.id;
-      summary[status.toLowerCase() as keyof typeof summary] = _count.id;
+    statusCounts.forEach((item: { status: string; _count: { id: number } }) => {
+      summary.total += item._count.id;
+      summary[item.status.toLowerCase() as keyof typeof summary] =
+        item._count.id;
     });
 
     // Transform invitations for report
-    const reportInvitations = invitations.map((invitation) => ({
+    const reportInvitations = invitations.map((invitation: any) => ({
       id: invitation.id,
       email: invitation.email,
       status: invitation.status,
       createdAt: invitation.createdAt,
       expiresAt: invitation.expiresAt,
-      acceptedAt: invitation.acceptedAt,
-      cancelledAt: invitation.cancelledAt,
+      acceptedAt: invitation.acceptedAt || undefined,
+      cancelledAt: invitation.cancelledAt || undefined,
       inviterEmail: invitation.inviter.email,
-      roles: invitation.roles.map((r) => r.role.name),
+      roles: invitation.roles.map((r: any) => r.role.name),
     }));
 
     return {
@@ -618,7 +620,7 @@ export class InvitationManagementService {
   async exportInvitationReportAsCSV(
     tenantId: string,
     options: {
-      status?: InvitationStatus;
+      status?: typeof InvitationStatus;
       startDate?: Date;
       endDate?: Date;
       includeExpired?: boolean;

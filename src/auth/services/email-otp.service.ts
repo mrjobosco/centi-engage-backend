@@ -132,7 +132,6 @@ export class EmailOTPService {
         title: 'Email Verification Required',
         message: `Your verification code is ${otp}. This code will expire in ${expirationMinutes} minutes.`,
         priority: NotificationPriority.HIGH,
-        templateId: 'otp-verification',
         templateVariables: {
           firstName,
           otp,
