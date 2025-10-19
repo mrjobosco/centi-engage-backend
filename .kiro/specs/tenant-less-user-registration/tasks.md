@@ -79,14 +79,14 @@
     - Test tenant status retrieval and available invitations
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-- [ ] 4. Create DTOs and validation classes for tenant-less operations
-  - [ ] 4.1 Create new DTOs for tenant-less registration and tenant management
+- [x] 4. Create DTOs and validation classes for tenant-less operations
+  - [x] 4.1 Create new DTOs for tenant-less registration and tenant management
     - Implement RegisterDto for tenant-less user registration
     - Create CreateTenantForUserDto for tenant creation
     - Add JoinTenantDto for invitation acceptance
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-  - [ ] 4.2 Write validation tests for new DTOs
+  - [x] 4.2 Write validation tests for new DTOs
     - Test DTO validation with valid and invalid inputs
     - Verify required field validation and format checking
     - Test edge cases and boundary conditions

@@ -11,7 +11,7 @@ import {
 
 export class RegisterDto {
   @ApiProperty({
-    description: 'Email address for the user account',
+    description: 'Email address for the tenant-less user account',
     example: 'user@example.com',
   })
   @IsEmail()
