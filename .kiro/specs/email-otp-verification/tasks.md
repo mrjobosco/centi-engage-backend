@@ -126,14 +126,14 @@
   - Test monitoring integration and alerting
   - _Requirements: 7.1, 7.2_
 
-- [ ] 8. Update existing protected routes and tenant management
-- [ ] 8.1 Apply verification requirements to critical endpoints
+- [x] 8. Update existing protected routes and tenant management
+- [x] 8.1 Apply verification requirements to critical endpoints
   - Add email verification guard to tenant management endpoints
   - Update user profile and settings endpoints to require verification
   - Ensure project creation and management requires verified users
   - _Requirements: 3.3, 5.1_
 
-- [ ] 8.2 Update tenant invitation system integration
+- [x] 8.2 Update tenant invitation system integration
   - Ensure invited users complete email verification after acceptance
   - Handle verification requirements in invitation acceptance flow
   - Update invitation notifications to include verification instructions

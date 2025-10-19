@@ -20,6 +20,7 @@ import { ProjectService } from './project.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../auth/decorators/require-email-verification.decorator';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -29,8 +30,9 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @ApiSecurity('tenant-id')
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireEmailVerification()
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(private readonly projectService: ProjectService) { }
 
   @Get()
   @Permissions('read:project')

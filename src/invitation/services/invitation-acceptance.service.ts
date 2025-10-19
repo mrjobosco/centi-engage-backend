@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 import { GoogleOAuthService } from '../../auth/services/google-oauth.service';
 import { GoogleAuthService } from '../../auth/services/google-auth.service';
+import { EmailOTPService } from '../../auth/services/email-otp.service';
 import { InvitationValidationService } from './invitation-validation.service';
 import { InvitationService } from './invitation.service';
 import { InvitationAuditService } from './invitation-audit.service';
@@ -27,6 +28,7 @@ export interface InvitationAcceptanceResult {
     firstName: string | null;
     lastName: string | null;
     tenantId: string;
+    emailVerified: boolean;
   };
   tenant: {
     id: string;
@@ -38,6 +40,7 @@ export interface InvitationAcceptanceResult {
     name: string;
   }>;
   accessToken: string;
+  verificationRequired?: boolean;
 }
 
 @Injectable()
@@ -49,10 +52,11 @@ export class InvitationAcceptanceService {
     private readonly jwtService: JwtService,
     private readonly googleOAuthService: GoogleOAuthService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly emailOTPService: EmailOTPService,
     private readonly invitationValidationService: InvitationValidationService,
     private readonly invitationService: InvitationService,
     private readonly auditService: InvitationAuditService,
-  ) {}
+  ) { }
 
   /**
    * Accept an invitation with the specified authentication method
@@ -137,6 +141,27 @@ export class InvitationAcceptanceService {
       },
     });
 
+    // Generate OTP for password-based users who need email verification
+    let verificationRequired = false;
+    if (
+      !user.emailVerified &&
+      acceptanceDto.authMethod === AuthMethod.PASSWORD
+    ) {
+      try {
+        await this.emailOTPService.generateOTP(user.id, user.email);
+        verificationRequired = true;
+        this.logger.log(
+          `OTP generated for invited user ${user.id} after invitation acceptance`,
+        );
+      } catch (error) {
+        this.logger.error('Failed to generate OTP for invited user', {
+          userId: user.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        // Don't fail the invitation acceptance if OTP generation fails
+      }
+    }
+
     return {
       message: 'Invitation accepted successfully',
       user: {
@@ -145,6 +170,7 @@ export class InvitationAcceptanceService {
         firstName: user.firstName,
         lastName: user.lastName,
         tenantId: user.tenantId,
+        emailVerified: user.emailVerified,
       },
       tenant: {
         id: tenant.id,
@@ -153,6 +179,7 @@ export class InvitationAcceptanceService {
       },
       roles: userRoles.map((ur) => ur.role),
       accessToken,
+      verificationRequired,
     };
   }
 
@@ -199,7 +226,7 @@ export class InvitationAcceptanceService {
         );
       }
 
-      // Create user with Google profile
+      // Create user with Google profile (email pre-verified by Google)
       const user = await this.createUserFromInvitation(invitation, {
         firstName: googleProfile.firstName || null,
         lastName: googleProfile.lastName || null,
@@ -207,6 +234,7 @@ export class InvitationAcceptanceService {
         authMethods: ['google'],
         password: '', // Empty password for Google-only users
         googleLinkedAt: new Date(),
+        emailVerified: true, // Google OAuth users have pre-verified emails
       });
 
       // Generate JWT token
@@ -265,12 +293,13 @@ export class InvitationAcceptanceService {
       // Hash password
       const hashedPassword = await bcrypt.hash(acceptanceDto.password, 10);
 
-      // Create user with password
+      // Create user with password (requires email verification)
       const user = await this.createUserFromInvitation(invitation, {
         firstName: acceptanceDto.firstName.trim(),
         lastName: acceptanceDto.lastName.trim(),
         password: hashedPassword,
         authMethods: ['password'],
+        emailVerified: false, // Password users need to verify their email
       });
 
       // Generate JWT token
@@ -306,6 +335,7 @@ export class InvitationAcceptanceService {
       googleId?: string;
       googleLinkedAt?: Date;
       authMethods: string[];
+      emailVerified: boolean;
     },
   ): Promise<any> {
     return await this.prisma.$transaction(async (tx) => {
@@ -320,6 +350,8 @@ export class InvitationAcceptanceService {
           googleId: userData.googleId || null,
           googleLinkedAt: userData.googleLinkedAt || null,
           authMethods: userData.authMethods,
+          emailVerified: userData.emailVerified,
+          emailVerifiedAt: userData.emailVerified ? new Date() : null,
         },
       });
 

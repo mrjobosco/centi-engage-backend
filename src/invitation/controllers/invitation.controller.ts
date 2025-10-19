@@ -19,6 +19,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../../auth/decorators/require-email-verification.decorator';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -43,6 +44,7 @@ interface AuthenticatedUser {
 @ApiBearerAuth()
 @Controller('invitations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireEmailVerification()
 export class InvitationController {
   constructor(
     private readonly invitationService: InvitationService,

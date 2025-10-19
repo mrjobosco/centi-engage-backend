@@ -20,6 +20,7 @@ import { Throttle } from '@nestjs/throttler';
 import { NotificationPreferenceService } from '../services/notification-preference.service';
 import { UpdatePreferenceDto } from '../dto/update-preference.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../../auth/decorators/require-email-verification.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { NotificationRateLimitGuard, TenantIsolationGuard } from '../guards';
 import type { RequestUser } from '../../auth/interfaces/request-with-user.interface';
@@ -28,11 +29,12 @@ import type { RequestUser } from '../../auth/interfaces/request-with-user.interf
 @ApiBearerAuth('JWT-auth')
 @ApiSecurity('tenant-id')
 @UseGuards(JwtAuthGuard, TenantIsolationGuard, NotificationRateLimitGuard)
+@RequireEmailVerification()
 @Controller('notification-preferences')
 export class NotificationPreferencesController {
   constructor(
     private readonly preferenceService: NotificationPreferenceService,
-  ) {}
+  ) { }
 
   @Get()
   @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute for preferences

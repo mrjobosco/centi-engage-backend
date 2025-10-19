@@ -23,6 +23,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../auth/decorators/require-email-verification.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 
@@ -30,6 +31,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 @ApiBearerAuth('JWT-auth')
 @ApiSecurity('tenant-id')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireEmailVerification()
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}

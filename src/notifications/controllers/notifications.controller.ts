@@ -26,6 +26,7 @@ import { NotificationPrivacyService } from '../services/notification-privacy.ser
 import { NotificationFilterDto } from '../dto/notification-filter.dto';
 import { CreateNotificationDto } from '../dto/create-notification.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../../auth/decorators/require-email-verification.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import {
   NotificationRateLimitGuard,
@@ -40,12 +41,13 @@ import type { RequestUser } from '../../auth/interfaces/request-with-user.interf
 @ApiBearerAuth('JWT-auth')
 @ApiSecurity('tenant-id')
 @UseGuards(JwtAuthGuard, TenantIsolationGuard, NotificationRateLimitGuard)
+@RequireEmailVerification()
 @Controller('notifications')
 export class NotificationsController {
   constructor(
     private readonly notificationService: NotificationService,
     private readonly privacyService: NotificationPrivacyService,
-  ) {}
+  ) { }
 
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 notifications per minute per user

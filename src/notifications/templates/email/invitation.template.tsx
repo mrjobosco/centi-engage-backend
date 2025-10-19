@@ -100,6 +100,17 @@ export const InvitationEmailTemplate = ({
         </Text>
       </Section>
 
+      <Section className="bg-blue-50 border-l-4 border-blue-400 p-4 my-6">
+        <Text className="text-blue-800 text-[14px] leading-[24px] m-0 font-semibold">
+          📧 Email Verification Required
+        </Text>
+        <Text className="text-blue-700 text-[12px] leading-[20px] mt-1 m-0">
+          If you choose to create an account with a password, you'll need to
+          verify your email address by entering a 6-digit code that will be sent
+          to you. Google sign-in users are automatically verified.
+        </Text>
+      </Section>
+
       <Section className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-6">
         <Text className="text-yellow-800 text-[14px] leading-[24px] m-0 font-semibold">
           ⏰ Important: This invitation expires on{' '}

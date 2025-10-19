@@ -21,6 +21,7 @@ import { RegisterTenantDto } from '../auth/dto/register-tenant.dto';
 import { UpdateGoogleSettingsDto } from '../auth/dto/update-google-settings.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequireEmailVerification } from '../auth/decorators/require-email-verification.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminRoleGuard } from '../notifications/guards/admin-role.guard';
 import type { RequestUser } from '../auth/interfaces/request-with-user.interface';
@@ -130,6 +131,7 @@ export class TenantController {
 
   @Get(':id/settings/google')
   @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @RequireEmailVerification()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get Google SSO settings for tenant',
@@ -165,6 +167,7 @@ export class TenantController {
 
   @Patch(':id/settings/google')
   @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @RequireEmailVerification()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update Google SSO settings for tenant',

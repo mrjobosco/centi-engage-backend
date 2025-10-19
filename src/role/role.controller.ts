@@ -21,6 +21,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionsToRolesDto } from './dto/assign-permissions.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../auth/decorators/require-email-verification.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
 
 @ApiTags('Roles')
@@ -28,8 +29,9 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 @ApiSecurity('tenant-id')
 @Controller('roles')
 @UseGuards(JwtAuthGuard)
+@RequireEmailVerification()
 export class RoleController {
-  constructor(private readonly roleService: RoleService) {}
+  constructor(private readonly roleService: RoleService) { }
 
   @Get()
   @Permissions('read:role')

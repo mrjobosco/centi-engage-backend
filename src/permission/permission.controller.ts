@@ -18,6 +18,7 @@ import {
 import { PermissionService } from './permission.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RequireEmailVerification } from '../auth/decorators/require-email-verification.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
 
 @ApiTags('Permissions')
@@ -25,8 +26,9 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 @ApiSecurity('tenant-id')
 @Controller('permissions')
 @UseGuards(JwtAuthGuard)
+@RequireEmailVerification()
 export class PermissionController {
-  constructor(private readonly permissionService: PermissionService) {}
+  constructor(private readonly permissionService: PermissionService) { }
 
   @Get()
   @Permissions('read:permission')
