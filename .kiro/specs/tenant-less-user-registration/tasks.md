@@ -92,20 +92,20 @@
     - Test edge cases and boundary conditions
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-- [ ] 5. Update authentication controller for tenant-less flows
-  - [ ] 5.1 Enhance AuthController with tenant-less registration
+- [x] 5. Update authentication controller for tenant-less flows
+  - [x] 5.1 Enhance AuthController with tenant-less registration
     - Add POST /auth/register endpoint for tenant-less registration
     - Update login endpoint to support both tenant-less and tenant-specific login
     - Modify Google OAuth endpoints to handle tenant-less authentication
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 7.1, 7.2_
 
-  - [ ] 5.2 Update Google OAuth endpoints for tenant-less support
+  - [x] 5.2 Update Google OAuth endpoints for tenant-less support
     - Modify GET /auth/google to support tenant-less OAuth initiation
     - Update GET /auth/google/callback to handle tenant-less user creation
     - Ensure backward compatibility with existing tenant-specific flows
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 7.1, 7.2, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-  - [ ] 5.3 Write controller unit tests for enhanced authentication endpoints
+  - [x] 5.3 Write controller unit tests for enhanced authentication endpoints
     - Test tenant-less registration endpoint
     - Test enhanced login endpoint with both flows
     - Test Google OAuth endpoints for tenant-less users

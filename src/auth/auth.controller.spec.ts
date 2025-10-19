@@ -8,16 +8,30 @@ import { AuthService } from './auth.service';
 import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { OAuthStateService } from './services/oauth-state.service';
+import { GoogleAuthMetricsService } from './services/google-auth-metrics.service';
+import { EmailOTPService } from './services/email-otp.service';
 import { TenantContextService } from '../tenant/tenant-context.service';
 import { PrismaService } from '../database/prisma.service';
-import { LoginDto, GoogleCallbackDto, GoogleLinkCallbackDto } from './dto';
+import {
+  LoginDto,
+  RegisterDto,
+  GoogleCallbackDto,
+  GoogleLinkCallbackDto,
+} from './dto';
 import type { User } from '@prisma/client';
 
 describe('AuthController', () => {
   let controller: AuthController;
+  let authService: AuthService;
+  let googleAuthService: GoogleAuthService;
+  let googleOAuthService: GoogleOAuthService;
+  let oauthStateService: OAuthStateService;
+  let tenantContextService: TenantContextService;
 
   const mockAuthService = {
     login: jest.fn(),
+    registerTenantlessUser: jest.fn(),
+    findUserByEmailAndTenant: jest.fn(),
   };
 
   const mockGoogleAuthService = {
@@ -63,6 +77,20 @@ describe('AuthController', () => {
     getAllAndOverride: jest.fn(),
   };
 
+  const mockGoogleAuthMetricsService = {
+    startOAuthCallbackTimer: jest.fn(() => jest.fn()),
+    recordSignInAttempt: jest.fn(),
+    recordSignInSuccess: jest.fn(),
+    recordSignInFailure: jest.fn(),
+    startTenantLookupTimer: jest.fn(() => jest.fn()),
+  };
+
+  const mockEmailOTPService = {
+    generateOTP: jest.fn(),
+    verifyOTP: jest.fn(),
+    resendOTP: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -103,6 +131,14 @@ describe('AuthController', () => {
           provide: Reflector,
           useValue: mockReflector,
         },
+        {
+          provide: GoogleAuthMetricsService,
+          useValue: mockGoogleAuthMetricsService,
+        },
+        {
+          provide: EmailOTPService,
+          useValue: mockEmailOTPService,
+        },
       ],
     }).compile();
 
@@ -122,6 +158,55 @@ describe('AuthController', () => {
     expect(controller).toBeDefined();
   });
 
+  describe('register', () => {
+    const registerDto: RegisterDto = {
+      email: 'test@example.com',
+      password: 'Password123!',
+      firstName: 'John',
+      lastName: 'Doe',
+    };
+
+    const mockRegisterResponse = {
+      user: {
+        id: 'user-123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        tenantId: null,
+        emailVerified: false,
+      },
+      accessToken: 'mock-jwt-token',
+      requiresVerification: true,
+    };
+
+    it('should register tenant-less user successfully', async () => {
+      // Arrange
+      mockAuthService.registerTenantlessUser.mockResolvedValue(
+        mockRegisterResponse,
+      );
+
+      // Act
+      const result = await controller.register(registerDto);
+
+      // Assert
+      expect(mockAuthService.registerTenantlessUser).toHaveBeenCalledWith(
+        registerDto,
+      );
+      expect(result).toEqual(mockRegisterResponse);
+    });
+
+    it('should propagate errors from authService', async () => {
+      // Arrange
+      const error = new Error('Email already registered');
+      mockAuthService.registerTenantlessUser.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(controller.register(registerDto)).rejects.toThrow(
+        'Email already registered',
+      );
+    });
+  });
+
   describe('login', () => {
     const loginDto: LoginDto = {
       email: 'test@example.com',
@@ -130,25 +215,47 @@ describe('AuthController', () => {
 
     const tenantId = 'tenant-123';
 
-    const mockLoginResponse = {
+    const mockTenantLoginResponse = {
       accessToken: 'mock-jwt-token',
+      emailVerified: true,
+      requiresVerification: false,
+      hasTenant: true,
     };
 
-    it('should call authService.login with correct parameters', async () => {
+    const mockTenantlessLoginResponse = {
+      accessToken: 'mock-jwt-token',
+      emailVerified: false,
+      requiresVerification: true,
+      hasTenant: false,
+    };
+
+    it('should call authService.login with tenant ID for tenant-specific login', async () => {
       // Arrange
-      mockAuthService.login.mockResolvedValue(mockLoginResponse);
+      mockAuthService.login.mockResolvedValue(mockTenantLoginResponse);
 
       // Act
       const result = await controller.login(loginDto, tenantId);
 
       // Assert
       expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, tenantId);
-      expect(result).toEqual(mockLoginResponse);
+      expect(result).toEqual(mockTenantLoginResponse);
     });
 
-    it('should return access token on successful login', async () => {
+    it('should call authService.login without tenant ID for tenant-less login', async () => {
       // Arrange
-      mockAuthService.login.mockResolvedValue(mockLoginResponse);
+      mockAuthService.login.mockResolvedValue(mockTenantlessLoginResponse);
+
+      // Act
+      const result = await controller.login(loginDto, undefined);
+
+      // Assert
+      expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, undefined);
+      expect(result).toEqual(mockTenantlessLoginResponse);
+    });
+
+    it('should return access token and tenant status on successful login', async () => {
+      // Arrange
+      mockAuthService.login.mockResolvedValue(mockTenantLoginResponse);
 
       // Act
       const result = await controller.login(loginDto, tenantId);
@@ -156,16 +263,10 @@ describe('AuthController', () => {
       // Assert
       expect(result).toEqual({
         accessToken: 'mock-jwt-token',
+        emailVerified: true,
+        requiresVerification: false,
+        hasTenant: true,
       });
-    });
-
-    it('should throw error if tenant ID is not provided', async () => {
-      // Act & Assert
-      await expect(controller.login(loginDto, undefined)).rejects.toThrow(
-        'Tenant ID is required',
-      );
-
-      expect(mockAuthService.login).not.toHaveBeenCalled();
     });
 
     it('should propagate errors from authService', async () => {
@@ -185,7 +286,7 @@ describe('AuthController', () => {
     const mockState = 'mock-state-123';
     const mockAuthUrl = 'https://accounts.google.com/oauth/authorize?...';
 
-    it('should initiate Google OAuth flow successfully', async () => {
+    it('should initiate Google OAuth flow for tenant-specific authentication', async () => {
       // Arrange
       mockGoogleAuthService.validateTenantGoogleSSO.mockResolvedValue({
         id: tenantId,
@@ -201,7 +302,10 @@ describe('AuthController', () => {
       expect(
         mockGoogleAuthService.validateTenantGoogleSSO,
       ).toHaveBeenCalledWith(tenantId);
-      expect(mockOAuthStateService.generateState).toHaveBeenCalled();
+      expect(mockOAuthStateService.generateState).toHaveBeenCalledWith(
+        undefined,
+        tenantId,
+      );
       expect(mockGoogleOAuthService.generateAuthUrl).toHaveBeenCalledWith(
         mockState,
       );
@@ -211,21 +315,32 @@ describe('AuthController', () => {
       });
     });
 
-    it('should throw BadRequestException when tenant ID is missing', async () => {
-      // Act & Assert
-      await expect(controller.googleAuth(undefined)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(controller.googleAuth(undefined)).rejects.toThrow(
-        'Tenant ID is required',
-      );
+    it('should initiate Google OAuth flow for tenant-less authentication', async () => {
+      // Arrange
+      mockOAuthStateService.generateState.mockResolvedValue(mockState);
+      mockGoogleOAuthService.generateAuthUrl.mockReturnValue(mockAuthUrl);
 
+      // Act
+      const result = await controller.googleAuth(undefined);
+
+      // Assert
       expect(
         mockGoogleAuthService.validateTenantGoogleSSO,
       ).not.toHaveBeenCalled();
+      expect(mockOAuthStateService.generateState).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+      );
+      expect(mockGoogleOAuthService.generateAuthUrl).toHaveBeenCalledWith(
+        mockState,
+      );
+      expect(result).toEqual({
+        authUrl: mockAuthUrl,
+        state: mockState,
+      });
     });
 
-    it('should propagate errors from validateTenantGoogleSSO', async () => {
+    it('should propagate errors from validateTenantGoogleSSO for tenant-specific flow', async () => {
       // Arrange
       const error = new Error('Tenant validation failed');
       mockGoogleAuthService.validateTenantGoogleSSO.mockRejectedValue(error);
@@ -241,7 +356,6 @@ describe('AuthController', () => {
     const callbackDto: GoogleCallbackDto = {
       code: 'auth-code-123',
       state: 'state-123',
-      tenantId: 'tenant-123',
     };
 
     const mockTokens = {
@@ -259,9 +373,10 @@ describe('AuthController', () => {
       accessToken: 'mock-jwt-token',
     };
 
-    it('should complete Google OAuth flow successfully', async () => {
+    it('should complete Google OAuth flow for tenant-specific authentication', async () => {
       // Arrange
-      mockOAuthStateService.validateState.mockResolvedValue(true);
+      const stateData = { tenantId: 'tenant-123' };
+      mockOAuthStateService.validateState.mockResolvedValue(stateData);
       mockGoogleOAuthService.exchangeCodeForTokens.mockResolvedValue(
         mockTokens,
       );
@@ -285,14 +400,46 @@ describe('AuthController', () => {
       );
       expect(mockGoogleAuthService.authenticateWithGoogle).toHaveBeenCalledWith(
         mockGoogleProfile,
-        callbackDto.tenantId,
+        stateData.tenantId,
+      );
+      expect(result).toEqual(mockAuthResult);
+    });
+
+    it('should complete Google OAuth flow for tenant-less authentication', async () => {
+      // Arrange
+      const stateData = { tenantId: null };
+      mockOAuthStateService.validateState.mockResolvedValue(stateData);
+      mockGoogleOAuthService.exchangeCodeForTokens.mockResolvedValue(
+        mockTokens,
+      );
+      mockGoogleOAuthService.verifyIdToken.mockResolvedValue(mockGoogleProfile);
+      mockGoogleAuthService.authenticateWithGoogle.mockResolvedValue(
+        mockAuthResult,
+      );
+
+      // Act
+      const result = await controller.googleAuthCallback(callbackDto);
+
+      // Assert
+      expect(mockOAuthStateService.validateState).toHaveBeenCalledWith(
+        callbackDto.state,
+      );
+      expect(mockGoogleOAuthService.exchangeCodeForTokens).toHaveBeenCalledWith(
+        callbackDto.code,
+      );
+      expect(mockGoogleOAuthService.verifyIdToken).toHaveBeenCalledWith(
+        mockTokens.idToken,
+      );
+      expect(mockGoogleAuthService.authenticateWithGoogle).toHaveBeenCalledWith(
+        mockGoogleProfile,
+        null,
       );
       expect(result).toEqual(mockAuthResult);
     });
 
     it('should throw BadRequestException for invalid state', async () => {
       // Arrange
-      mockOAuthStateService.validateState.mockResolvedValue(false);
+      mockOAuthStateService.validateState.mockResolvedValue(null);
 
       // Act & Assert
       await expect(controller.googleAuthCallback(callbackDto)).rejects.toThrow(
@@ -309,7 +456,8 @@ describe('AuthController', () => {
 
     it('should propagate errors from token exchange', async () => {
       // Arrange
-      mockOAuthStateService.validateState.mockResolvedValue(true);
+      const stateData = { tenantId: 'tenant-123' };
+      mockOAuthStateService.validateState.mockResolvedValue(stateData);
       const error = new Error('Token exchange failed');
       mockGoogleOAuthService.exchangeCodeForTokens.mockRejectedValue(error);
 
@@ -321,7 +469,8 @@ describe('AuthController', () => {
 
     it('should propagate errors from authentication', async () => {
       // Arrange
-      mockOAuthStateService.validateState.mockResolvedValue(true);
+      const stateData = { tenantId: 'tenant-123' };
+      mockOAuthStateService.validateState.mockResolvedValue(stateData);
       mockGoogleOAuthService.exchangeCodeForTokens.mockResolvedValue(
         mockTokens,
       );

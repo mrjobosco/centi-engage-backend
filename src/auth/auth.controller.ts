@@ -23,6 +23,7 @@ import { OAuthStateService } from './services/oauth-state.service';
 import { GoogleAuthMetricsService } from './services/google-auth-metrics.service';
 import {
   LoginDto,
+  RegisterDto,
   GoogleCallbackDto,
   GoogleLinkCallbackDto,
   VerifyEmailDto,
@@ -45,7 +46,7 @@ export class AuthController {
     private readonly oauthStateService: OAuthStateService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
     private readonly emailOTPService: EmailOTPService,
-  ) {}
+  ) { }
 
   /**
    * Extract IP address and user agent from request for audit logging
@@ -67,18 +68,71 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for registration
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Register new tenant-less user',
+    description:
+      'Create a new user account without requiring a tenant. User can create or join tenant later.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'User registered successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'user_123' },
+            email: { type: 'string', example: 'user@example.com' },
+            firstName: { type: 'string', example: 'John' },
+            lastName: { type: 'string', example: 'Doe' },
+            tenantId: { type: 'null', example: null },
+            emailVerified: { type: 'boolean', example: false },
+          },
+        },
+        accessToken: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+        requiresVerification: {
+          type: 'boolean',
+          example: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input data',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Email already registered',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - Rate limit exceeded',
+  })
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.registerTenantlessUser(registerDto);
+  }
+
+  @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for login
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'User login',
+    summary: 'User login - supports both tenant-less and tenant-specific',
     description:
-      'Authenticate a user with email and password. Returns a JWT access token.',
+      'Authenticate user. If no tenant header provided, attempts tenant-less login.',
   })
   @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant identifier',
-    required: true,
+    description: 'Tenant identifier (optional for tenant-less login)',
+    required: false,
   })
   @ApiResponse({
     status: 200,
@@ -98,12 +152,12 @@ export class AuthController {
           type: 'boolean',
           example: true,
         },
+        hasTenant: {
+          type: 'boolean',
+          example: false,
+        },
       },
     },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Missing tenant ID',
   })
   @ApiResponse({
     status: 401,
@@ -117,12 +171,7 @@ export class AuthController {
     @Body() loginDto: LoginDto,
     @Headers('x-tenant-id') tenantId?: string,
   ) {
-    // Get tenant ID from header (middleware is excluded for login endpoint)
-    if (!tenantId) {
-      throw new BadRequestException('Tenant ID is required');
-    }
-
-    // Call AuthService.login
+    // Call AuthService.login with optional tenantId
     return this.authService.login(loginDto, tenantId);
   }
 
@@ -352,14 +401,14 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute for OAuth initiation
   @Get('google')
   @ApiOperation({
-    summary: 'Initiate Google OAuth flow',
+    summary: 'Initiate Google OAuth - supports tenant-less registration',
     description:
-      'Initiates Google OAuth authentication flow. Returns authorization URL and state parameter.',
+      'Start Google OAuth flow. If no tenant header provided, creates tenant-less user.',
   })
   @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant identifier',
-    required: true,
+    description: 'Tenant identifier (optional for tenant-less OAuth)',
+    required: false,
   })
   @ApiResponse({
     status: 200,
@@ -379,20 +428,15 @@ export class AuthController {
     },
   })
   @ApiResponse({
-    status: 400,
-    description: 'Bad request - Missing tenant ID',
-  })
-  @ApiResponse({
     status: 403,
-    description: 'Forbidden - Google SSO not enabled for tenant',
+    description:
+      'Forbidden - Google SSO not enabled for tenant (tenant-specific flow only)',
   })
   async googleAuth(@Headers('x-tenant-id') tenantId?: string) {
-    if (!tenantId) {
-      throw new BadRequestException('Tenant ID is required');
+    if (tenantId) {
+      // Verify tenant has Google SSO enabled (throws exception if disabled)
+      await this.googleAuthService.validateTenantGoogleSSO(tenantId);
     }
-
-    // Verify tenant has Google SSO enabled (throws exception if disabled)
-    await this.googleAuthService.validateTenantGoogleSSO(tenantId);
 
     // Generate state for CSRF protection
     const state = await this.oauthStateService.generateState(
@@ -423,7 +467,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Complete Google OAuth flow',
     description:
-      'Completes Google OAuth authentication flow. Exchanges authorization code for JWT token.',
+      'Handle Google OAuth callback. Creates tenant-less user if no tenant context.',
   })
   @ApiResponse({
     status: 200,
@@ -448,7 +492,8 @@ export class AuthController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Google SSO not enabled or user not allowed',
+    description:
+      'Forbidden - Google SSO not enabled (tenant-specific flow only)',
   })
   async googleAuthCallback(@Query() callbackDto: GoogleCallbackDto) {
     const { code, state } = callbackDto;
@@ -459,8 +504,8 @@ export class AuthController {
 
     try {
       // Validate state parameter
-      const isValidState = await this.oauthStateService.validateState(state);
-      if (isValidState === null) {
+      const stateData = await this.oauthStateService.validateState(state);
+      if (stateData === null) {
         callbackTimer(false);
         throw new BadRequestException('Invalid or expired state parameter');
       }
@@ -473,10 +518,10 @@ export class AuthController {
       const googleProfile =
         await this.googleOAuthService.verifyIdToken(idToken);
 
-      // Handle authentication
+      // Handle authentication (tenant-less or tenant-specific)
       const result = await this.googleAuthService.authenticateWithGoogle(
         googleProfile,
-        isValidState.tenantId!,
+        stateData.tenantId,
       );
 
       callbackTimer(true);
