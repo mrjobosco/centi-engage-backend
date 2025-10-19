@@ -105,12 +105,10 @@ export class AuthService {
 
     if (tenantId) {
       // Traditional tenant-specific login
-      user = await this.prisma.user.findUnique({
+      user = await this.prisma.user.findFirst({
         where: {
-          email_tenantId: {
-            email,
-            tenantId,
-          },
+          email,
+          tenantId,
         },
         include: {
           roles: {
@@ -166,12 +164,10 @@ export class AuthService {
   }
 
   async findUserByEmailAndTenant(email: string, tenantId: string) {
-    return this.prisma.user.findUnique({
+    return this.prisma.user.findFirst({
       where: {
-        email_tenantId: {
-          email,
-          tenantId,
-        },
+        email,
+        tenantId,
       },
     });
   }

@@ -78,12 +78,10 @@ export class InvitationAcceptanceService {
     const invitation = validationResult.invitation;
 
     // Check if user already exists in the tenant
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findFirst({
       where: {
-        email_tenantId: {
-          email: invitation.email,
-          tenantId: invitation.tenantId,
-        },
+        email: invitation.email,
+        tenantId: invitation.tenantId,
       },
     });
 

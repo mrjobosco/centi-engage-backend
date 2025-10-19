@@ -51,28 +51,28 @@
     - Test backward compatibility with existing tenant-bound authentication
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [ ] 3. Implement tenant management service for post-registration tenant operations
-  - [ ] 3.1 Create TenantManagementService
+- [x] 3. Implement tenant management service for post-registration tenant operations
+  - [x] 3.1 Create TenantManagementService
     - Implement createTenantForUser method for tenant creation
     - Create joinTenantForUser method for invitation acceptance
     - Add getUserTenantStatus method for tenant status retrieval
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ] 3.2 Implement tenant creation workflow
+  - [x] 3.2 Implement tenant creation workflow
     - Validate tenant name uniqueness and format
     - Create tenant with default roles and permissions
     - Assign user as tenant admin with proper roles
     - Generate new JWT token with tenant context
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 3.3 Implement tenant joining workflow via invitations
+  - [x] 3.3 Implement tenant joining workflow via invitations
     - Validate invitation token and expiration
     - Verify invitation email matches user email
     - Assign user to tenant with invitation-specified roles
     - Update user tenantId and generate new JWT token
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 3.4 Write unit tests for TenantManagementService
+  - [x] 3.4 Write unit tests for TenantManagementService
     - Test tenant creation for tenant-less users
     - Test invitation acceptance and tenant joining
     - Test error scenarios (user already has tenant, invalid invitations)

@@ -115,12 +115,10 @@ export class GoogleAuthService {
         }
       } else {
         // Check if user exists by email in this tenant
-        user = await this.prisma.user.findUnique({
+        user = await this.prisma.user.findFirst({
           where: {
-            email_tenantId: {
-              email: profile.email,
-              tenantId: tenantId,
-            },
+            email: profile.email,
+            tenantId: tenantId,
           },
           include: {
             roles: {
@@ -191,7 +189,7 @@ export class GoogleAuthService {
       // Log successful authentication
       await this.authAuditService.logGoogleSignIn(
         user.id,
-        user.tenantId,
+        user.tenantId ?? '',
         true,
         undefined, // IP address will be added by controller
         undefined, // User agent will be added by controller
@@ -248,8 +246,8 @@ export class GoogleAuthService {
           googleLinkedAt: new Date(),
           authMethods: ['google'],
           password: '', // Empty password for Google-only users
-          email_verified: true, // OAuth users have pre-verified emails
-          email_verified_at: new Date(),
+          emailVerified: true, // OAuth users have pre-verified emails
+          emailVerifiedAt: new Date(),
         } as any,
       });
 
@@ -283,7 +281,7 @@ export class GoogleAuthService {
       throw new Error('Failed to create user');
     }
 
-    return result;
+    return result as any;
   }
 
   /**
@@ -307,7 +305,7 @@ export class GoogleAuthService {
 
       // Record linking attempt
       this.googleAuthMetricsService.recordLinkingAttempt(
-        user.tenantId,
+        user.tenantId ?? 'tenant-less',
         userId,
         'link',
       );
@@ -315,7 +313,7 @@ export class GoogleAuthService {
       // Verify email matches
       if (user.email !== profile.email) {
         this.googleAuthMetricsService.recordLinkingFailure(
-          user.tenantId,
+          user.tenantId ?? 'tenant-less',
           userId,
           'link',
           'email_mismatch',
@@ -333,7 +331,7 @@ export class GoogleAuthService {
 
       if (existingGoogleUser && existingGoogleUser.id !== userId) {
         this.googleAuthMetricsService.recordLinkingFailure(
-          user.tenantId,
+          user.tenantId ?? 'tenant-less',
           userId,
           'link',
           'already_linked',
@@ -348,7 +346,7 @@ export class GoogleAuthService {
 
       // Record successful linking
       this.googleAuthMetricsService.recordLinkingSuccess(
-        user.tenantId,
+        user.tenantId ?? 'tenant-less',
         userId,
         'link',
       );
@@ -356,7 +354,7 @@ export class GoogleAuthService {
       // Log successful linking
       await this.authAuditService.logGoogleLink(
         userId,
-        user.tenantId,
+        user.tenantId ?? 'tenant-less',
         true,
         undefined, // IP address will be added by controller
         undefined, // User agent will be added by controller
@@ -407,8 +405,8 @@ export class GoogleAuthService {
         googleId: profile.id,
         googleLinkedAt: new Date(),
         authMethods: updatedAuthMethods,
-        email_verified: true, // Mark email as verified when linking Google account
-        email_verified_at: new Date(),
+        emailVerified: true, // Mark email as verified when linking Google account
+        emailVerifiedAt: new Date(),
       } as any,
     });
   }
@@ -420,7 +418,7 @@ export class GoogleAuthService {
     let user: {
       authMethods: string[];
       googleId: string | null;
-      tenantId: string;
+      tenantId: string | null;
     } | null = null;
 
     try {
@@ -435,14 +433,14 @@ export class GoogleAuthService {
 
       // Record unlinking attempt
       this.googleAuthMetricsService.recordLinkingAttempt(
-        user.tenantId,
+        user.tenantId ?? 'tenant-less',
         userId,
         'unlink',
       );
 
       if (!user.googleId) {
         this.googleAuthMetricsService.recordLinkingFailure(
-          user.tenantId,
+          user.tenantId ?? 'tenant-less',
           userId,
           'unlink',
           'not_linked',
@@ -457,7 +455,7 @@ export class GoogleAuthService {
       );
       if (otherAuthMethods.length === 0) {
         this.googleAuthMetricsService.recordLinkingFailure(
-          user.tenantId,
+          user.tenantId ?? 'tenant-less',
           userId,
           'unlink',
           'no_other_auth_methods',
@@ -479,7 +477,7 @@ export class GoogleAuthService {
 
       // Record successful unlinking
       this.googleAuthMetricsService.recordLinkingSuccess(
-        user.tenantId,
+        user.tenantId ?? 'tenant-less',
         userId,
         'unlink',
       );
@@ -487,7 +485,7 @@ export class GoogleAuthService {
       // Log successful unlinking
       await this.authAuditService.logGoogleUnlink(
         userId,
-        user.tenantId,
+        user.tenantId ?? 'tenant-less',
         true,
         undefined, // IP address will be added by controller
         undefined, // User agent will be added by controller
@@ -557,10 +555,12 @@ export class GoogleAuthService {
     }
 
     // Check if user exists by email (tenant-less)
-    user = await this.prisma.user.findFirst({
+    user = (await this.prisma.user.findFirst({
       where: {
         email: profile.email,
-        tenantId: null,
+        tenantId: {
+          equals: null,
+        },
       },
       include: {
         roles: {
@@ -569,12 +569,12 @@ export class GoogleAuthService {
           },
         },
       },
-    });
+    })) as any;
 
     if (user) {
       // Auto-link Google account to existing tenant-less user
       await this.linkGoogleAccountInternal(user.id, profile);
-      user = await this.prisma.user.findUnique({
+      user = (await this.prisma.user.findUnique({
         where: { id: user.id },
         include: {
           roles: {
@@ -583,10 +583,10 @@ export class GoogleAuthService {
             },
           },
         },
-      });
+      })) as any;
     } else {
       // Create new tenant-less user
-      user = await this.createTenantlessUserFromGoogle(profile);
+      user = (await this.createTenantlessUserFromGoogle(profile)) as any;
     }
 
     return this.generateTokenForUser(user!);
@@ -618,14 +618,14 @@ export class GoogleAuthService {
         email: profile.email,
         firstName: profile.firstName || null,
         lastName: profile.lastName || null,
-        tenantId: null, // Explicitly null for tenant-less users
+        tenantId: null as any, // Explicitly null for tenant-less users
         googleId: profile.id,
         googleLinkedAt: new Date(),
         authMethods: ['google'],
         password: '', // Empty password for Google-only users
-        email_verified: true, // OAuth users have pre-verified emails
-        email_verified_at: new Date(),
-      } as any,
+        emailVerified: true, // OAuth users have pre-verified emails
+        emailVerifiedAt: new Date(),
+      },
       include: {
         roles: {
           include: {
@@ -640,6 +640,6 @@ export class GoogleAuthService {
       },
     });
 
-    return user as UserWithRoles;
+    return user as any;
   }
 }
