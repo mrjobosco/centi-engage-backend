@@ -5,6 +5,7 @@ import { TenantIdentificationMiddleware } from './tenant-identification.middlewa
 import { TenantService } from './tenant.service';
 import { TenantManagementService } from './tenant-management.service';
 import { TenantController } from './tenant.controller';
+import { TenantManagementController } from './tenant-management.controller';
 import { AuthAuditService } from '../auth/services/auth-audit.service';
 import { DatabaseModule } from '../database/database.module';
 
@@ -13,7 +14,7 @@ import { DatabaseModule } from '../database/database.module';
     forwardRef(() => DatabaseModule),
     JwtModule.register({}), // JWT configuration will be provided by global config
   ],
-  controllers: [TenantController],
+  controllers: [TenantController, TenantManagementController],
   providers: [
     TenantContextService,
     TenantIdentificationMiddleware,

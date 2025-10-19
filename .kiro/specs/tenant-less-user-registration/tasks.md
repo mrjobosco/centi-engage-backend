@@ -112,20 +112,20 @@
     - Test error handling and validation
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 7.1, 7.2, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [ ] 6. Create tenant management controller
-  - [ ] 6.1 Implement TenantManagementController
+- [x] 6. Create tenant management controller
+  - [x] 6.1 Implement TenantManagementController
     - Add POST /tenant-management/create endpoint for tenant creation
     - Create POST /tenant-management/join endpoint for invitation acceptance
     - Implement GET /tenant-management/status endpoint for tenant status
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-  - [ ] 6.2 Add proper authentication and authorization guards
+  - [x] 6.2 Add proper authentication and authorization guards
     - Ensure endpoints require authentication but not tenant membership
     - Add validation for tenant-less users only
     - Implement proper error handling and user feedback
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 6.3 Write controller unit tests for tenant management endpoints
+  - [x] 6.3 Write controller unit tests for tenant management endpoints
     - Test tenant creation endpoint with various scenarios
     - Test invitation acceptance endpoint
     - Test tenant status endpoint
