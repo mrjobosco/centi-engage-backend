@@ -132,26 +132,26 @@
     - Test authorization and error handling
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 7.3, 7.4, 7.5, 7.6, 7.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-- [ ] 7. Update middleware and guards for tenant-less users
-  - [ ] 7.1 Enhance TenantMiddleware to handle tenant-less requests
+- [x] 7. Update middleware and guards for tenant-less users
+  - [x] 7.1 Enhance TenantMiddleware to handle tenant-less requests
     - Update middleware to support both tenant-specific and tenant-less requests
     - Store tenant context appropriately for both scenarios
     - Ensure backward compatibility with existing tenant-bound flows
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-  - [ ] 7.2 Create TenantRequiredGuard for tenant-specific endpoints
+  - [x] 7.2 Create TenantRequiredGuard for tenant-specific endpoints
     - Implement guard that requires users to have tenant membership
     - Provide clear error messages for tenant-less users
     - Apply to endpoints that require tenant context
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 7.3 Update JwtAuthGuard to accept tenant-less users
+  - [x] 7.3 Update JwtAuthGuard to accept tenant-less users
     - Modify guard to accept both tenant-less and tenant-bound users
     - Ensure proper JWT validation for null tenantId
     - Maintain security while supporting flexible authentication
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ] 7.4 Write unit tests for updated middleware and guards
+  - [x] 7.4 Write unit tests for updated middleware and guards
     - Test TenantMiddleware with both tenant-less and tenant-specific requests
     - Test TenantRequiredGuard behavior
     - Test JwtAuthGuard with null tenantId tokens

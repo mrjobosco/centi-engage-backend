@@ -46,8 +46,16 @@ export class JwtAuthGuard implements CanActivate {
       });
 
       // Validate that JWT's tenant ID matches the request's tenant ID
+      // Support both tenant-less (null) and tenant-bound users
       const requestTenantId = this.tenantContext.getTenantId();
-      if (requestTenantId && payload.tenantId !== requestTenantId) {
+
+      // For tenant-less users (payload.tenantId is null), allow access regardless of request tenant
+      // For tenant-bound users, ensure token tenant matches request tenant (if provided)
+      if (
+        payload.tenantId !== null &&
+        requestTenantId &&
+        payload.tenantId !== requestTenantId
+      ) {
         throw new UnauthorizedException(
           'Token tenant ID does not match request tenant ID',
         );
@@ -55,10 +63,13 @@ export class JwtAuthGuard implements CanActivate {
 
       // Load user from database with roles and verification status
       // Handle both tenant-less (null tenantId) and tenant-bound users
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findFirst({
         where: {
           id: payload.userId,
-          tenantId: payload.tenantId,
+          // Handle nullable tenantId properly
+          ...(payload.tenantId === null
+            ? { tenantId: null }
+            : { tenantId: payload.tenantId }),
         },
         include: {
           roles: {
@@ -73,19 +84,8 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException('User not found or invalid token');
       }
 
-      // Get email verification status using raw query to avoid Prisma client issues
-      // Handle nullable tenant_id in the query
-      const verificationResult = await this.prisma.$queryRaw<
-        Array<{ email_verified: boolean }>
-      >`
-        SELECT email_verified FROM users 
-        WHERE id = ${user.id} AND (
-          (tenant_id IS NULL AND ${user.tenantId} IS NULL) OR 
-          tenant_id = ${user.tenantId}
-        )
-      `;
-
-      const emailVerified = verificationResult?.[0]?.email_verified || false;
+      // Get email verification status directly from user object
+      const emailVerified = user.emailVerified || false;
 
       // Attach user to request with verification status
       request['user'] = {

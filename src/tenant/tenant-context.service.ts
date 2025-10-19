@@ -7,10 +7,10 @@ export class TenantContextService implements ITenantContext {
 
   /**
    * Set the tenant ID for the current request
-   * @param tenantId - The tenant identifier
+   * @param tenantId - The tenant identifier (can be null for tenant-less requests)
    */
-  setTenantId(tenantId: string): void {
-    this.tenantId = tenantId;
+  setTenantId(tenantId: string | null): void {
+    this.tenantId = tenantId || undefined;
   }
 
   /**

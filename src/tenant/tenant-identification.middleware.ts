@@ -33,15 +33,16 @@ export class TenantIdentificationMiddleware implements NestMiddleware {
       tenantId = this.extractTenantFromSubdomain(req.hostname);
     }
 
-    // If tenant ID still not found, throw an error
-    if (!tenantId) {
-      throw new BadRequestException(
-        `Tenant identification required. Please provide tenant ID via ${this.tenantHeaderName} header or subdomain.`,
-      );
+    // Store tenant context (can be null for tenant-less requests)
+    if (tenantId) {
+      this.tenantContextService.setTenantId(tenantId);
     }
 
-    // Store tenant ID in the request-scoped service
-    this.tenantContextService.setTenantId(tenantId);
+    // Store tenant context information in request for guards to use
+    req.tenantContext = {
+      tenantId: tenantId || null,
+      isTenantRequired: false, // Will be set by guards if needed
+    };
 
     next();
   }
