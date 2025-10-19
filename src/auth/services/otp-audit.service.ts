@@ -581,7 +581,7 @@ export class OTPAuditService extends EnhancedAuditService {
         },
       } as any);
 
-      return event;
+      return event ? { ipAddress: event.ipAddress || undefined } : null;
     } catch (error) {
       this.otpLogger.error('Failed to get last OTP generation', error);
       return null;
@@ -634,7 +634,8 @@ export class OTPAuditService extends EnhancedAuditService {
     return (
       criticalActions.includes(event.action) ||
       (event.errorCode && criticalErrorCodes.includes(event.errorCode)) ||
-      (event.metadata?.otpAttempts && event.metadata.otpAttempts >= 4)
+      (typeof event.metadata?.otpAttempts === 'number' &&
+        event.metadata.otpAttempts >= 4)
     );
   }
 

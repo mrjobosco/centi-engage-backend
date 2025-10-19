@@ -6,28 +6,21 @@ import { HealthController } from './controllers/health.controller';
 import { OTPMonitoringController } from './controllers/otp-monitoring.controller';
 import { AuthService } from './auth.service';
 import { AuthAuditService } from './services/auth-audit.service';
-import { OTPAuditService } from './services/otp-audit.service';
-import { OTPMetricsService } from './services/otp-metrics.service';
 import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { OAuthStateService } from './services/oauth-state.service';
 import { GoogleAuthMetricsService } from './services/google-auth-metrics.service';
 import { GoogleAuthMetricsModule } from './modules/google-auth-metrics.module';
-import { EmailOTPService } from './services/email-otp.service';
-import { OTPStorageService } from './services/otp-storage.service';
-import { EmailVerificationGuard } from './guards/email-verification.guard';
+import { EmailVerificationModule } from './modules/email-verification.module';
 import { DatabaseModule } from '../database/database.module';
 import { TenantModule } from '../tenant/tenant.module';
-import { RedisModule } from '../redis/redis.module';
-import { NotificationsModule } from '../notifications/notifications.module';
 
 @Global()
 @Module({
   imports: [
     DatabaseModule,
     TenantModule,
-    RedisModule,
-    NotificationsModule,
+    EmailVerificationModule,
     GoogleAuthMetricsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -45,28 +38,19 @@ import { NotificationsModule } from '../notifications/notifications.module';
   providers: [
     AuthService,
     AuthAuditService,
-    OTPAuditService,
-    OTPMetricsService,
     GoogleAuthService,
     GoogleOAuthService,
     OAuthStateService,
     GoogleAuthMetricsService,
-    EmailOTPService,
-    OTPStorageService,
-    EmailVerificationGuard,
   ],
   exports: [
     AuthService,
     AuthAuditService,
-    OTPAuditService,
-    OTPMetricsService,
     GoogleAuthService,
     GoogleOAuthService,
     OAuthStateService,
     GoogleAuthMetricsService,
-    EmailOTPService,
-    OTPStorageService,
-    EmailVerificationGuard,
+    EmailVerificationModule,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }

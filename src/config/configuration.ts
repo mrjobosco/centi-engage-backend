@@ -34,5 +34,6 @@ export default registerAs('config', () => ({
       process.env.OTP_RATE_LIMIT_WINDOW_MS || '3600000',
       10,
     ),
+    emailTemplateId: process.env.EMAIL_OTP_TEMPLATE_ID || 'otp-verification',
   },
 }));

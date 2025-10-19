@@ -248,6 +248,10 @@ class EnvironmentVariables {
   @IsNumber()
   @IsOptional()
   OTP_RATE_LIMIT_WINDOW_MS: number = 3600000;
+
+  @IsString()
+  @IsOptional()
+  EMAIL_OTP_TEMPLATE_ID: string = 'otp-verification';
 }
 
 export function validate(config: Record<string, unknown>) {

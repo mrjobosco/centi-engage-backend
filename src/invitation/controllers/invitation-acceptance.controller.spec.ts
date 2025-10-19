@@ -127,8 +127,8 @@ describe('InvitationAcceptanceController', () => {
     prismaService = module.get(PrismaService);
 
     // Mock the logger to avoid console output during tests
-    jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
