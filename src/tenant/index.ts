@@ -5,3 +5,6 @@ export { TenantContextService } from './tenant-context.service';
 export { TenantIdentificationMiddleware } from './tenant-identification.middleware';
 export { TenantModule } from './tenant.module';
 export * from './dto';
+export * from './exceptions';
+export * from './guards';
+export * from './services';

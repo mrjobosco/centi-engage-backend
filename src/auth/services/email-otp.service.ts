@@ -92,7 +92,7 @@ export class EmailOTPService {
         // Log rate limit event
         await this.otpAudit.logOTPRateLimit(
           userId,
-          tenantId,
+          tenantId || 'system-audit',
           email,
           ipAddress,
           userAgent,
@@ -126,7 +126,7 @@ export class EmailOTPService {
       // Log successful OTP generation
       await this.otpAudit.logOTPGeneration(
         userId,
-        tenantId,
+        tenantId || 'system-audit',
         email,
         true,
         ipAddress,
@@ -160,7 +160,7 @@ export class EmailOTPService {
         if (user) {
           await this.otpAudit.logOTPGeneration(
             userId,
-            user.tenantId,
+            user.tenantId || 'system-audit',
             email,
             false,
             ipAddress,
@@ -289,7 +289,7 @@ export class EmailOTPService {
         // Log verification failure
         await this.otpAudit.logOTPVerification(
           userId,
-          tenantId,
+          tenantId || 'system-audit',
           email,
           false,
           ipAddress,
@@ -315,7 +315,7 @@ export class EmailOTPService {
         // Log verification failure
         await this.otpAudit.logOTPVerification(
           userId,
-          tenantId,
+          tenantId || 'system-audit',
           email,
           false,
           ipAddress,
@@ -350,7 +350,7 @@ export class EmailOTPService {
         // Log verification failure
         await this.otpAudit.logOTPVerification(
           userId,
-          tenantId,
+          tenantId || 'system-audit',
           email,
           false,
           ipAddress,
@@ -391,7 +391,7 @@ export class EmailOTPService {
       // Log successful verification
       await this.otpAudit.logOTPVerification(
         userId,
-        tenantId,
+        tenantId || 'system-audit',
         email,
         true,
         ipAddress,
@@ -407,7 +407,7 @@ export class EmailOTPService {
       // Log email verification completion
       await this.otpAudit.logEmailVerificationCompleted(
         userId,
-        tenantId,
+        tenantId || 'system-audit',
         email,
         'email_password',
         ipAddress,
@@ -434,7 +434,7 @@ export class EmailOTPService {
         if (user) {
           await this.otpAudit.logOTPVerification(
             userId,
-            user.tenantId,
+            user.tenantId || 'system-audit',
             user.email,
             false,
             ipAddress,
@@ -532,7 +532,7 @@ export class EmailOTPService {
         if (user) {
           await this.otpAudit.logOTPResend(
             userId,
-            user.tenantId,
+            user.tenantId || 'system-audit',
             user.email,
             false,
             ipAddress,

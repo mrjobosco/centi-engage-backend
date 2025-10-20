@@ -8,6 +8,9 @@ import { TenantController } from './tenant.controller';
 import { TenantManagementController } from './tenant-management.controller';
 import { AuthAuditService } from '../auth/services/auth-audit.service';
 import { DatabaseModule } from '../database/database.module';
+import { TenantManagementRateLimitService } from './services/tenant-management-rate-limit.service';
+import { TenantManagementRateLimitGuard } from './guards/tenant-management-rate-limit.guard';
+import { TenantManagementAuditService } from './services/tenant-management-audit.service';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { DatabaseModule } from '../database/database.module';
     TenantService,
     TenantManagementService,
     AuthAuditService,
+    TenantManagementRateLimitService,
+    TenantManagementRateLimitGuard,
+    TenantManagementAuditService,
   ],
   exports: [TenantContextService, TenantService, TenantManagementService],
 })

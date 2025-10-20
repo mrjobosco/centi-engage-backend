@@ -2,15 +2,19 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException,
   Logger,
 } from '@nestjs/common';
+import {
+  UserAlreadyHasTenantException,
+  TenantNameUnavailableException,
+} from './exceptions';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../database/prisma.service';
 import { TenantService } from './tenant.service';
 import { CreateTenantForUserDto } from './dto/create-tenant-for-user.dto';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { Tenant, TenantInvitation } from '@prisma/client';
+import { TenantManagementAuditService } from './services/tenant-management-audit.service';
 
 export interface TenantCreationResult {
   tenant: Tenant;
@@ -40,7 +44,8 @@ export class TenantManagementService {
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
     private readonly jwtService: JwtService,
-  ) {}
+    private readonly auditService: TenantManagementAuditService,
+  ) { }
 
   /**
    * Create a new tenant for a tenant-less user
@@ -64,7 +69,7 @@ export class TenantManagementService {
     }
 
     if (user.tenantId !== null) {
-      throw new BadRequestException('User already belongs to a tenant');
+      throw new UserAlreadyHasTenantException();
     }
 
     // Check if tenant name is available
@@ -73,7 +78,7 @@ export class TenantManagementService {
     });
 
     if (existingTenant) {
-      throw new ConflictException('Tenant name already exists');
+      throw new TenantNameUnavailableException(createTenantDto.tenantName);
     }
 
     // Create tenant and assign user as admin
@@ -193,6 +198,23 @@ export class TenantManagementService {
       `Successfully created tenant ${result.tenant.id} for user ${userId}`,
     );
 
+    // Log successful tenant creation for audit
+    await this.auditService.logTenantCreation(
+      userId,
+      result.tenant.id,
+      createTenantDto.tenantName,
+      true,
+      undefined, // IP address would be passed from controller
+      undefined, // User agent would be passed from controller
+      undefined,
+      undefined,
+      {
+        tenantId: result.tenant.id,
+        tenantName: createTenantDto.tenantName,
+        userRole: 'Admin',
+      },
+    );
+
     return {
       tenant: result.tenant,
       accessToken,
@@ -219,7 +241,7 @@ export class TenantManagementService {
     }
 
     if (user.tenantId !== null) {
-      throw new BadRequestException('User already belongs to a tenant');
+      throw new UserAlreadyHasTenantException();
     }
 
     // Find and validate invitation
@@ -303,6 +325,24 @@ export class TenantManagementService {
       `User ${userId} successfully joined tenant ${result.tenant.id}`,
     );
 
+    // Log successful tenant joining for audit
+    await this.auditService.logTenantJoining(
+      userId,
+      result.tenant.id,
+      invitation.id,
+      true,
+      undefined, // IP address would be passed from controller
+      undefined, // User agent would be passed from controller
+      undefined,
+      undefined,
+      {
+        tenantId: result.tenant.id,
+        tenantName: result.tenant.name,
+        invitationId: invitation.id,
+        rolesAssigned: result.roles,
+      },
+    );
+
     return {
       tenant: result.tenant,
       accessToken,
@@ -340,10 +380,25 @@ export class TenantManagementService {
       },
     });
 
-    return {
+    const result = {
       hasTenant: user.tenantId !== null,
       tenant: user.tenant || undefined,
       availableInvitations,
     };
+
+    // Log tenant status check for audit
+    await this.auditService.logTenantStatusCheck(
+      userId,
+      user.tenantId,
+      true,
+      undefined, // IP address would be passed from controller
+      undefined, // User agent would be passed from controller
+      {
+        hasTenant: result.hasTenant,
+        availableInvitationsCount: availableInvitations.length,
+      },
+    );
+
+    return result;
   }
 }

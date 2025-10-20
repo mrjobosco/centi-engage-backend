@@ -21,6 +21,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SkipEmailVerification } from '../auth/decorators/skip-email-verification.decorator';
 import { TenantLessOnlyGuard } from './guards/tenant-less-only.guard';
+import {
+  TenantManagementRateLimitGuard,
+  TenantManagementRateLimit,
+} from './guards/tenant-management-rate-limit.guard';
 
 interface AuthenticatedUser {
   id: string;
@@ -37,7 +41,7 @@ interface AuthenticatedUser {
  * Handles tenant creation, joining, and status retrieval
  */
 @Controller('tenant-management')
-@UseGuards(JwtAuthGuard, TenantLessOnlyGuard)
+@UseGuards(JwtAuthGuard, TenantLessOnlyGuard, TenantManagementRateLimitGuard)
 @SkipEmailVerification()
 @ApiTags('Tenant Management')
 @ApiBearerAuth()
@@ -51,6 +55,7 @@ export class TenantManagementController {
    * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 7.3, 7.4, 7.5, 7.6, 7.7
    */
   @Post('create')
+  @TenantManagementRateLimit({ operation: 'creation', skipForAdmin: true })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create new tenant for current user',
@@ -106,6 +111,7 @@ export class TenantManagementController {
    * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 7.3, 7.4, 7.5, 7.6, 7.7
    */
   @Post('join')
+  @TenantManagementRateLimit({ operation: 'joining', skipForAdmin: true })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Join existing tenant via invitation',

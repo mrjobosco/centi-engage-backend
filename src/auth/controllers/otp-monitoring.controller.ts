@@ -21,7 +21,7 @@ export class OTPMonitoringController {
   constructor(
     private readonly otpMetrics: OTPMetricsService,
     private readonly otpAudit: OTPAuditService,
-  ) {}
+  ) { }
 
   @Get('health')
   @ApiOperation({
@@ -295,7 +295,7 @@ export class OTPMonitoringController {
 
     return await this.otpAudit.getUserOTPAuditLogs(
       user.id,
-      user.tenantId,
+      user.tenantId || 'system-audit',
       limit,
     );
   }
@@ -363,7 +363,7 @@ export class OTPMonitoringController {
     // For now, allow any authenticated user to view tenant logs
 
     return await this.otpAudit.getTenantOTPAuditLogs(
-      user.tenantId,
+      user.tenantId || 'system-audit',
       limit,
       offset,
     );

@@ -2,9 +2,9 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { TenantRequiredException } from '../exceptions';
 
 /**
  * Guard that ensures only users with tenant membership can access the endpoint
@@ -21,9 +21,7 @@ export class TenantRequiredGuard implements CanActivate {
     }
 
     if (!user.tenantId) {
-      throw new BadRequestException(
-        'Tenant membership required. Please create or join a tenant to access this resource.',
-      );
+      throw new TenantRequiredException();
     }
 
     // Mark tenant context as required for this request

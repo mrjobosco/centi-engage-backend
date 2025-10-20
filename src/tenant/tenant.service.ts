@@ -30,7 +30,7 @@ export interface CreateTenantResult {
     email: string;
     firstName: string | null;
     lastName: string | null;
-    tenantId: string;
+    tenantId: string | null;
     createdAt: Date;
     updatedAt: Date;
     emailVerified: boolean | null;

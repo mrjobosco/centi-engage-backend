@@ -158,20 +158,20 @@
     - Test backward compatibility scenarios
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [ ] 8. Implement error handling and security measures
-  - [ ] 8.1 Create custom error classes for tenant-less operations
+- [x] 8. Implement error handling and security measures
+  - [x] 8.1 Create custom error classes for tenant-less operations
     - Implement TenantRequiredError for tenant-specific endpoints
     - Create UserAlreadyHasTenantError for invalid tenant operations
     - Add TenantNameUnavailableError for tenant creation conflicts
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 8.2 Add rate limiting for tenant creation and joining
+  - [x] 8.2 Add rate limiting for tenant creation and joining
     - Implement rate limiting for tenant creation to prevent abuse
     - Add rate limiting for invitation acceptance
     - Configure appropriate limits for tenant management operations
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 8.3 Implement comprehensive audit logging for tenant-less operations
+  - [x] 8.3 Implement comprehensive audit logging for tenant-less operations
     - Log tenant-less user registration and authentication events
     - Track tenant creation and joining activities
     - Include appropriate context for tenant-less user activities
