@@ -1,0 +1,219 @@
+# Docker Compose override for testing
+# Extends the base docker-compose.yml for testing scenarios
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Test Database (separate from development)
+  # =============================================================================
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: nestjs-postgres-test
+    restart: "no"
+    environment:
+      POSTGRES_DB: multitenant_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d multitenant_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - nestjs-test-network
+
+  # =============================================================================
+  # Test Redis (separate from development)
+  # =============================================================================
+  redis-test:
+    image: redis:7-alpine
+    container_name: nestjs-redis-test
+    restart: "no"
+    command: redis-server --appendonly yes --requirepass test_password
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "test_password", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - nestjs-test-network
+
+  # =============================================================================
+  # Application for Testing
+  # =============================================================================
+  app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    container_name: nestjs-app-test
+    restart: "no"
+    environment:
+      # Test Database
+      DATABASE_URL: "postgresql://postgres:postgres@postgres-test:5432/multitenant_test"
+      
+      # Test Redis
+      REDIS_URL: "redis://:test_password@redis-test:6379"
+      
+      # Application
+      NODE_ENV: test
+      PORT: 3000
+      
+      # JWT
+      JWT_SECRET: "test-secret-key"
+      JWT_EXPIRATION: "15m"
+      
+      # Google OAuth (test values)
+      GOOGLE_CLIENT_ID: "test-client-id"
+      GOOGLE_CLIENT_SECRET: "test-client-secret"
+      GOOGLE_CALLBACK_URL: "http://localhost:3000/api/auth/google/callback"
+      GOOGLE_LINK_CALLBACK_URL: "http://localhost:3000/api/auth/google/link/callback"
+      
+      # CORS
+      CORS_ORIGIN: "*"
+      
+      # Tenant Configuration
+      TENANT_HEADER_NAME: "x-tenant-id"
+      ENABLE_SUBDOMAIN_ROUTING: "false"
+      
+      # OTP Configuration
+      OTP_EXPIRATION_MINUTES: 5
+      OTP_LENGTH: 6
+      OTP_RATE_LIMIT_ATTEMPTS: 10
+      OTP_RATE_LIMIT_WINDOW_MS: 60000
+      
+      # Email Configuration (mock for testing)
+      EMAIL_PROVIDER: "smtp"
+      EMAIL_FROM_ADDRESS: "test@localhost"
+      EMAIL_FROM_NAME: "Test App"
+      SMTP_HOST: "localhost"
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      
+      # Rate Limiting (relaxed for testing)
+      TENANT_RATE_LIMIT_MAX_REQUESTS: 1000
+      USER_RATE_LIMIT_MAX_REQUESTS: 500
+      NOTIFICATION_RATE_LIMIT_MAX_REQUESTS: 100
+      
+      # Queue Configuration
+      NOTIFICATION_QUEUE_CONCURRENCY: 1
+      NOTIFICATION_MAX_RETRIES: 1
+      NOTIFICATION_RETRY_DELAY: 1000
+      
+      # WebSocket
+      WEBSOCKET_CORS_ORIGIN: "http://localhost:3000"
+      
+      # Alerting (disabled for testing)
+      ALERTING_ENABLED: "false"
+      
+      # Data Retention (short for testing)
+      NOTIFICATION_RETENTION_DAYS: 1
+      AUDIT_LOG_RETENTION_DAYS: 1
+      
+      # Testing specific
+      SEED_DATABASE: "false"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - nestjs-test-network
+    command: ["npm", "run", "test:integration"]
+
+  # =============================================================================
+  # E2E Testing Service
+  # =============================================================================
+  app-e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    container_name: nestjs-app-e2e
+    restart: "no"
+    environment:
+      # Same as app-test but for E2E
+      DATABASE_URL: "postgresql://postgres:postgres@postgres-test:5432/multitenant_test"
+      REDIS_URL: "redis://:test_password@redis-test:6379"
+      NODE_ENV: test
+      PORT: 3000
+      JWT_SECRET: "test-secret-key"
+      JWT_EXPIRATION: "15m"
+      GOOGLE_CLIENT_ID: "test-client-id"
+      GOOGLE_CLIENT_SECRET: "test-client-secret"
+      GOOGLE_CALLBACK_URL: "http://localhost:3000/api/auth/google/callback"
+      GOOGLE_LINK_CALLBACK_URL: "http://localhost:3000/api/auth/google/link/callback"
+      CORS_ORIGIN: "*"
+      TENANT_HEADER_NAME: "x-tenant-id"
+      ENABLE_SUBDOMAIN_ROUTING: "false"
+      OTP_EXPIRATION_MINUTES: 5
+      OTP_LENGTH: 6
+      OTP_RATE_LIMIT_ATTEMPTS: 10
+      OTP_RATE_LIMIT_WINDOW_MS: 60000
+      EMAIL_PROVIDER: "smtp"
+      EMAIL_FROM_ADDRESS: "test@localhost"
+      EMAIL_FROM_NAME: "Test App"
+      SMTP_HOST: "localhost"
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      TENANT_RATE_LIMIT_MAX_REQUESTS: 1000
+      USER_RATE_LIMIT_MAX_REQUESTS: 500
+      NOTIFICATION_RATE_LIMIT_MAX_REQUESTS: 100
+      NOTIFICATION_QUEUE_CONCURRENCY: 1
+      NOTIFICATION_MAX_RETRIES: 1
+      NOTIFICATION_RETRY_DELAY: 1000
+      WEBSOCKET_CORS_ORIGIN: "http://localhost:3000"
+      ALERTING_ENABLED: "false"
+      NOTIFICATION_RETENTION_DAYS: 1
+      AUDIT_LOG_RETENTION_DAYS: 1
+      SEED_DATABASE: "true"
+    ports:
+      - "3001:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - nestjs-test-network
+    command: ["npm", "run", "test:e2e"]
+
+# =============================================================================
+# Test Networks
+# =============================================================================
+networks:
+  nestjs-test-network:
+    driver: bridge
+    name: nestjs-test-network
+
+# =============================================================================
+# Test Volumes
+# =============================================================================
+volumes:
+  postgres_test_data:
+    name: nestjs-postgres-test-data
+  redis_test_data:
+    name: nestjs-redis-test-data

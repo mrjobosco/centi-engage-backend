@@ -1,0 +1,1643 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Multi-Tenant NestJS API - Complete Collection v3.0",
+    "description": "🚀 **Complete API Collection for Multi-Tenant NestJS Backend**\n\nThis comprehensive collection covers ALL endpoints including the latest features:\n\n## 🆕 **Recent Features (NEW)**\n- **Tenant-less User Registration** - Users can register without a tenant\n- **Email OTP Verification** - 6-digit OTP verification system\n- **Tenant Invitation System** - Complete invitation workflow\n- **Tenant Management** - Create and join tenants\n- **Multi-tenant User Support** - Foundation for multiple tenant membership\n\n## 📋 **Complete Feature Coverage**\n- **Authentication**: Password, Google OAuth, Account Linking, OTP Verification\n- **Tenant Management**: Registration, Creation, Joining, Google SSO Config\n- **User Management**: CRUD, Role Assignment, Permission Management\n- **Invitation System**: Create, Accept, Bulk Operations, Status Tracking\n- **RBAC System**: Roles, Permissions, Hybrid Permission Model\n- **Notification System**: Multi-channel, Preferences, Real-time, Monitoring\n- **Project Management**: Full CRUD with tenant isolation\n- **System Monitoring**: Health checks, Metrics, Queue monitoring\n\n## 🔧 **Environment Variables**\nAll variables are auto-captured during API interactions:\n- `baseUrl`: API base URL (default: http://localhost:3000/api)\n- `accessToken`: JWT token (auto-captured)\n- `tenantId`: Current tenant ID (auto-captured)\n- `userId`, `roleId`, `permissionId`, `projectId`, `notificationId`: Resource IDs\n- `invitationId`, `invitationToken`: Invitation-related IDs\n\n## 🚀 **Quick Start Workflows**\n1. **New User Journey**: Register → Verify Email → Create/Join Tenant\n2. **Existing User**: Login → Access tenant features\n3. **Admin Tasks**: Manage users, roles, permissions, invitations\n4. **Testing**: Use health checks and monitoring endpoints\n\n## 🛡️ **Security Features**\n- Automatic tenant isolation with x-tenant-id headers\n- JWT token management and validation\n- Permission-based access control\n- Rate limiting compliance\n- Email verification enforcement",
+    "version": "3.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global Pre-request Setup",
+          "",
+          "// Add tenant header for authenticated requests",
+          "if (pm.collectionVariables.get('tenantId') && !pm.request.headers.has('x-tenant-id')) {",
+          "    pm.request.headers.add({",
+          "        key: 'x-tenant-id',",
+          "        value: pm.collectionVariables.get('tenantId')",
+          "    });",
+          "}",
+          "",
+          "// Add authorization header for protected endpoints",
+          "const protectedPaths = ['/users', '/roles', '/permissions', '/projects', '/notifications', '/invitations', '/tenant-management'];",
+          "const isProtectedEndpoint = protectedPaths.some(path => pm.request.url.toString().includes(path));",
+          "const isAuthEndpoint = pm.request.url.toString().includes('/auth/');",
+          "const isHealthEndpoint = pm.request.url.toString().includes('/health');",
+          "",
+          "if (isProtectedEndpoint && !isAuthEndpoint && !isHealthEndpoint) {",
+          "    const accessToken = pm.collectionVariables.get('accessToken');",
+          "    if (accessToken && !pm.request.headers.has('Authorization')) {",
+          "        pm.request.headers.add({",
+          "            key: 'Authorization',",
+          "            value: `Bearer ${accessToken}`",
+          "        });",
+          "    }",
+          "}",
+          "",
+          "// Add common headers",
+          "pm.request.headers.add({",
+          "    key: 'User-Agent',",
+          "    value: 'Postman-Collection/3.0.0'",
+          "});",
+          "",
+          "if (!pm.request.headers.has('Accept') && !isHealthEndpoint) {",
+          "    pm.request.headers.add({",
+          "        key: 'Accept',",
+          "        value: 'application/json'",
+          "    });",
+          "}",
+          "",
+          "// Log request",
+          "console.log(`🚀 ${pm.request.method} ${pm.request.url.toString().split('/').pop()}`);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global Test Suite",
+          "",
+          "pm.test('Response status code is valid', function () {",
+          "    pm.expect(pm.response.code).to.be.within(100, 599);",
+          "});",
+          "",
+          "pm.test('Response time is acceptable', function () {",
+          "    let maxTime = 5000;",
+          "    if (pm.request.url.toString().includes('/health')) maxTime = 2000;",
+          "    else if (pm.request.url.toString().includes('/auth/')) maxTime = 3000;",
+          "    else if (pm.request.method === 'GET') maxTime = 2000;",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxTime);",
+          "});",
+          "",
+          "// Auto-capture environment variables",
+          "if (pm.response.code >= 200 && pm.response.code < 300 && pm.response.headers.get('Content-Type')?.includes('application/json')) {",
+          "    const responseJson = pm.response.json();",
+          "    const requestUrl = pm.request.url.toString();",
+          "    ",
+          "    // Capture authentication tokens",
+          "    if (responseJson.accessToken) {",
+          "        pm.collectionVariables.set('accessToken', responseJson.accessToken);",
+          "        console.log('🔑 Access token captured');",
+          "        ",
+          "        if (responseJson.user) {",
+          "            pm.collectionVariables.set('userId', responseJson.user.id);",
+          "            if (responseJson.user.tenantId) {",
+          "                pm.collectionVariables.set('tenantId', responseJson.user.tenantId);",
+          "                console.log(`🏢 Tenant ID captured: ${responseJson.user.tenantId}`);",
+          "            }",
+          "        }",
+          "    }",
+          "    ",
+          "    // Capture resource IDs from creation endpoints",
+          "    if (pm.request.method === 'POST' && responseJson.id) {",
+          "        if (requestUrl.includes('/tenants')) {",
+          "            pm.collectionVariables.set('tenantId', responseJson.id);",
+          "            console.log(`🏢 Tenant ID captured: ${responseJson.id}`);",
+          "        } else if (requestUrl.includes('/users')) {",
+          "            pm.collectionVariables.set('userId', responseJson.id);",
+          "        } else if (requestUrl.includes('/roles')) {",
+          "            pm.collectionVariables.set('roleId', responseJson.id);",
+          "        } else if (requestUrl.includes('/permissions')) {",
+          "            pm.collectionVariables.set('permissionId', responseJson.id);",
+          "        } else if (requestUrl.includes('/projects')) {",
+          "            pm.collectionVariables.set('projectId', responseJson.id);",
+          "        } else if (requestUrl.includes('/notifications')) {",
+          "            pm.collectionVariables.set('notificationId', responseJson.id);",
+          "        } else if (requestUrl.includes('/invitations')) {",
+          "            pm.collectionVariables.set('invitationId', responseJson.id);",
+          "            if (responseJson.token) {",
+          "                pm.collectionVariables.set('invitationToken', responseJson.token);",
+          "                console.log('🎫 Invitation token captured');",
+          "            }",
+          "        }",
+          "    }",
+          "    ",
+          "    // Capture tenant creation results",
+          "    if (requestUrl.includes('/tenant-management/create') && responseJson.tenant) {",
+          "        pm.collectionVariables.set('tenantId', responseJson.tenant.id);",
+          "        pm.collectionVariables.set('accessToken', responseJson.accessToken);",
+          "        console.log(`🏢 New tenant created: ${responseJson.tenant.id}`);",
+          "    }",
+          "}",
+          "",
+          "// Log response",
+          "console.log(`📊 ${pm.response.status} (${pm.response.code}) in ${pm.response.responseTime}ms`);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "permissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "test@example.com",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "TestPass123!",
+      "type": "string"
+    },
+    {
+      "key": "testOTP",
+      "value": "123456",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health & System",
+      "description": "System health checks and monitoring endpoints",
+      "item": [
+        {
+          "name": "Application Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Basic application health check"
+          }
+        },
+        {
+          "name": "Google OAuth Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/google-oauth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "google-oauth"
+              ]
+            },
+            "description": "Check Google OAuth configuration and connectivity"
+          }
+        },
+        {
+          "name": "OTP System Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/otp/monitoring/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "otp",
+                "monitoring",
+                "health"
+              ]
+            },
+            "description": "Check OTP system health including Redis and email service"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Authentication",
+      "description": "All authentication endpoints including new tenant-less registration and OTP verification",
+      "item": [
+        {
+          "name": "🆕 Tenant-less Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register new user without tenant. User can create/join tenant later."
+          }
+        },
+        {
+          "name": "🆕 Verify Email OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"otp\": \"{{testOTP}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            },
+            "description": "Verify email address using 6-digit OTP"
+          }
+        },
+        {
+          "name": "🆕 Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "resend-otp"
+              ]
+            },
+            "description": "Resend OTP if expired or not received"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with email and password. Works for both tenant-less and tenant-bound users."
+          }
+        },
+        {
+          "name": "Google OAuth - Initiate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google"
+              ]
+            },
+            "description": "Initiate Google OAuth flow. Returns auth URL and state."
+          }
+        },
+        {
+          "name": "Google OAuth - Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"google-auth-code\",\n  \"state\": \"oauth-state\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/callback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google",
+                "callback"
+              ]
+            },
+            "description": "Complete Google OAuth flow with authorization code"
+          }
+        },
+        {
+          "name": "Google Account - Link",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google",
+                "link"
+              ]
+            },
+            "description": "Initiate Google account linking for authenticated user"
+          }
+        },
+        {
+          "name": "Google Account - Link Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"google-auth-code\",\n  \"state\": \"link-state\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/link/callback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google",
+                "link",
+                "callback"
+              ]
+            },
+            "description": "Complete Google account linking"
+          }
+        },
+        {
+          "name": "Google Account - Unlink",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/unlink",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google",
+                "unlink"
+              ]
+            },
+            "description": "Unlink Google account from user"
+          }
+        },
+        {
+          "name": "Get Auth Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/auth-methods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                "auth-methods"
+              ]
+            },
+            "description": "Get available authentication methods for current user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Tenant Management",
+      "description": "Tenant operations including new tenant-less user workflows",
+      "item": [
+        {
+          "name": "Register Tenant (Traditional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantName\": \"Acme Corporation\",\n  \"adminEmail\": \"admin@acme.com\",\n  \"adminPassword\": \"AdminPass123!\",\n  \"adminFirstName\": \"Admin\",\n  \"adminLastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants"
+              ]
+            },
+            "description": "Traditional tenant registration with admin user creation"
+          }
+        },
+        {
+          "name": "🆕 Create Tenant (Tenant-less User)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantName\": \"My New Company\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenant-management/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenant-management",
+                "create"
+              ]
+            },
+            "description": "Create new tenant for authenticated tenant-less user"
+          }
+        },
+        {
+          "name": "🆕 Get Tenant Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenant-management/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenant-management",
+                "status"
+              ]
+            },
+            "description": "Get user's tenant association status and available invitations"
+          }
+        },
+        {
+          "name": "🆕 Join Tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invitationToken\": \"{{invitationToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenant-management/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenant-management",
+                "join"
+              ]
+            },
+            "description": "Join tenant using invitation token"
+          }
+        },
+        {
+          "name": "Get Google SSO Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants",
+                "{{tenantId}}",
+                "settings",
+                "google"
+              ]
+            },
+            "description": "Get Google SSO configuration for tenant"
+          }
+        },
+        {
+          "name": "Update Google SSO Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"googleSsoEnabled\": true,\n  \"googleAutoProvision\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{tenantId}}/settings/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants",
+                "{{tenantId}}",
+                "settings",
+                "google"
+              ]
+            },
+            "description": "Update Google SSO settings for tenant"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎫 Invitations",
+      "description": "Complete invitation system for tenant user management",
+      "item": [
+        {
+          "name": "🆕 Create Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"roleIds\": [\"{{roleId}}\"],\n  \"expiresAt\": \"2024-12-31T23:59:59Z\",\n  \"message\": \"Welcome to our team!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations"
+              ]
+            },
+            "description": "Create new tenant invitation with role assignment"
+          }
+        },
+        {
+          "name": "🆕 Create Bulk Invitations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emails\": [\n    \"user1@example.com\",\n    \"user2@example.com\",\n    \"user3@example.com\"\n  ],\n  \"roleIds\": [\"{{roleId}}\"],\n  \"expiresAt\": \"2024-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitations/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "bulk"
+              ]
+            },
+            "description": "Create multiple invitations at once"
+          }
+        },
+        {
+          "name": "🆕 List Invitations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitations?status=PENDING&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List tenant invitations with filtering"
+          }
+        },
+        {
+          "name": "🆕 Get Invitation Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "{{invitationId}}"
+              ]
+            },
+            "description": "Get detailed information about specific invitation"
+          }
+        },
+        {
+          "name": "🆕 Validate Invitation Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitation-acceptance/{{invitationToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitation-acceptance",
+                "{{invitationToken}}"
+              ]
+            },
+            "description": "Validate invitation token and get invitation details (public endpoint)"
+          }
+        },
+        {
+          "name": "🆕 Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{invitationToken}}\",\n  \"acceptanceMethod\": \"existing_user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitation-acceptance/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitation-acceptance",
+                "accept"
+              ]
+            },
+            "description": "Accept invitation using token"
+          }
+        },
+        {
+          "name": "🆕 Resend Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationId}}/resend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "{{invitationId}}",
+                "resend"
+              ]
+            },
+            "description": "Resend invitation email"
+          }
+        },
+        {
+          "name": "🆕 Cancel Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "{{invitationId}}"
+              ]
+            },
+            "description": "Cancel pending invitation"
+          }
+        },
+        {
+          "name": "🆕 Get Invitation Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "statistics"
+              ]
+            },
+            "description": "Get comprehensive invitation statistics for tenant"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Users",
+      "description": "User management with role and permission assignment",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Get all users in current tenant"
+          }
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Get specific user with roles and permissions"
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"UserPass123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Create new user in current tenant"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Update user details"
+          }
+        },
+        {
+          "name": "Assign Roles to User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleIds\": [\"{{roleId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "roles"
+              ]
+            },
+            "description": "Assign roles to user"
+          }
+        },
+        {
+          "name": "Assign Permissions to User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissionIds\": [\"{{permissionId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "permissions"
+              ]
+            },
+            "description": "Assign direct permissions to user"
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Delete user from tenant"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎭 Roles",
+      "description": "Role management for RBAC system",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            },
+            "description": "Get all roles in current tenant"
+          }
+        },
+        {
+          "name": "Get Role Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{roleId}}"
+              ]
+            },
+            "description": "Get specific role with permissions"
+          }
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project Manager\",\n  \"description\": \"Can manage projects and team members\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            },
+            "description": "Create new role"
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Senior Project Manager\",\n  \"description\": \"Senior level project management role\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{roleId}}"
+              ]
+            },
+            "description": "Update role details"
+          }
+        },
+        {
+          "name": "Assign Permissions to Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissionIds\": [\"{{permissionId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{roleId}}",
+                "permissions"
+              ]
+            },
+            "description": "Assign permissions to role"
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{roleId}}"
+              ]
+            },
+            "description": "Delete role"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Permissions",
+      "description": "Permission management for fine-grained access control",
+      "item": [
+        {
+          "name": "List Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions"
+              ]
+            },
+            "description": "Get all permissions in current tenant"
+          }
+        },
+        {
+          "name": "Create Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"export\",\n  \"subject\": \"report\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions"
+              ]
+            },
+            "description": "Create new permission (format: action:subject)"
+          }
+        },
+        {
+          "name": "Delete Permission",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permissions/{{permissionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions",
+                "{{permissionId}}"
+              ]
+            },
+            "description": "Delete permission"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📁 Projects",
+      "description": "Project management with tenant isolation",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
+            "description": "Get all projects in current tenant"
+          }
+        },
+        {
+          "name": "Get Project Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Get specific project details"
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Project\",\n  \"description\": \"A sample project for testing\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
+            "description": "Create new project"
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"description\": \"Updated project description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Update project details"
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Delete project"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications",
+      "description": "Multi-channel notification system with preferences and monitoring",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"title\": \"Welcome!\",\n  \"message\": \"Welcome to our platform\",\n  \"category\": \"welcome\",\n  \"priority\": \"HIGH\",\n  \"channels\": [\"EMAIL\", \"IN_APP\"],\n  \"data\": {\n    \"actionUrl\": \"https://app.example.com/welcome\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            },
+            "description": "Send notification to user"
+          }
+        },
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?page=1&limit=20&unreadOnly=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "unreadOnly",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Get user notifications with filtering"
+          }
+        },
+        {
+          "name": "Get Notification Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}"
+              ]
+            },
+            "description": "Get specific notification details"
+          }
+        },
+        {
+          "name": "Mark Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notificationIds\": [\"{{notificationId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/mark-read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "mark-read"
+              ]
+            },
+            "description": "Mark notifications as read"
+          }
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notification-preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification-preferences"
+              ]
+            },
+            "description": "Get user notification preferences"
+          }
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"marketing\",\n  \"inAppEnabled\": true,\n  \"emailEnabled\": false,\n  \"smsEnabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notification-preferences/marketing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification-preferences",
+                "marketing"
+              ]
+            },
+            "description": "Update notification preferences for category"
+          }
+        },
+        {
+          "name": "Get Available Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notification-preferences/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification-preferences",
+                "categories"
+              ]
+            },
+            "description": "Get available notification categories"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Monitoring",
+      "description": "System monitoring and metrics endpoints",
+      "item": [
+        {
+          "name": "Queue Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/monitoring/queue-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "monitoring",
+                "queue-stats"
+              ]
+            },
+            "description": "Get notification queue statistics"
+          }
+        },
+        {
+          "name": "Alert Configuration",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/monitoring/alert-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "monitoring",
+                "alert-config"
+              ]
+            },
+            "description": "Get alert configuration"
+          }
+        },
+        {
+          "name": "Alert History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/monitoring/alert-history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "monitoring",
+                "alert-history"
+              ]
+            },
+            "description": "Get alert history"
+          }
+        },
+        {
+          "name": "Trigger Test Alert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/monitoring/test-alert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "monitoring",
+                "test-alert"
+              ]
+            },
+            "description": "Trigger test alert for monitoring"
+          }
+        },
+        {
+          "name": "OTP System Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/otp/monitoring/metrics?hours=24",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "otp",
+                "monitoring",
+                "metrics"
+              ],
+              "query": [
+                {
+                  "key": "hours",
+                  "value": "24"
+                }
+              ]
+            },
+            "description": "Get OTP system metrics and performance data"
+          }
+        }
+      ]
+    }
+  ]
+}

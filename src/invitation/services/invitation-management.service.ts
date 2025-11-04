@@ -96,7 +96,7 @@ export class InvitationManagementService {
     private readonly prisma: PrismaService,
     private readonly auditService: InvitationAuditService,
     private readonly invitationService: InvitationService,
-  ) { }
+  ) {}
 
   /**
    * Creates multiple invitations in bulk
@@ -702,7 +702,7 @@ export class InvitationManagementService {
       now.getMonth(),
       now.getDate(),
     );
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const weekAgoForResend = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 

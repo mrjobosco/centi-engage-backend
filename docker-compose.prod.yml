@@ -1,0 +1,221 @@
+# Docker Compose for Multi-Tenant NestJS Backend Production
+# Optimized for production deployment with security and performance
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Database (Production)
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: nestjs-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-multitenant_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-multitenant_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nestjs-prod-network
+    # Don't expose ports in production - only internal access
+    # ports:
+    #   - "5432:5432"
+
+  # =============================================================================
+  # Redis for Caching, Queues, and OTP Storage (Production)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: nestjs-redis-prod
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nestjs-prod-network
+    # Don't expose ports in production - only internal access
+    # ports:
+    #   - "6379:6379"
+
+  # =============================================================================
+  # NestJS Application (Production)
+  # =============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nestjs-app-prod
+    restart: always
+    environment:
+      # Database
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-multitenant_prod}"
+      
+      # Redis
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      
+      # Application
+      NODE_ENV: production
+      PORT: 3000
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      GOOGLE_LINK_CALLBACK_URL: ${GOOGLE_LINK_CALLBACK_URL}
+      
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      
+      # Tenant Configuration
+      TENANT_HEADER_NAME: ${TENANT_HEADER_NAME:-x-tenant-id}
+      ENABLE_SUBDOMAIN_ROUTING: ${ENABLE_SUBDOMAIN_ROUTING:-true}
+      
+      # OTP Configuration
+      OTP_EXPIRATION_MINUTES: ${OTP_EXPIRATION_MINUTES:-30}
+      OTP_LENGTH: ${OTP_LENGTH:-6}
+      OTP_RATE_LIMIT_ATTEMPTS: ${OTP_RATE_LIMIT_ATTEMPTS:-3}
+      OTP_RATE_LIMIT_WINDOW_MS: ${OTP_RATE_LIMIT_WINDOW_MS:-3600000}
+      
+      # Email Configuration
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-resend}
+      EMAIL_API_KEY: ${EMAIL_API_KEY}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
+      
+      # SMTP Configuration (if using SMTP)
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      
+      # AWS SES Configuration (if using SES)
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      
+      # SMS Configuration
+      SMS_PROVIDER: ${SMS_PROVIDER:-twilio}
+      SMS_API_KEY: ${SMS_API_KEY}
+      SMS_API_SECRET: ${SMS_API_SECRET}
+      SMS_FROM_NUMBER: ${SMS_FROM_NUMBER}
+      TERMII_SENDER_ID: ${TERMII_SENDER_ID}
+      
+      # Rate Limiting
+      TENANT_RATE_LIMIT_MAX_REQUESTS: ${TENANT_RATE_LIMIT_MAX_REQUESTS:-100}
+      USER_RATE_LIMIT_MAX_REQUESTS: ${USER_RATE_LIMIT_MAX_REQUESTS:-50}
+      NOTIFICATION_RATE_LIMIT_MAX_REQUESTS: ${NOTIFICATION_RATE_LIMIT_MAX_REQUESTS:-10}
+      
+      # Queue Configuration
+      NOTIFICATION_QUEUE_CONCURRENCY: ${NOTIFICATION_QUEUE_CONCURRENCY:-5}
+      NOTIFICATION_MAX_RETRIES: ${NOTIFICATION_MAX_RETRIES:-3}
+      NOTIFICATION_RETRY_DELAY: ${NOTIFICATION_RETRY_DELAY:-5000}
+      
+      # WebSocket
+      WEBSOCKET_CORS_ORIGIN: ${WEBSOCKET_CORS_ORIGIN}
+      
+      # Alerting
+      ALERTING_ENABLED: ${ALERTING_ENABLED:-true}
+      ALERT_FAILURE_RATE_THRESHOLD: ${ALERT_FAILURE_RATE_THRESHOLD:-5}
+      ALERT_QUEUE_DEPTH_THRESHOLD: ${ALERT_QUEUE_DEPTH_THRESHOLD:-1000}
+      ALERT_QUEUE_LAG_THRESHOLD: ${ALERT_QUEUE_LAG_THRESHOLD:-300}
+      ALERT_PROVIDER_ERROR_THRESHOLD: ${ALERT_PROVIDER_ERROR_THRESHOLD:-10}
+      
+      # Alert Delivery
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL}
+      ALERT_EMAIL_RECIPIENTS: ${ALERT_EMAIL_RECIPIENTS}
+      ALERT_SLACK_WEBHOOK_URL: ${ALERT_SLACK_WEBHOOK_URL}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM}
+      
+      # Data Retention
+      NOTIFICATION_RETENTION_DAYS: ${NOTIFICATION_RETENTION_DAYS:-90}
+      AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-365}
+      
+      # Production specific
+      SEED_DATABASE: ${SEED_DATABASE:-false}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - nestjs-prod-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # =============================================================================
+  # Nginx Reverse Proxy (Production)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: nestjs-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - nestjs-prod-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  nestjs-prod-network:
+    driver: bridge
+    name: nestjs-prod-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_prod_data:
+    name: nestjs-postgres-prod-data
+  redis_prod_data:
+    name: nestjs-redis-prod-data

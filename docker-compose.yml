@@ -1,0 +1,261 @@
+# Docker Compose for Multi-Tenant NestJS Backend Development
+# Includes all required services: PostgreSQL, Redis, and the application
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: nestjs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-multitenant_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-multitenant_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nestjs-network
+
+  # =============================================================================
+  # Redis for Caching, Queues, and OTP Storage
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: nestjs-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nestjs-network
+
+  # =============================================================================
+  # NestJS Application (Development)
+  # =============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: nestjs-app
+    restart: unless-stopped
+    environment:
+      # Database
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/multitenant_db}
+      
+      # Redis
+      REDIS_URL: ${REDIS_URL:-redis://:redis_password@redis:6379}
+      
+      # Application
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id.apps.googleusercontent.com}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/auth/google/callback}
+      GOOGLE_LINK_CALLBACK_URL: ${GOOGLE_LINK_CALLBACK_URL:-http://localhost:3000/api/auth/google/link/callback}
+      
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      
+      # Tenant Configuration
+      TENANT_HEADER_NAME: ${TENANT_HEADER_NAME:-x-tenant-id}
+      ENABLE_SUBDOMAIN_ROUTING: ${ENABLE_SUBDOMAIN_ROUTING:-false}
+      
+      # OTP Configuration
+      OTP_EXPIRATION_MINUTES: ${OTP_EXPIRATION_MINUTES:-30}
+      OTP_LENGTH: ${OTP_LENGTH:-6}
+      OTP_RATE_LIMIT_ATTEMPTS: ${OTP_RATE_LIMIT_ATTEMPTS:-3}
+      OTP_RATE_LIMIT_WINDOW_MS: ${OTP_RATE_LIMIT_WINDOW_MS:-3600000}
+      EMAIL_OTP_TEMPLATE_ID: ${EMAIL_OTP_TEMPLATE_ID:-otp-verification}
+      
+      # Email Configuration
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      EMAIL_API_KEY: ${EMAIL_API_KEY}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-noreply@localhost}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Multi-Tenant App}
+      
+      # SMTP Configuration (default to MailHog for development)
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      
+      # AWS SES Configuration (if using SES)
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      
+      # SMS Configuration
+      SMS_PROVIDER: ${SMS_PROVIDER:-twilio}
+      SMS_API_KEY: ${SMS_API_KEY}
+      SMS_API_SECRET: ${SMS_API_SECRET}
+      SMS_FROM_NUMBER: ${SMS_FROM_NUMBER}
+      TERMII_SENDER_ID: ${TERMII_SENDER_ID}
+      
+      # Phone Number Configuration
+      DEFAULT_COUNTRY_CODE: ${DEFAULT_COUNTRY_CODE:-+1}
+      
+      # Rate Limiting
+      TENANT_RATE_LIMIT_WINDOW_MS: ${TENANT_RATE_LIMIT_WINDOW_MS:-60000}
+      TENANT_RATE_LIMIT_MAX_REQUESTS: ${TENANT_RATE_LIMIT_MAX_REQUESTS:-100}
+      USER_RATE_LIMIT_WINDOW_MS: ${USER_RATE_LIMIT_WINDOW_MS:-60000}
+      USER_RATE_LIMIT_MAX_REQUESTS: ${USER_RATE_LIMIT_MAX_REQUESTS:-50}
+      NOTIFICATION_RATE_LIMIT_WINDOW_MS: ${NOTIFICATION_RATE_LIMIT_WINDOW_MS:-3600000}
+      NOTIFICATION_RATE_LIMIT_MAX_REQUESTS: ${NOTIFICATION_RATE_LIMIT_MAX_REQUESTS:-10}
+      
+      # Queue Configuration
+      NOTIFICATION_QUEUE_CONCURRENCY: ${NOTIFICATION_QUEUE_CONCURRENCY:-5}
+      NOTIFICATION_MAX_RETRIES: ${NOTIFICATION_MAX_RETRIES:-3}
+      NOTIFICATION_RETRY_DELAY: ${NOTIFICATION_RETRY_DELAY:-5000}
+      
+      # WebSocket
+      WEBSOCKET_CORS_ORIGIN: ${WEBSOCKET_CORS_ORIGIN:-http://localhost:3000}
+      
+      # Alerting
+      ALERTING_ENABLED: ${ALERTING_ENABLED:-false}
+      ALERT_FAILURE_RATE_THRESHOLD: ${ALERT_FAILURE_RATE_THRESHOLD:-5}
+      ALERT_FAILURE_RATE_ENABLED: ${ALERT_FAILURE_RATE_ENABLED:-true}
+      ALERT_QUEUE_DEPTH_THRESHOLD: ${ALERT_QUEUE_DEPTH_THRESHOLD:-1000}
+      ALERT_QUEUE_DEPTH_ENABLED: ${ALERT_QUEUE_DEPTH_ENABLED:-true}
+      ALERT_QUEUE_LAG_THRESHOLD: ${ALERT_QUEUE_LAG_THRESHOLD:-300}
+      ALERT_QUEUE_LAG_ENABLED: ${ALERT_QUEUE_LAG_ENABLED:-true}
+      ALERT_PROVIDER_ERROR_THRESHOLD: ${ALERT_PROVIDER_ERROR_THRESHOLD:-10}
+      ALERT_PROVIDER_ERROR_ENABLED: ${ALERT_PROVIDER_ERROR_ENABLED:-true}
+      
+      # Alert Delivery
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL}
+      ALERT_EMAIL_RECIPIENTS: ${ALERT_EMAIL_RECIPIENTS}
+      ALERT_SLACK_WEBHOOK_URL: ${ALERT_SLACK_WEBHOOK_URL}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@localhost}
+      EMAIL_WEBHOOK_URL: ${EMAIL_WEBHOOK_URL}
+      
+      # In-App Notification Configuration
+      IN_APP_NOTIFICATION_EXPIRY_DAYS: ${IN_APP_NOTIFICATION_EXPIRY_DAYS:-30}
+      MAX_UNREAD_NOTIFICATIONS: ${MAX_UNREAD_NOTIFICATIONS:-100}
+      
+      # Data Retention
+      NOTIFICATION_RETENTION_DAYS: ${NOTIFICATION_RETENTION_DAYS:-90}
+      AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-365}
+      
+      # Development specific
+      SEED_DATABASE: ${SEED_DATABASE:-true}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nestjs-network
+
+  # =============================================================================
+  # MailHog for Email Testing (Development)
+  # =============================================================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: nestjs-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"  # SMTP server
+      - "${MAILHOG_WEB_PORT:-8025}:8025"   # Web UI
+    networks:
+      - nestjs-network
+
+  # =============================================================================
+  # Redis Commander for Redis Management (Development)
+  # =============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: nestjs-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: "local:redis:6379:0:${REDIS_PASSWORD:-redis_password}"
+      HTTP_USER: ${REDIS_COMMANDER_USER:-admin}
+      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-admin}
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    depends_on:
+      - redis
+    networks:
+      - nestjs-network
+
+  # =============================================================================
+  # pgAdmin for Database Management (Development)
+  # =============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: nestjs-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@localhost.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE:-False}
+    ports:
+      - "${PGADMIN_PORT:-8080}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - nestjs-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  nestjs-network:
+    driver: bridge
+    name: nestjs-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: nestjs-postgres-data
+  redis_data:
+    name: nestjs-redis-data
+  pgadmin_data:
+    name: nestjs-pgadmin-data
