@@ -18,7 +18,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly emailOTPService: EmailOTPService,
-  ) { }
+  ) {}
 
   /**
    * Register a new tenant-less user with email/password
@@ -49,8 +49,8 @@ export class AuthService {
         lastName: registerDto.lastName || null,
         tenantId: null, // Explicitly set to null
         authMethods: ['password'],
-        email_verified: false,
-      } as any,
+        emailVerified: false,
+      },
     });
 
     // Generate JWT token for tenant-less user
@@ -71,6 +71,7 @@ export class AuthService {
       console.error('Failed to send verification email:', error);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     return {
       user: userWithoutPassword,
@@ -94,13 +95,13 @@ export class AuthService {
     const { email, password } = loginDto;
     let user:
       | (User & {
-        roles: Array<{
-          role: {
-            id: string;
-            name: string;
-          };
-        }>;
-      })
+          roles: Array<{
+            role: {
+              id: string;
+              name: string;
+            };
+          }>;
+        })
       | null;
 
     if (tenantId) {

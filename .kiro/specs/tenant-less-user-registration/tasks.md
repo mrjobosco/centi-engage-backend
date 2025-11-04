@@ -177,20 +177,20 @@
     - Include appropriate context for tenant-less user activities
     - _Requirements: 4.5, 4.6, 4.7, 8.5, 8.6, 8.7_
 
-- [ ] 9. Create integration tests for complete tenant-less flows
-  - [ ] 9.1 Write tenant-less registration and tenant creation integration tests
+- [-] 9. Create integration tests for complete tenant-less flows
+  - [x] 9.1 Write tenant-less registration and tenant creation integration tests
     - Test complete flow from tenant-less registration to tenant creation
     - Test Google OAuth tenant-less registration and tenant setup
     - Test error scenarios and edge cases
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-  - [ ] 9.2 Write invitation acceptance integration tests
+  - [-] 9.2 Write invitation acceptance integration tests
     - Test complete flow from tenant-less user to invitation acceptance
     - Test invitation validation and tenant joining
     - Test multi-invitation scenarios
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ] 9.3 Write backward compatibility integration tests
+  - [-] 9.3 Write backward compatibility integration tests
     - Test existing tenant-bound user flows remain unchanged
     - Test existing API endpoints continue to work
     - Test mixed scenarios with both user types
