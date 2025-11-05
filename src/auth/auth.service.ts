@@ -172,4 +172,62 @@ export class AuthService {
       },
     });
   }
+
+  /**
+   * Set password for users who don't have one (e.g., Google OAuth users)
+   */
+  async setPassword(userId: string, password: string): Promise<void> {
+    // Get current user
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { authMethods: true, password: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Check if user already has a password
+    if (user.password && user.password.length > 0) {
+      throw new ConflictException('User already has a password set');
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update user with password and add 'password' to auth methods
+    const updatedAuthMethods = user.authMethods.includes('password')
+      ? user.authMethods
+      : [...user.authMethods, 'password'];
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        authMethods: updatedAuthMethods,
+      },
+    });
+  }
+
+  /**
+   * Check if user needs to set up a password
+   */
+  async needsPasswordSetup(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true, authMethods: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // User needs password setup if they don't have 'password' in authMethods
+    // or if their password is empty/null
+    return (
+      !user.authMethods.includes('password') ||
+      !user.password ||
+      user.password.length === 0
+    );
+  }
 }

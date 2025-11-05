@@ -28,6 +28,7 @@ import {
   GoogleLinkCallbackDto,
   VerifyEmailDto,
   ResendOTPDto,
+  SetPasswordDto,
 } from './dto';
 import { EmailOTPService } from './services/email-otp.service';
 import { Public } from './decorators/public.decorator';
@@ -701,6 +702,10 @@ export class AuthController {
           },
           example: ['password', 'google'],
         },
+        needsPasswordSetup: {
+          type: 'boolean',
+          example: true,
+        },
       },
     },
   })
@@ -716,6 +721,102 @@ export class AuthController {
     const authMethods = await this.googleAuthService.getUserAuthMethods(
       user.id,
     );
-    return { authMethods };
+    const needsPasswordSetup = await this.authService.needsPasswordSetup(
+      user.id,
+    );
+    return { authMethods, needsPasswordSetup };
+  }
+
+  @Post('set-password')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Set password for authenticated user',
+    description:
+      'Allows users who signed up via OAuth to set up a password for email/password authentication.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password set successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Password set successfully',
+        },
+        authMethods: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+          example: ['google', 'password'],
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid password or user already has password',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - User already has a password set',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - Rate limit exceeded',
+  })
+  async setPassword(
+    @CurrentUser() user: User,
+    @Body() setPasswordDto: SetPasswordDto,
+  ) {
+    await this.authService.setPassword(user.id, setPasswordDto.password);
+
+    // Get updated auth methods
+    const authMethods = await this.googleAuthService.getUserAuthMethods(
+      user.id,
+    );
+
+    return {
+      message: 'Password set successfully',
+      authMethods,
+    };
+  }
+
+  @Get('me/needs-password-setup')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Check if user needs password setup',
+    description:
+      'Returns whether the authenticated user needs to set up a password.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password setup status retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        needsPasswordSetup: {
+          type: 'boolean',
+          example: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  async needsPasswordSetup(@CurrentUser() user: User) {
+    const needsPasswordSetup = await this.authService.needsPasswordSetup(
+      user.id,
+    );
+    return { needsPasswordSetup };
   }
 }
