@@ -47,7 +47,7 @@ export default registerAs(
   'notification',
   (): NotificationConfig => ({
     redis: {
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: process.env.REDIS_URL || 'redis://:redis_password@redis:6379',
     },
     email: {
       provider:
@@ -57,7 +57,7 @@ export default registerAs(
           | 'onesignal'
           | 'smtp') || 'smtp',
       apiKey: process.env.EMAIL_API_KEY,
-      fromAddress: process.env.EMAIL_FROM_ADDRESS || 'noreply@example.com',
+      fromAddress: process.env.EMAIL_FROM_ADDRESS || 'no-reply@centihq.com',
       fromName: process.env.EMAIL_FROM_NAME || 'Notification System',
       smtp: {
         host: process.env.SMTP_HOST || 'localhost',

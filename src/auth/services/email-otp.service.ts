@@ -7,6 +7,7 @@ import { NotificationType } from '../../notifications/enums/notification-type.en
 import { NotificationPriority } from '../../notifications/enums/notification-priority.enum';
 import { OTPAuditService } from './otp-audit.service';
 import { OTPMetricsService } from './otp-metrics.service';
+import { EmailProviderFactory } from '../../notifications/factories/email-provider.factory';
 import { randomBytes } from 'crypto';
 
 export interface OTPGenerationResult {
@@ -34,6 +35,7 @@ export class EmailOTPService {
     private readonly notificationService: NotificationService,
     private readonly otpAudit: OTPAuditService,
     private readonly otpMetrics: OTPMetricsService,
+    private readonly emailProviderFactory: EmailProviderFactory,
   ) {
     this.otpLength = this.configService.get<number>('config.otp.length') ?? 6;
   }
@@ -213,24 +215,31 @@ export class EmailOTPService {
       const expirationMinutes =
         this.configService.get<number>('config.otp.expirationMinutes') ?? 30;
 
-      // Send notification through the notification service
-      await this.notificationService.sendToUser(userId, {
-        type: NotificationType.INFO,
-        category: 'email_verification',
-        title: 'Email Verification Required',
-        message: `Your verification code is ${otp}. This code will expire in ${expirationMinutes} minutes.`,
-        priority: NotificationPriority.HIGH,
-        templateVariables: {
-          firstName,
-          otp,
-          expirationTime: `${expirationMinutes} minutes`,
-          companyName:
-            this.configService.get<string>('config.app.name') ?? 'Your Company',
-          supportEmail:
-            this.configService.get<string>('config.support.email') ??
-            'support@company.com',
-        },
-      });
+      // Check if user has tenant context
+      if (user.tenantId) {
+        // Send notification through the notification service for tenant users
+        await this.notificationService.sendToUser(userId, {
+          type: NotificationType.INFO,
+          category: 'email_verification',
+          title: 'Email Verification Required',
+          message: `Your verification code is ${otp}. This code will expire in ${expirationMinutes} minutes.`,
+          priority: NotificationPriority.HIGH,
+          templateVariables: {
+            firstName,
+            otp,
+            expirationTime: `${expirationMinutes} minutes`,
+            companyName:
+              this.configService.get<string>('config.app.name') ??
+              'Your Company',
+            supportEmail:
+              this.configService.get<string>('config.support.email') ??
+              'support@company.com',
+          },
+        });
+      } else {
+        // For tenant-less users, send email directly
+        await this.sendDirectOTPEmail(email, firstName, otp, expirationMinutes);
+      }
 
       this.logger.log(
         `OTP email sent successfully to ${email} for user ${userId}`,
@@ -715,5 +724,146 @@ export class EmailOTPService {
     );
 
     return { verified, failed };
+  }
+
+  /**
+   * Send OTP email directly for tenant-less users
+   */
+  private async sendDirectOTPEmail(
+    email: string,
+    firstName: string,
+    otp: string,
+    expirationMinutes: number,
+  ): Promise<void> {
+    try {
+      const emailProvider = this.emailProviderFactory.createProvider();
+
+      const companyName =
+        this.configService.get<string>('config.app.name') ?? 'Your Company';
+      const supportEmail =
+        this.configService.get<string>('config.support.email') ??
+        'support@company.com';
+
+      const subject = 'Email Verification Required';
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Email Verification Required</h2>
+          <p>Hello ${firstName},</p>
+          <p>Your verification code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
+          <p>This code will expire in ${expirationMinutes} minutes.</p>
+          <p>If you didn't request this verification, please ignore this email.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">
+            This email was sent by ${companyName}. 
+            If you need help, contact us at ${supportEmail}.
+          </p>
+        </div>
+      `;
+
+      const text = `
+        Email Verification Required
+        
+        Hello ${firstName},
+        
+        Your verification code is: ${otp}
+        
+        This code will expire in ${expirationMinutes} minutes.
+        
+        If you didn't request this verification, please ignore this email.
+        
+        This email was sent by ${companyName}.
+        If you need help, contact us at ${supportEmail}.
+      `;
+
+      const result = await emailProvider.send({
+        to: email,
+        from: 'no-reply@centihq.com',
+        subject,
+        html,
+        text,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send email');
+      }
+
+      this.logger.log(`Direct OTP email sent successfully to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send direct OTP email to ${email}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify OTP by email for public endpoints (tenant-less users)
+   */
+  async verifyOTPByEmail(
+    providedOTP: string,
+    tenantId?: string | null,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<OTPVerificationResult> {
+    const performanceTimer = this.otpMetrics.startPerformanceTimer(
+      'verification',
+      tenantId || 'unknown',
+      'unknown',
+    );
+
+    try {
+      // Find the most recent OTP record that matches the provided OTP
+      // We'll search through active OTP records to find a match
+      const activeOTPs = await this.otpStorage.getAllActiveOTPs();
+
+      let matchingUserId: string | null = null;
+      let matchingOTPRecord: any = null;
+
+      for (const [userId, otpRecord] of activeOTPs) {
+        if (otpRecord.otp === providedOTP) {
+          // Get user details to check tenant match
+          const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { tenantId: true, email: true },
+          });
+
+          if (user) {
+            // For tenant-less users, tenantId should be null
+            // For tenant users, tenantId should match
+            if (
+              (tenantId === null && user.tenantId === null) ||
+              (tenantId && user.tenantId === tenantId)
+            ) {
+              matchingUserId = userId;
+              matchingOTPRecord = otpRecord;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!matchingUserId || !matchingOTPRecord) {
+        this.logger.warn(`No matching OTP found for provided code`);
+
+        performanceTimer(false);
+        return {
+          success: false,
+          message: 'Invalid OTP code. Please check and try again.',
+        };
+      }
+
+      // Now verify using the existing verifyOTP method
+      return await this.verifyOTP(
+        matchingUserId,
+        providedOTP,
+        ipAddress,
+        userAgent,
+      );
+    } catch (error) {
+      this.logger.error('Error in verifyOTPByEmail:', error);
+      performanceTimer(false);
+      return {
+        success: false,
+        message: 'Verification failed. Please try again.',
+      };
+    }
   }
 }

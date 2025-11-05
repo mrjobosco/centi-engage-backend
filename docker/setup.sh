@@ -82,13 +82,13 @@ build_images() {
     print_status "Building Docker images..."
     
     # Build development image
-    docker build --target development -t nestjs-multitenant:dev .
+    docker build -f Dockerfile.dev -t nestjs-multitenant:dev .
     
     # Build production image
-    docker build --target production -t nestjs-multitenant:prod .
+    docker build -f Dockerfile --target production -t nestjs-multitenant:prod .
     
     # Build testing image
-    docker build --target testing -t nestjs-multitenant:test .
+    docker build -f Dockerfile --target testing -t nestjs-multitenant:test .
     
     print_status "Docker images built successfully"
 }

@@ -77,7 +77,10 @@ import {
     RedisModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         type: 'single',
-        url: configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+        url:
+          configService.get<string>('REDIS_URL') ||
+          configService.get<string>('config.redis.url') ||
+          'redis://:redis_password@redis:6379',
       }),
       inject: [ConfigService],
     }),
@@ -187,7 +190,7 @@ export class NotificationsModule implements OnModuleInit {
     private readonly inAppChannel: InAppChannelService,
     private readonly emailChannel: EmailChannelService,
     private readonly smsChannel: SmsChannelService,
-  ) {}
+  ) { }
 
   /**
    * Register all channel handlers with the factory when the module initializes

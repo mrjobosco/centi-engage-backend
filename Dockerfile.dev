@@ -1,0 +1,53 @@
+# Optimized Development Dockerfile for faster startup
+FROM node:20-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    bash \
+    openssl \
+    python3 \
+    make \
+    g++
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+# Copy package files first for better caching
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Set npm configuration for faster installs
+ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
+ENV NPM_CONFIG_FUND=false
+ENV NPM_CONFIG_AUDIT=false
+ENV NPM_CONFIG_PROGRESS=false
+
+# Install dependencies with optimizations
+RUN npm install --silent && \
+    npm cache clean --force
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy source code (this will be overridden by volume in dev)
+COPY . .
+
+# Set permissions (don't create dist directory to avoid conflicts)
+RUN chown -R nestjs:nodejs /app
+
+# Switch to non-root user
+USER nestjs
+
+EXPOSE 3000
+
+# Optimized health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/api/ || exit 1
+
+# Use nodemon for faster restarts in development
+CMD ["dumb-init", "npx", "nodemon", "--exec", "npm", "run", "start:dev"]

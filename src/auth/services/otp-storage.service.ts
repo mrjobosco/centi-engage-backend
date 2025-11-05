@@ -1,7 +1,7 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
+import Redis, { RedisKey } from 'ioredis';
 import { OTPMetricsService } from './otp-metrics.service';
 
 export interface OTPRecord {
@@ -265,5 +265,62 @@ export class OTPStorageService {
 
   private getRateLimitKey(userId: string): string {
     return `otp_rate_limit:${userId}`;
+  }
+
+  /**
+   * Get all active OTP records for verification by email
+   */
+  async getAllActiveOTPs(): Promise<Map<string, OTPRecord>> {
+    const performanceTimer = this.otpMetrics?.startPerformanceTimer(
+      'redis_operation',
+      'unknown',
+      'scan_otps',
+    );
+
+    try {
+      const otpRecords = new Map<string, OTPRecord>();
+
+      // Scan for all OTP keys
+      const stream = this.redis.scanStream({
+        match: 'otp:*',
+        count: 100,
+      });
+
+      for await (const keys of stream) {
+        if (keys.length > 0) {
+          // Get all OTP records in batch
+          const pipeline = this.redis.pipeline();
+          keys.forEach((key: RedisKey) => pipeline.get(key));
+          const results = await pipeline.exec();
+
+          if (results) {
+            for (let i = 0; i < keys.length; i++) {
+              const key = keys[i];
+              const result = results[i];
+
+              if (result && result[1]) {
+                try {
+                  const otpRecord: OTPRecord = JSON.parse(result[1] as string);
+                  const userId = key.replace('otp:', '');
+                  otpRecords.set(userId, otpRecord);
+                } catch (parseError) {
+                  this.logger.warn(
+                    `Failed to parse OTP record for key ${key}:`,
+                    parseError,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      performanceTimer?.(true);
+      return otpRecords;
+    } catch (error) {
+      this.logger.error('Error getting all active OTPs:', error);
+      performanceTimer?.(false);
+      return new Map();
+    }
   }
 }

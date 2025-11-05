@@ -188,8 +188,8 @@ export class AuthController {
   })
   @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant identifier',
-    required: true,
+    description: 'Tenant identifier (optional for tenant-less users)',
+    required: false,
   })
   @ApiResponse({
     status: 200,
@@ -210,20 +210,29 @@ export class AuthController {
     status: 429,
     description: 'Too many requests - Rate limit exceeded',
   })
-  verifyEmail(
+  async verifyEmail(
     @Body() verifyEmailDto: VerifyEmailDto,
+    @Req() req: Request,
     @Headers('x-tenant-id') tenantId?: string,
   ) {
-    if (!tenantId) {
-      throw new BadRequestException('Tenant ID is required');
-    }
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
 
-    // Find user by email and tenant (since we don't have userId in public endpoint)
-    // We'll need to modify this to work with the current user context
-    // For now, let's assume we get the user ID from the request body or session
-    throw new BadRequestException(
-      'This endpoint requires user authentication. Please use the authenticated version.',
+    // For tenant-less users, we need to find the user by email and OTP
+    // Since this is a public endpoint, we'll verify using email + OTP combination
+    const result = await this.emailOTPService.verifyOTPByEmail(
+      verifyEmailDto.otp,
+      tenantId || null, // Allow null for tenant-less users
+      ipAddress,
+      userAgent,
     );
+
+    return {
+      success: result.success,
+      message: result.message,
+      ...(result.remainingAttempts !== undefined && {
+        remainingAttempts: result.remainingAttempts,
+      }),
+    };
   }
 
   @Post('verify-email/authenticated')

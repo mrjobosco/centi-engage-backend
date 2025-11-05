@@ -28,7 +28,8 @@ import { TenantModule } from '../tenant/tenant.module';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('config.jwt.secret'),
         signOptions: {
-          expiresIn: configService.get<string>('config.jwt.expiresIn'),
+          expiresIn:
+            configService.get<string>('config.jwt.expiresIn') || ('15m' as any),
         },
       }),
       inject: [ConfigService],

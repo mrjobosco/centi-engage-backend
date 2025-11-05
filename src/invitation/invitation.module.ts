@@ -36,7 +36,10 @@ import {
     RedisModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         type: 'single',
-        url: configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+        url:
+          configService.get<string>('REDIS_URL') ||
+          configService.get<string>('config.redis.url') ||
+          'redis://:redis_password@redis:6379',
       }),
       inject: [ConfigService],
     }),
@@ -45,7 +48,8 @@ import {
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('config.jwt.secret'),
         signOptions: {
-          expiresIn: configService.get<string>('config.jwt.expiresIn'),
+          expiresIn:
+            configService.get<string>('config.jwt.expiresIn') || ('15m' as any),
         },
       }),
       inject: [ConfigService],

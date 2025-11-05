@@ -24,7 +24,7 @@ export default registerAs('config', () => ({
     origin: process.env.CORS_ORIGIN || '*',
   },
   redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    url: process.env.REDIS_URL || 'redis://:redis_password@redis:6379',
   },
   otp: {
     expirationMinutes: parseInt(process.env.OTP_EXPIRATION_MINUTES || '30', 10),

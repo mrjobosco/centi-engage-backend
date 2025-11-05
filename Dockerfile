@@ -4,17 +4,25 @@
 # =============================================================================
 # Base Stage - Common dependencies and setup
 # =============================================================================
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install system dependencies
 RUN apk add --no-cache \
     dumb-init \
     curl \
     bash \
-    openssl
+    openssl \
+    python3 \
+    make \
+    g++
 
 # Create app directory
 WORKDIR /app
+
+# Set npm configuration for better compatibility
+RUN npm config set legacy-peer-deps true && \
+    npm config set fund false && \
+    npm config set audit false
 
 # Copy package files
 COPY package*.json ./
@@ -25,8 +33,15 @@ COPY prisma ./prisma/
 # =============================================================================
 FROM base AS dependencies
 
-# Install all dependencies (including dev dependencies for building)
-RUN npm ci --include=dev
+# Copy .npmrc for configuration
+COPY .npmrc ./
+
+# Install dependencies with fallback strategy
+RUN npm install --include=dev --no-optional --legacy-peer-deps || \
+    (echo "First attempt failed, trying with npm ci..." && \
+     npm ci --include=dev --legacy-peer-deps --no-optional) || \
+    (echo "npm ci failed, trying with npm install..." && \
+     npm install --include=dev --legacy-peer-deps --no-optional --force)
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -42,8 +57,12 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies to reduce size
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies
+RUN npm ci --only=production --legacy-peer-deps --no-optional || \
+    npm install --only=production --legacy-peer-deps --no-optional --force
+
+# Clean npm cache
+RUN npm cache clean --force
 
 # =============================================================================
 # Development Stage - For development with hot reload

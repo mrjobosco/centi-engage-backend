@@ -36,7 +36,7 @@ export class AwsSesProvider implements IEmailProvider {
       this.logger.debug(`Sending email via AWS SES to: ${options.to}`);
 
       const fromAddress = options.fromName
-        ? `${options.fromName} <${options.from || 'noreply@example.com'}>`
+        ? `${options.fromName} <${options.from || 'no-reply@centihq.com'}>`
         : options.from || 'noreply@example.com';
 
       const params: SendEmailCommandInput = {

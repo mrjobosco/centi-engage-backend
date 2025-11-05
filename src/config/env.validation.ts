@@ -16,7 +16,7 @@ enum Environment {
 
 enum EmailProvider {
   Resend = 'resend',
-  SES = 'ses',
+  SES = 'aws-ses',
   OneSignal = 'onesignal',
   SMTP = 'smtp',
 }
@@ -104,7 +104,7 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
-  EMAIL_FROM_ADDRESS: string = 'noreply@example.com';
+  EMAIL_FROM_ADDRESS: string = 'no-reply@centihq.com';
 
   @IsString()
   @IsOptional()
