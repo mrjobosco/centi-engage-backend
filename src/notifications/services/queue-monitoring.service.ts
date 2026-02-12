@@ -21,6 +21,20 @@ export class QueueMonitoringService implements OnModuleInit {
     await this.updateQueueMetrics();
   }
 
+  private shouldLogQueueStats(stats: {
+    waiting: number;
+    active: number;
+    failed: number;
+    delayed: number;
+  }): boolean {
+    return (
+      stats.waiting > 0 ||
+      stats.active > 0 ||
+      stats.failed > 0 ||
+      stats.delayed > 0
+    );
+  }
+
   /**
    * Update queue metrics every 30 seconds
    */
@@ -62,10 +76,18 @@ export class QueueMonitoringService implements OnModuleInit {
         this.metricsService.updateQueueLag('email-notifications', 0);
       }
 
-      // Log queue statistics for debugging
-      console.log(
-        `Email Queue Stats - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}, Delayed: ${delayed.length}`,
-      );
+      if (
+        this.shouldLogQueueStats({
+          waiting: waiting.length,
+          active: active.length,
+          failed: failed.length,
+          delayed: delayed.length,
+        })
+      ) {
+        console.log(
+          `Email Queue Stats - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}, Delayed: ${delayed.length}`,
+        );
+      }
     } catch (error) {
       console.error('Error updating email queue metrics:', error);
     }
@@ -97,10 +119,18 @@ export class QueueMonitoringService implements OnModuleInit {
         this.metricsService.updateQueueLag('sms-notifications', 0);
       }
 
-      // Log queue statistics for debugging
-      console.log(
-        `SMS Queue Stats - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}, Delayed: ${delayed.length}`,
-      );
+      if (
+        this.shouldLogQueueStats({
+          waiting: waiting.length,
+          active: active.length,
+          failed: failed.length,
+          delayed: delayed.length,
+        })
+      ) {
+        console.log(
+          `SMS Queue Stats - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}, Delayed: ${delayed.length}`,
+        );
+      }
     } catch (error) {
       console.error('Error updating SMS queue metrics:', error);
     }

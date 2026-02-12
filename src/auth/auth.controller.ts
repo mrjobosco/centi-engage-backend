@@ -29,6 +29,8 @@ import {
   VerifyEmailDto,
   ResendOTPDto,
   SetPasswordDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto';
 import { EmailOTPService } from './services/email-otp.service';
 import { Public } from './decorators/public.decorator';
@@ -145,6 +147,18 @@ export class AuthController {
           type: 'string',
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            firstName: { type: 'string', nullable: true },
+            lastName: { type: 'string', nullable: true },
+            name: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
         emailVerified: {
           type: 'boolean',
           example: false,
@@ -174,6 +188,149 @@ export class AuthController {
   ) {
     // Call AuthService.login with optional tenantId
     return this.authService.login(loginDto, tenantId);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Logout user',
+    description:
+      'Stateless logout endpoint for client cleanup. Token revocation is not persisted server-side.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout successful',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Logged out successfully' },
+      },
+    },
+  })
+  async logout() {
+    return { message: 'Logged out successfully' };
+  }
+
+  @Post('refresh')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description:
+      'Issues a new access token for an authenticated user. Should be called before token expiration.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Access token refreshed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: { type: 'string' },
+        expiresIn: { type: 'number', example: 900 },
+      },
+    },
+  })
+  async refresh(@CurrentUser() user: User) {
+    return this.authService.refreshAccessToken(user.id, user.tenantId);
+  }
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get authenticated user profile',
+    description: 'Returns profile details for the authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile retrieved successfully',
+  })
+  async profile(@CurrentUser() user: User) {
+    return this.authService.getUserProfile(user.id, user.tenantId);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset OTP',
+    description:
+      'Generates and sends a password reset OTP to the specified email address.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset OTP processed',
+  })
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+    @Req() req: Request,
+  ) {
+    const user = await this.authService.findUserByEmail(
+      forgotPasswordDto.email,
+      forgotPasswordDto.tenantId,
+    );
+
+    // Avoid user enumeration: return success shape even when user doesn't exist
+    if (!user) {
+      return {
+        success: true,
+        message: 'If an account exists for this email, an OTP has been sent.',
+      };
+    }
+
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
+    const result = await this.emailOTPService.generateOTP(
+      user.id,
+      user.email,
+      ipAddress,
+      userAgent,
+    );
+
+    return {
+      success: true,
+      message: result.success
+        ? 'If an account exists for this email, an OTP has been sent.'
+        : result.message,
+    };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password with OTP',
+    description: 'Resets user password using an OTP delivered to their email.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Password reset successfully' },
+      },
+    },
+  })
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+    @Req() req: Request,
+  ) {
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
+    await this.authService.resetPasswordWithOtp(
+      resetPasswordDto.email,
+      resetPasswordDto.otp,
+      resetPasswordDto.password,
+      resetPasswordDto.tenantId,
+      ipAddress,
+      userAgent,
+    );
+
+    return {
+      success: true,
+      message: 'Password reset successfully',
+    };
   }
 
   // Email Verification Endpoints

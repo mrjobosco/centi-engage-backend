@@ -4,6 +4,7 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  ForbiddenException,
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
@@ -12,7 +13,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { OTPMetricsService } from '../services/otp-metrics.service';
 import { OTPAuditService } from '../services/otp-audit.service';
-import type { User } from '@prisma/client';
+import type { RequestUser } from '../interfaces/request-with-user.interface';
 
 @ApiTags('OTP Monitoring')
 @Controller('auth/otp/monitoring')
@@ -286,7 +287,7 @@ export class OTPMonitoringController {
     },
   })
   async getUserAuditLogs(
-    @CurrentUser() user: User,
+    @CurrentUser() user: RequestUser,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number = 50,
   ) {
     if (limit < 1 || limit > 100) {
@@ -346,7 +347,7 @@ export class OTPMonitoringController {
     },
   })
   async getTenantAuditLogs(
-    @CurrentUser() user: User,
+    @CurrentUser() user: RequestUser,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe)
     limit: number = 100,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number = 0,
@@ -359,8 +360,14 @@ export class OTPMonitoringController {
       throw new BadRequestException('Offset must be non-negative');
     }
 
-    // TODO: Add permission check for tenant admin access
-    // For now, allow any authenticated user to view tenant logs
+    const hasAdminRole = user.roles?.some((role) =>
+      ['admin', 'super_admin', 'owner'].includes(role.name?.toLowerCase()),
+    );
+    if (!hasAdminRole) {
+      throw new ForbiddenException(
+        'Tenant admin role required to view tenant audit logs',
+      );
+    }
 
     return await this.otpAudit.getTenantOTPAuditLogs(
       user.tenantId || 'system-audit',

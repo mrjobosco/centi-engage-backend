@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -20,11 +21,25 @@ export class AuthService {
     private readonly emailOTPService: EmailOTPService,
   ) {}
 
+  private toUserResponse(user: User) {
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ').trim(),
+      tenantId: user.tenantId,
+      emailVerified: user.emailVerified || false,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
   /**
    * Register a new tenant-less user with email/password
    */
   async registerTenantlessUser(registerDto: RegisterDto): Promise<{
-    user: Omit<User, 'password'>;
+    user: ReturnType<AuthService['toUserResponse']>;
     accessToken: string;
     requiresVerification: boolean;
   }> {
@@ -71,10 +86,8 @@ export class AuthService {
       console.error('Failed to send verification email:', error);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
     return {
-      user: userWithoutPassword,
+      user: this.toUserResponse(user),
       accessToken,
       requiresVerification,
     };
@@ -87,6 +100,7 @@ export class AuthService {
     loginDto: LoginDto,
     tenantId?: string,
   ): Promise<{
+    user: ReturnType<AuthService['toUserResponse']>;
     accessToken: string;
     emailVerified: boolean;
     requiresVerification: boolean;
@@ -156,10 +170,11 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
 
     return {
+      user: this.toUserResponse(user),
       accessToken,
-      emailVerified: (user as any).email_verified || false,
+      emailVerified: user.emailVerified || false,
       requiresVerification:
-        !(user as any).email_verified && !user.authMethods.includes('google'),
+        !user.emailVerified && !user.authMethods.includes('google'),
       hasTenant: user.tenantId !== null,
     };
   }
@@ -169,6 +184,111 @@ export class AuthService {
       where: {
         email,
         tenantId,
+      },
+    });
+  }
+
+  async findUserByEmail(email: string, tenantId?: string | null) {
+    return this.prisma.user.findFirst({
+      where: {
+        email,
+        ...(tenantId === undefined ? {} : { tenantId }),
+      },
+    });
+  }
+
+  async getUserProfile(
+    userId: string,
+    tenantId?: string | null,
+  ): Promise<ReturnType<AuthService['toUserResponse']>> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        ...(tenantId === undefined ? {} : { tenantId }),
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.toUserResponse(user);
+  }
+
+  async refreshAccessToken(userId: string, tenantId?: string | null): Promise<{
+    accessToken: string;
+    expiresIn: number;
+  }> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        ...(tenantId === undefined ? {} : { tenantId }),
+      },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const payload: JwtPayload = {
+      userId: user.id,
+      tenantId: user.tenantId,
+      roles: user.roles?.map((ur) => ur.role.id) || [],
+    };
+
+    return {
+      accessToken: this.jwtService.sign(payload),
+      expiresIn: 900, // 15 minutes in seconds
+    };
+  }
+
+  async resetPasswordWithOtp(
+    email: string,
+    otp: string,
+    newPassword: string,
+    tenantId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        ...(tenantId ? { tenantId } : {}),
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const verificationResult = await this.emailOTPService.verifyOTP(
+      user.id,
+      otp,
+      ipAddress,
+      userAgent,
+    );
+
+    if (!verificationResult.success) {
+      throw new BadRequestException(verificationResult.message);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const authMethods = user.authMethods.includes('password')
+      ? user.authMethods
+      : [...user.authMethods, 'password'];
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        authMethods,
       },
     });
   }

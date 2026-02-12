@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '../database/database.module';
@@ -72,7 +71,6 @@ import {
     TenantModule,
     QueueModule,
     MetricsModule, // Add metrics module
-    ScheduleModule.forRoot(), // Enable cron jobs
     JwtModule.register({}), // Empty config - will use global JWT config
     RedisModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({

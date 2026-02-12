@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
@@ -33,6 +34,7 @@ import { SharedMetricsModule } from './common/modules/metrics.module';
         limit: 10, // 10 requests per ttl
       },
     ]),
+    ScheduleModule.forRoot(),
     SharedMetricsModule,
     DatabaseModule,
     TenantModule,

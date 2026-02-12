@@ -151,8 +151,7 @@ export class AlertingService {
     if (!threshold.enabled) return;
 
     try {
-      // This would typically check provider error rates from metrics
-      // For now, we'll implement a placeholder
+      // Calculate provider error rates from collected metrics.
       const providerErrorRate = await this.calculateProviderErrorRate();
 
       if (this.evaluateThreshold(providerErrorRate, threshold)) {

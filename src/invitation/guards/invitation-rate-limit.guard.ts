@@ -42,7 +42,7 @@ export class InvitationRateLimitGuard implements CanActivate {
 
     // For invitation creation endpoints, check tenant and admin limits
     if (this.isInvitationCreationEndpoint(request)) {
-      await this.checkTenantRateLimit(user?.tenantId, request);
+      await this.checkTenantRateLimit(user?.tenantId ?? undefined, request);
       await this.checkAdminRateLimit(user?.id, request);
     }
 

@@ -157,7 +157,7 @@ services:
       # Production specific
       SEED_DATABASE: ${SEED_DATABASE:-false}
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-7410}:3000"
     depends_on:
       postgres:
         condition: service_healthy

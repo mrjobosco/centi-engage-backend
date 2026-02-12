@@ -6,6 +6,8 @@ export { GoogleLinkCallbackDto } from './google-link-callback.dto';
 export { VerifyEmailDto } from './verify-email.dto';
 export { ResendOTPDto } from './resend-otp.dto';
 export { SetPasswordDto } from './set-password.dto';
+export { ForgotPasswordDto } from './forgot-password.dto';
+export { ResetPasswordDto } from './reset-password.dto';
 export { UpdateGoogleSettingsDto } from './update-google-settings.dto';
 export { OTPErrorResponseDto } from './otp-error-response.dto';
 export {

@@ -3,7 +3,7 @@ import { Request } from 'express';
 export interface RequestUser {
   id: string;
   email: string;
-  tenantId: string;
+  tenantId: string | null;
   firstName: string | null;
   lastName: string | null;
   emailVerified: boolean;

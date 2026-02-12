@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { DatabaseModule } from '../database/database.module';
 import { AuthModule } from '../auth/auth.module';
@@ -32,7 +31,6 @@ import {
     AuthModule,
     NotificationsModule,
     TenantModule,
-    ScheduleModule.forRoot(),
     RedisModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         type: 'single',
