@@ -34,6 +34,9 @@ async function bootstrap() {
     allowedHeaders: [
       'Content-Type',
       'Authorization',
+      'X-CSRF-Token',
+      'X-Requested-With',
+      'X-Request-Time',
       configService.get<string>('config.tenant.headerName') || 'x-tenant-id',
     ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
