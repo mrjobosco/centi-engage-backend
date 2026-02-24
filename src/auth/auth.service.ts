@@ -7,12 +7,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { EmailOTPService } from './services/email-otp.service';
 import { User } from '@prisma/client';
+import { RefreshSessionService } from './services/refresh-session.service';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +23,9 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly emailOTPService: EmailOTPService,
+    private readonly refreshSessionService: RefreshSessionService,
   ) {}
 
   private toUserResponse(user: User) {
@@ -105,11 +109,14 @@ export class AuthService {
   ): Promise<{
     user: ReturnType<AuthService['toUserResponse']>;
     accessToken: string;
+    refreshToken: string;
     emailVerified: boolean;
     requiresVerification: boolean;
     hasTenant: boolean;
+    expiresIn: number;
+    refreshSessionId: string;
   }> {
-    const { email, password } = loginDto;
+    const { email, password, rememberMe = false } = loginDto;
     let user:
       | (User & {
           roles: Array<{
@@ -163,22 +170,24 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate JWT token
-    const payload: JwtPayload = {
+    const userRoles = user.roles?.map((ur) => ur.role.id) || [];
+    const issuedTokens = await this.issueTokensForUser({
       userId: user.id,
       tenantId: user.tenantId,
-      roles: user.roles?.map((ur) => ur.role.id) || [],
-    };
-
-    const accessToken = this.jwtService.sign(payload);
+      roles: userRoles,
+      rememberMe,
+    });
 
     return {
       user: this.toUserResponse(user),
-      accessToken,
+      accessToken: issuedTokens.accessToken,
+      refreshToken: issuedTokens.refreshToken,
       emailVerified: user.emailVerified || false,
       requiresVerification:
         !user.emailVerified && !user.authMethods.includes('google'),
       hasTenant: user.tenantId !== null,
+      expiresIn: 900,
+      refreshSessionId: issuedTokens.sessionId,
     };
   }
 
@@ -220,7 +229,9 @@ export class AuthService {
 
   async refreshAccessToken(userId: string, tenantId?: string | null): Promise<{
     accessToken: string;
+    refreshToken: string;
     expiresIn: number;
+    sessionId: string;
   }> {
     const user = await this.prisma.user.findFirst({
       where: {
@@ -240,16 +251,129 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    const payload: JwtPayload = {
+    const userRoles = user.roles?.map((ur) => ur.role.id) || [];
+    const issuedTokens = await this.issueTokensForUser({
       userId: user.id,
       tenantId: user.tenantId,
-      roles: user.roles?.map((ur) => ur.role.id) || [],
-    };
+      roles: userRoles,
+      rememberMe: false,
+    });
 
     return {
-      accessToken: this.jwtService.sign(payload),
+      accessToken: issuedTokens.accessToken,
+      refreshToken: issuedTokens.refreshToken,
       expiresIn: 900, // 15 minutes in seconds
+      sessionId: issuedTokens.sessionId,
     };
+  }
+
+  async refreshWithToken(
+    refreshToken: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    sessionId: string;
+    userId: string;
+    tenantId: string | null;
+    rememberMe: boolean;
+  }> {
+    const payload = await this.verifyRefreshToken(refreshToken);
+    if (!payload.sessionId) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const validSession = await this.refreshSessionService.getValidSession(
+      payload.sessionId,
+      refreshToken,
+    );
+    if (!validSession) {
+      throw new UnauthorizedException('Refresh session is invalid');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const userRoles = user.roles?.map((ur) => ur.role.id) || [];
+    const accessPayload: JwtPayload = {
+      userId: user.id,
+      tenantId: user.tenantId,
+      roles: userRoles,
+      tokenType: 'access',
+    };
+
+    const accessToken = this.jwtService.sign(accessPayload);
+    const refreshExpiryDate = new Date(validSession.expiresAt);
+    const newRefreshToken = this.signRefreshToken({
+      userId: user.id,
+      tenantId: user.tenantId,
+      roles: userRoles,
+      sessionId: validSession.id,
+      expiresAt: refreshExpiryDate,
+    });
+
+    const rotatedSession = await this.refreshSessionService.rotateSession({
+      currentSessionId: validSession.id,
+      newToken: newRefreshToken,
+      newExpiresAt: refreshExpiryDate,
+      ipAddress,
+      userAgent,
+    });
+
+    if (!rotatedSession) {
+      throw new UnauthorizedException('Unable to rotate refresh session');
+    }
+
+    const finalRefreshToken = this.signRefreshToken({
+      userId: user.id,
+      tenantId: user.tenantId,
+      roles: userRoles,
+      sessionId: rotatedSession.id,
+      expiresAt: refreshExpiryDate,
+    });
+
+    await (this.prisma as any).refreshSession.update({
+      where: { id: rotatedSession.id },
+      data: {
+        tokenHash: this.refreshSessionService.hashToken(finalRefreshToken),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken: finalRefreshToken,
+      expiresIn: 900,
+      sessionId: rotatedSession.id,
+      userId: user.id,
+      tenantId: user.tenantId,
+      rememberMe: this.isRememberMeSession(rotatedSession.expiresAt),
+    };
+  }
+
+  async revokeRefreshSession(refreshToken: string): Promise<void> {
+    try {
+      const payload = await this.verifyRefreshToken(refreshToken);
+      if (!payload.sessionId) {
+        return;
+      }
+      await this.refreshSessionService.revokeSessionById(payload.sessionId);
+    } catch (error) {
+      this.logger.warn('Failed to revoke refresh session', error);
+    }
   }
 
   async resetPasswordWithOtp(
@@ -352,5 +476,117 @@ export class AuthService {
       !user.password ||
       user.password.length === 0
     );
+  }
+
+  private async issueTokensForUser(params: {
+    userId: string;
+    tenantId: string | null;
+    roles: string[];
+    rememberMe: boolean;
+  }): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    sessionId: string;
+  }> {
+    const accessPayload: JwtPayload = {
+      userId: params.userId,
+      tenantId: params.tenantId,
+      roles: params.roles,
+      tokenType: 'access',
+    };
+
+    const accessToken = this.jwtService.sign(accessPayload);
+
+    const refreshHours =
+      this.configService.get<number>('config.auth.refreshExpiresHours') ?? 8;
+    const rememberDays =
+      this.configService.get<number>('config.auth.rememberRefreshExpiresDays') ??
+      30;
+    const refreshExpiryDate = new Date(
+      Date.now() +
+        (params.rememberMe
+          ? rememberDays * 24 * 60 * 60 * 1000
+          : refreshHours * 60 * 60 * 1000),
+    );
+
+    const provisionalRefreshToken = this.signRefreshToken({
+      userId: params.userId,
+      tenantId: params.tenantId,
+      roles: params.roles,
+      sessionId: 'pending',
+      expiresAt: refreshExpiryDate,
+    });
+
+    const session = await this.refreshSessionService.createSession({
+      userId: params.userId,
+      token: provisionalRefreshToken,
+      expiresAt: refreshExpiryDate,
+    });
+
+    const refreshToken = this.signRefreshToken({
+      userId: params.userId,
+      tenantId: params.tenantId,
+      roles: params.roles,
+      sessionId: session.id,
+      expiresAt: refreshExpiryDate,
+    });
+
+    await (this.prisma as any).refreshSession.update({
+      where: { id: session.id },
+      data: {
+        tokenHash: this.refreshSessionService.hashToken(refreshToken),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      sessionId: session.id,
+    };
+  }
+
+  private signRefreshToken(params: {
+    userId: string;
+    tenantId: string | null;
+    roles: string[];
+    sessionId: string;
+    expiresAt: Date;
+  }): string {
+    const refreshPayload: JwtPayload = {
+      userId: params.userId,
+      tenantId: params.tenantId,
+      roles: params.roles,
+      tokenType: 'refresh',
+      sessionId: params.sessionId,
+    };
+    return this.jwtService.sign(refreshPayload, {
+      expiresIn: Math.max(
+        Math.floor((params.expiresAt.getTime() - Date.now()) / 1000),
+        1,
+      ),
+    });
+  }
+
+  private isRememberMeSession(expiresAt: Date): boolean {
+    const refreshHours =
+      this.configService.get<number>('config.auth.refreshExpiresHours') ?? 8;
+    const thresholdMs = refreshHours * 60 * 60 * 1000;
+    return expiresAt.getTime() - Date.now() > thresholdMs;
+  }
+
+  private async verifyRefreshToken(token: string): Promise<JwtPayload> {
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.get<string>('config.jwt.secret'),
+      });
+
+      if (payload.tokenType && payload.tokenType !== 'refresh') {
+        throw new UnauthorizedException('Invalid refresh token type');
+      }
+
+      return payload;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 }

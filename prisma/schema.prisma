@@ -24,8 +24,8 @@ model Tenant {
   roles                    Role[]
   invitations              TenantInvitation[]
   tenantNotificationConfig TenantNotificationConfig?
-  users                    User[]
   userTenants              UserTenant[]
+  users                    User[]
 
   @@index([googleSsoEnabled])
   @@map("tenants")
@@ -51,6 +51,7 @@ model User {
   notificationPreferences NotificationPreference[]
   notifications           Notification[]
   projects                Project[]
+  refreshSessions         RefreshSession[]
   invitationsSent         TenantInvitation[]       @relation("InvitationInviter")
   permissions             UserPermission[]
   roles                   UserRole[]
@@ -61,6 +62,29 @@ model User {
   @@index([authMethods], type: Gin)
   @@index([emailVerified], map: "idx_users_email_verified")
   @@map("users")
+}
+
+model RefreshSession {
+  id           String           @id @default(cuid())
+  userId       String           @map("user_id")
+  tokenHash    String           @map("token_hash")
+  familyId     String           @map("family_id")
+  expiresAt    DateTime         @map("expires_at")
+  revokedAt    DateTime?        @map("revoked_at")
+  replacedById String?          @map("replaced_by_id")
+  ipAddress    String?          @map("ip_address")
+  userAgent    String?          @map("user_agent")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  replacedBy   RefreshSession?  @relation("RefreshSessionReplacement", fields: [replacedById], references: [id])
+  replaces     RefreshSession[] @relation("RefreshSessionReplacement")
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("refresh_sessions")
 }
 
 model Role {
@@ -144,9 +168,9 @@ model UserTenant {
   joinedAt  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
   @@index([userId])

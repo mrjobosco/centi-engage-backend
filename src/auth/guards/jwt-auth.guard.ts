@@ -11,6 +11,7 @@ import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantContextService } from '../../tenant/tenant-context.service';
+import { AuthCookieService } from '../services/auth-cookie.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -20,7 +21,8 @@ export class JwtAuthGuard implements CanActivate {
     private prisma: PrismaService,
     private reflector: Reflector,
     private tenantContext: TenantContextService,
-  ) { }
+    private authCookieService: AuthCookieService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if route is marked as public
@@ -110,6 +112,20 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
+    const cookieToken = this.authCookieService.getCookie(
+      request,
+      this.authCookieService.accessCookieName,
+    );
+    if (cookieToken) {
+      return cookieToken;
+    }
+
+    const headerFallback =
+      this.configService.get<boolean>('config.auth.headerFallback') ?? true;
+    if (!headerFallback) {
+      return undefined;
+    }
+
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }

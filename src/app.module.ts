@@ -19,6 +19,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { InvitationModule } from './invitation/invitation.module';
 import { SharedMetricsModule } from './common/modules/metrics.module';
 import { JsonLoggerService } from './common/logging/json-logger.service';
+import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { JsonLoggerService } from './common/logging/json-logger.service';
   providers: [
     AppService,
     JsonLoggerService,
+    CsrfProtectionMiddleware,
     // Only apply throttler guard in non-test environments
     ...(process.env.NODE_ENV !== 'test'
       ? [
@@ -64,6 +66,8 @@ import { JsonLoggerService } from './common/logging/json-logger.service';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CsrfProtectionMiddleware).forRoutes('*');
+
     consumer
       .apply(TenantIdentificationMiddleware)
       .exclude(

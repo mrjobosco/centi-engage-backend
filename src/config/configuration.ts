@@ -10,6 +10,35 @@ export default registerAs('config', () => ({
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRATION || '15m',
   },
+  auth: {
+    headerFallback: process.env.AUTH_HEADER_FALLBACK !== 'false',
+    cookieDomain: process.env.AUTH_COOKIE_DOMAIN || undefined,
+    cookieSecure:
+      process.env.AUTH_COOKIE_SECURE === undefined
+        ? (process.env.NODE_ENV || 'development') === 'production'
+        : process.env.AUTH_COOKIE_SECURE === 'true',
+    cookieSameSite:
+      (process.env.AUTH_COOKIE_SAMESITE || 'lax').toLowerCase() === 'strict'
+        ? 'strict'
+        : (process.env.AUTH_COOKIE_SAMESITE || 'lax').toLowerCase() === 'none'
+          ? 'none'
+          : 'lax',
+    cookiePath: process.env.AUTH_COOKIE_PATH || '/',
+    accessCookieName:
+      process.env.AUTH_ACCESS_COOKIE_NAME || '__Host-access_token',
+    refreshCookieName:
+      process.env.AUTH_REFRESH_COOKIE_NAME || '__Host-refresh_token',
+    csrfCookieName: process.env.AUTH_CSRF_COOKIE_NAME || 'csrf-token',
+    csrfHeaderName: process.env.AUTH_CSRF_HEADER_NAME || 'x-csrf-token',
+    refreshExpiresHours: parseInt(
+      process.env.AUTH_REFRESH_EXPIRES_HOURS || '8',
+      10,
+    ),
+    rememberRefreshExpiresDays: parseInt(
+      process.env.AUTH_REMEMBER_REFRESH_DAYS || '30',
+      10,
+    ),
+  },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,

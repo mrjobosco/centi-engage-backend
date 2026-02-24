@@ -45,6 +45,50 @@ class EnvironmentVariables {
   @IsOptional()
   JWT_EXPIRATION: string = '15m';
 
+  @IsBoolean()
+  @IsOptional()
+  AUTH_HEADER_FALLBACK: boolean = true;
+
+  @IsString()
+  @IsOptional()
+  AUTH_COOKIE_DOMAIN?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  AUTH_COOKIE_SECURE: boolean = false;
+
+  @IsString()
+  @IsOptional()
+  AUTH_COOKIE_SAMESITE: string = 'lax';
+
+  @IsString()
+  @IsOptional()
+  AUTH_COOKIE_PATH: string = '/';
+
+  @IsString()
+  @IsOptional()
+  AUTH_ACCESS_COOKIE_NAME: string = '__Host-access_token';
+
+  @IsString()
+  @IsOptional()
+  AUTH_REFRESH_COOKIE_NAME: string = '__Host-refresh_token';
+
+  @IsString()
+  @IsOptional()
+  AUTH_CSRF_COOKIE_NAME: string = 'csrf-token';
+
+  @IsString()
+  @IsOptional()
+  AUTH_CSRF_HEADER_NAME: string = 'x-csrf-token';
+
+  @IsNumber()
+  @IsOptional()
+  AUTH_REFRESH_EXPIRES_HOURS: number = 8;
+
+  @IsNumber()
+  @IsOptional()
+  AUTH_REMEMBER_REFRESH_DAYS: number = 30;
+
   // Google OAuth Configuration
   @IsString()
   @IsOptional()

@@ -5,6 +5,7 @@ import {
   Body,
   Headers,
   BadRequestException,
+  UnauthorizedException,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -12,8 +13,9 @@ import {
   UsePipes,
   ValidationPipe,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GoogleAuthService } from './services/google-auth.service';
@@ -32,6 +34,7 @@ import {
   ResetPasswordDto,
 } from './dto';
 import { EmailOTPService } from './services/email-otp.service';
+import { AuthCookieService } from './services/auth-cookie.service';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { SkipEmailVerification } from './decorators/skip-email-verification.decorator';
@@ -47,7 +50,8 @@ export class AuthController {
     private readonly oauthStateService: OAuthStateService,
     private readonly googleAuthMetricsService: GoogleAuthMetricsService,
     private readonly emailOTPService: EmailOTPService,
-  ) { }
+    private readonly authCookieService: AuthCookieService,
+  ) {}
 
   /**
    * Extract IP address and user agent from request for audit logging
@@ -83,22 +87,84 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDto,
     @Headers('x-tenant-id') tenantId?: string,
+    @Res({ passthrough: true }) res?: Response,
   ) {
     // Call AuthService.login with optional tenantId
-    return this.authService.login(loginDto, tenantId);
+    const result = await this.authService.login(loginDto, tenantId);
+    if (res) {
+      this.authCookieService.setAuthCookies(
+        res,
+        {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
+        loginDto.rememberMe ?? false,
+      );
+    }
+    return result;
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout() {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = this.authCookieService.getCookie(
+      req,
+      this.authCookieService.refreshCookieName,
+    );
+    if (refreshToken) {
+      await this.authService.revokeRefreshSession(refreshToken);
+    }
+    this.authCookieService.clearAuthCookies(res);
     return { message: 'Logged out successfully' };
   }
 
+  @Public()
   @Post('refresh')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async refresh(@CurrentUser() user: User) {
-    return this.authService.refreshAccessToken(user.id, user.tenantId);
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = this.authCookieService.getCookie(
+      req,
+      this.authCookieService.refreshCookieName,
+    );
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+
+    const { ipAddress, userAgent } = this.extractRequestContext(req);
+    const refreshed = await this.authService.refreshWithToken(
+      refreshToken,
+      ipAddress,
+      userAgent,
+    );
+    this.authCookieService.setAuthCookies(
+      res,
+      {
+        accessToken: refreshed.accessToken,
+        refreshToken: refreshed.refreshToken,
+      },
+      refreshed.rememberMe,
+    );
+    return {
+      accessToken: refreshed.accessToken,
+      expiresIn: refreshed.expiresIn,
+    };
+  }
+
+  @Public()
+  @Get('csrf')
+  @HttpCode(HttpStatus.OK)
+  getCsrf(@Res({ passthrough: true }) res: Response) {
+    const csrfToken = this.authCookieService.generateAndSetCsrfToken(res);
+    return {
+      success: true,
+      message: 'CSRF token generated',
+      data: {
+        csrfToken,
+      },
+    };
   }
 
   @Get('profile')

@@ -10,6 +10,8 @@ import { GoogleAuthService } from './services/google-auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { OAuthStateService } from './services/oauth-state.service';
 import { GoogleAuthMetricsService } from './services/google-auth-metrics.service';
+import { AuthCookieService } from './services/auth-cookie.service';
+import { RefreshSessionService } from './services/refresh-session.service';
 import { GoogleAuthMetricsModule } from './modules/google-auth-metrics.module';
 import { EmailVerificationModule } from './modules/email-verification.module';
 import { DatabaseModule } from '../database/database.module';
@@ -43,6 +45,8 @@ import { TenantModule } from '../tenant/tenant.module';
     GoogleOAuthService,
     OAuthStateService,
     GoogleAuthMetricsService,
+    AuthCookieService,
+    RefreshSessionService,
   ],
   exports: [
     AuthService,
@@ -51,7 +55,9 @@ import { TenantModule } from '../tenant/tenant.module';
     GoogleOAuthService,
     OAuthStateService,
     GoogleAuthMetricsService,
+    AuthCookieService,
+    RefreshSessionService,
     EmailVerificationModule,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}
