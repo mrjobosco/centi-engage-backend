@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -6,6 +6,8 @@ import { MetricsService } from './metrics.service';
 
 @Injectable()
 export class QueueMonitoringService implements OnModuleInit {
+  private readonly logger = new Logger(QueueMonitoringService.name);
+
   constructor(
     @InjectQueue('email-notifications')
     private readonly emailQueue: Queue,
@@ -46,7 +48,7 @@ export class QueueMonitoringService implements OnModuleInit {
         this.updateSmsQueueMetrics(),
       ]);
     } catch (error) {
-      console.error('Error updating queue metrics:', error);
+      this.logger.error('Error updating queue metrics', error);
     }
   }
 
@@ -84,12 +86,17 @@ export class QueueMonitoringService implements OnModuleInit {
           delayed: delayed.length,
         })
       ) {
-        console.log(
-          `Email Queue Stats - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}, Delayed: ${delayed.length}`,
-        );
+        this.logger.log({
+          queue: 'email-notifications',
+          waiting: waiting.length,
+          active: active.length,
+          completed: completed.length,
+          failed: failed.length,
+          delayed: delayed.length,
+        });
       }
     } catch (error) {
-      console.error('Error updating email queue metrics:', error);
+      this.logger.error('Error updating email queue metrics', error);
     }
   }
 
@@ -127,12 +134,17 @@ export class QueueMonitoringService implements OnModuleInit {
           delayed: delayed.length,
         })
       ) {
-        console.log(
-          `SMS Queue Stats - Waiting: ${waiting.length}, Active: ${active.length}, Completed: ${completed.length}, Failed: ${failed.length}, Delayed: ${delayed.length}`,
-        );
+        this.logger.log({
+          queue: 'sms-notifications',
+          waiting: waiting.length,
+          active: active.length,
+          completed: completed.length,
+          failed: failed.length,
+          delayed: delayed.length,
+        });
       }
     } catch (error) {
-      console.error('Error updating SMS queue metrics:', error);
+      this.logger.error('Error updating SMS queue metrics', error);
     }
   }
 

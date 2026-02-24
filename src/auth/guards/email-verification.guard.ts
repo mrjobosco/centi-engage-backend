@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../database/prisma.service';
 import { EmailVerificationRequiredException } from '../exceptions/email-verification-required.exception';
@@ -8,6 +8,8 @@ const SKIP_EMAIL_VERIFICATION_KEY = 'skipEmailVerification';
 
 @Injectable()
 export class EmailVerificationGuard implements CanActivate {
+  private readonly logger = new Logger(EmailVerificationGuard.name);
+
   constructor(
     private reflector: Reflector,
     private prisma: PrismaService,
@@ -70,8 +72,8 @@ export class EmailVerificationGuard implements CanActivate {
         );
       } catch (auditError) {
         // Don't let audit logging failures break the guard
-        console.error(
-          'Failed to log email verification requirement:',
+        this.logger.error(
+          'Failed to log email verification requirement',
           auditError,
         );
       }

@@ -18,6 +18,7 @@ import { ProjectModule } from './project/project.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { InvitationModule } from './invitation/invitation.module';
 import { SharedMetricsModule } from './common/modules/metrics.module';
+import { JsonLoggerService } from './common/logging/json-logger.service';
 
 @Module({
   imports: [
@@ -49,14 +50,15 @@ import { SharedMetricsModule } from './common/modules/metrics.module';
   controllers: [AppController],
   providers: [
     AppService,
+    JsonLoggerService,
     // Only apply throttler guard in non-test environments
     ...(process.env.NODE_ENV !== 'test'
       ? [
-        {
-          provide: 'APP_GUARD',
+          {
+            provide: 'APP_GUARD',
             useClass: ThrottlerGuard,
-        },
-      ]
+          },
+        ]
       : []),
   ],
 })

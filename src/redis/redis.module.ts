@@ -20,4 +20,4 @@ import { RedisModule as NestRedisModule } from '@nestjs-modules/ioredis';
   ],
   exports: [NestRedisModule],
 })
-export class RedisModule { }
+export class RedisModule {}

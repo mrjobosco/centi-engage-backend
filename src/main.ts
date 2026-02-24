@@ -12,6 +12,7 @@ import {
   ApiResponseInterceptor,
   SanitizeResponseInterceptor,
 } from './common/interceptors';
+import { JsonLoggerService } from './common/logging/json-logger.service';
 
 function loadOpenApiDocument(): Record<string, unknown> {
   const specPath = path.resolve(process.cwd(), 'docs/api/openapi.yml');
@@ -26,7 +27,9 @@ function loadOpenApiDocument(): Record<string, unknown> {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(JsonLoggerService));
+  app.flushLogs();
 
   // Get configuration service
   const configService = app.get(ConfigService);
@@ -90,9 +93,12 @@ async function bootstrap() {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
   const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get('/api/docs-json', (_req: unknown, res: { json: (value: unknown) => void }) => {
-    res.json(openApiDocument);
-  });
+  httpAdapter.get(
+    '/api/docs-json',
+    (_req: unknown, res: { json: (value: unknown) => void }) => {
+      res.json(openApiDocument);
+    },
+  );
 
   // Configure graceful shutdown
   app.enableShutdownHooks();
@@ -100,13 +106,30 @@ async function bootstrap() {
   const port = configService.get<number>('port') ?? 3000;
 
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(
+  const logger = app.get(JsonLoggerService);
+  logger.log(
+    `Application is running on: http://localhost:${port}`,
+    'Bootstrap',
+  );
+  logger.log(
     `API documentation available at: http://localhost:${port}/api/docs`,
+    'Bootstrap',
   );
 }
 
 bootstrap().catch((err) => {
-  console.error('Failed to start application:', err);
+  const startupError = {
+    timestamp: new Date().toISOString(),
+    level: 'fatal',
+    context: 'Bootstrap',
+    message: 'Failed to start application',
+    error:
+      err instanceof Error
+        ? { name: err.name, message: err.message, stack: err.stack }
+        : err,
+    pid: process.pid,
+  };
+
+  process.stderr.write(`${JSON.stringify(startupError)}\n`);
   process.exit(1);
 });

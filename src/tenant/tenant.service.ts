@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -40,11 +41,13 @@ export interface CreateTenantResult {
 
 @Injectable()
 export class TenantService {
+  private readonly logger = new Logger(TenantService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authAuditService: AuthAuditService,
     private readonly emailOTPService: EmailOTPService,
-  ) { }
+  ) {}
 
   async createTenant(input: CreateTenantInput): Promise<CreateTenantResult> {
     const {
@@ -197,7 +200,7 @@ export class TenantService {
       );
     } catch (error) {
       // Log error but don't fail the registration - user can request resend
-      console.error('Failed to generate OTP during registration:', error);
+      this.logger.error('Failed to generate OTP during registration', error);
     }
 
     return {

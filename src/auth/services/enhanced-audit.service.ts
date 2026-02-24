@@ -435,7 +435,7 @@ export class EnhancedAuditService extends AuthAuditService {
 
   private isUnusualGeolocation(geolocation?: { country?: string }): boolean {
     // Implementation would check against user's typical locations
-    console.log(geolocation);
+    this.enhancedLogger.debug({ geolocation });
     return false; // Placeholder
   }
 
@@ -530,7 +530,7 @@ export class EnhancedAuditService extends AuthAuditService {
   ): Promise<Array<{ errorCode: string; count: number }>> {
     // This would require a more complex query to extract error codes from metadata
     // For now, return empty array
-    console.log(whereClause);
+    this.enhancedLogger.debug({ whereClause });
     return [] as any;
   }
 
@@ -539,7 +539,7 @@ export class EnhancedAuditService extends AuthAuditService {
   ): Array<{ hour: number; count: number }> {
     // This would require a more complex query to group by hour
     // For now, return empty array
-    console.log(whereClause);
+    this.enhancedLogger.debug({ whereClause });
     return [];
   }
 }
