@@ -77,7 +77,7 @@ describe('ApiResponseInterceptor', () => {
     });
   });
 
-  it('should normalize legacy success/message responses with null data', (done) => {
+  it('should normalize legacy success/message responses and preserve payload in data', (done) => {
     mockCallHandler = {
       handle: () =>
         of({
@@ -91,7 +91,10 @@ describe('ApiResponseInterceptor', () => {
         expect(data).toEqual({
           success: true,
           message: 'Legacy response',
-          data: null,
+          data: {
+            success: true,
+            message: 'Legacy response',
+          },
         });
         done();
       },

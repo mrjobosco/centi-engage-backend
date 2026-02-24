@@ -35,7 +35,8 @@ export class ApiResponseInterceptor implements NestInterceptor {
           return {
             success: legacyData.success,
             message: legacyData.message,
-            data: null,
+            // Preserve legacy payload fields in data for frontend compatibility.
+            data: legacyData,
           } satisfies ApiResponseEnvelope;
         }
 
