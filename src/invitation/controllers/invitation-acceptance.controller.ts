@@ -11,7 +11,6 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Public } from '../../auth/decorators/public.decorator';
 import { InvitationValidationService } from '../services/invitation-validation.service';
 import { InvitationService } from '../services/invitation.service';
@@ -22,7 +21,6 @@ import { PrismaService } from '../../database/prisma.service';
 import { InvitationAcceptanceDto } from '../dto/invitation-acceptance.dto';
 import { InvitationValidationResponseDto } from '../dto/invitation-validation-response.dto';
 
-@ApiTags('Invitation Acceptance')
 @Controller('invitation-acceptance')
 export class InvitationAcceptanceController {
   private readonly logger = new Logger(InvitationAcceptanceController.name);
@@ -38,89 +36,6 @@ export class InvitationAcceptanceController {
 
   @Get(':token')
   @Public()
-  @ApiOperation({
-    summary: 'Validate an invitation token',
-    description:
-      'Validates an invitation token and returns invitation details if valid. This endpoint is public and does not require authentication.',
-  })
-  @ApiParam({
-    name: 'token',
-    description: 'Invitation token from the invitation URL',
-    example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Token validation result',
-    type: InvitationValidationResponseDto,
-    schema: {
-      oneOf: [
-        {
-          type: 'object',
-          properties: {
-            isValid: { type: 'boolean', example: true },
-            status: { type: 'string', example: 'PENDING' },
-            invitation: {
-              type: 'object',
-              properties: {
-                id: { type: 'string', example: 'clm123abc456def789' },
-                email: { type: 'string', example: 'user@example.com' },
-                expiresAt: {
-                  type: 'string',
-                  format: 'date-time',
-                  example: '2024-12-31T23:59:59.000Z',
-                },
-                tenant: {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'string', example: 'clm987zyx654wvu321' },
-                    name: { type: 'string', example: 'Acme Corporation' },
-                  },
-                },
-                roles: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string', example: 'clm456def789ghi012' },
-                      name: { type: 'string', example: 'Team Member' },
-                    },
-                  },
-                },
-                message: {
-                  type: 'string',
-                  example: 'Welcome to our team!',
-                  nullable: true,
-                },
-              },
-            },
-          },
-        },
-        {
-          type: 'object',
-          properties: {
-            isValid: { type: 'boolean', example: false },
-            status: { type: 'string', example: 'EXPIRED' },
-            error: {
-              type: 'string',
-              example: 'Invitation has expired',
-            },
-          },
-        },
-      ],
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - invalid token format',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 400 },
-        message: { type: 'string', example: 'Invalid token format' },
-        error: { type: 'string', example: 'Bad Request' },
-      },
-    },
-  })
   async validateInvitation(
     @Param('token') token: string,
   ): Promise<InvitationValidationResponseDto> {
@@ -178,41 +93,6 @@ export class InvitationAcceptanceController {
 
   @Get(':token/google-auth')
   @Public()
-  @ApiOperation({
-    summary: 'Initiate Google OAuth for invitation acceptance',
-    description:
-      'Initiates Google OAuth flow for invitation acceptance. Returns authorization URL and state parameter.',
-  })
-  @ApiParam({
-    name: 'token',
-    description: 'Invitation token from the invitation URL',
-    example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Google OAuth flow initiated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authUrl: {
-          type: 'string',
-          example: 'https://accounts.google.com/oauth/authorize?...',
-        },
-        state: {
-          type: 'string',
-          example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - invalid invitation token',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Invitation not found',
-  })
   async initiateGoogleAuth(@Param('token') token: string): Promise<{
     authUrl: string;
     state: string;
@@ -275,113 +155,6 @@ export class InvitationAcceptanceController {
   @Post(':token/accept')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Accept an invitation',
-    description:
-      'Accepts an invitation and creates a user account with the specified authentication method. This endpoint is public and does not require authentication.',
-  })
-  @ApiParam({
-    name: 'token',
-    description: 'Invitation token from the invitation URL',
-    example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Invitation accepted successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Invitation accepted successfully',
-        },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'clm789ghi012jkl345' },
-            email: { type: 'string', example: 'user@example.com' },
-            firstName: { type: 'string', example: 'John' },
-            lastName: { type: 'string', example: 'Doe' },
-            tenantId: { type: 'string', example: 'clm987zyx654wvu321' },
-          },
-        },
-        tenant: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'clm987zyx654wvu321' },
-            name: { type: 'string', example: 'Acme Corporation' },
-            subdomain: { type: 'string', example: 'acme' },
-          },
-        },
-        roles: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'clm456def789ghi012' },
-              name: { type: 'string', example: 'Team Member' },
-            },
-          },
-        },
-        accessToken: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          description: 'JWT access token for immediate login',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - validation errors or invitation issues',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 400 },
-        message: {
-          oneOf: [
-            { type: 'string', example: 'Invitation has expired' },
-            { type: 'string', example: 'Invitation has already been accepted' },
-            {
-              type: 'array',
-              items: { type: 'string' },
-              example: [
-                'password must be longer than or equal to 8 characters',
-              ],
-            },
-          ],
-        },
-        error: { type: 'string', example: 'Bad Request' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Invitation not found',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 404 },
-        message: { type: 'string', example: 'Invitation not found' },
-        error: { type: 'string', example: 'Not Found' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict - user already exists',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 409 },
-        message: {
-          type: 'string',
-          example: 'User with this email already exists in the tenant',
-        },
-        error: { type: 'string', example: 'Conflict' },
-      },
-    },
-  })
   async acceptInvitation(
     @Param('token') token: string,
     @Body() acceptanceDto: InvitationAcceptanceDto,

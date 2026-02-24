@@ -15,6 +15,22 @@ tags:
     description: Tenant-scoped user management
   - name: Projects
     description: Tenant-scoped project management
+  - name: Roles
+    description: Role management
+  - name: Permissions
+    description: Permission management
+  - name: Tenants
+    description: Tenant provisioning and settings
+  - name: Tenant Management
+    description: Tenant-less user tenant operations
+  - name: Notifications
+    description: Notification delivery and inbox operations
+  - name: Notification Preferences
+    description: User notification preference management
+  - name: Invitations
+    description: Tenant invitation management
+  - name: Invitation Acceptance
+    description: Public invitation validation and acceptance
 security:
   - bearerAuth: []
     tenantHeader: []
@@ -300,6 +316,142 @@ paths:
                         $ref: '#/components/schemas/Project'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/roles:
+    get:
+      tags: [Roles]
+      summary: List roles
+      responses:
+        '200':
+          description: Roles retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+    post:
+      tags: [Roles]
+      summary: Create role
+      responses:
+        '201':
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/permissions:
+    get:
+      tags: [Permissions]
+      summary: List permissions
+      responses:
+        '200':
+          description: Permissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+    post:
+      tags: [Permissions]
+      summary: Create permission
+      responses:
+        '201':
+          description: Permission created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/tenants:
+    post:
+      tags: [Tenants]
+      summary: Register tenant
+      security: []
+      responses:
+        '201':
+          description: Tenant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/tenant-management/status:
+    get:
+      tags: [Tenant Management]
+      summary: Get tenant status for current user
+      responses:
+        '200':
+          description: Tenant status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: List user notifications
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+    post:
+      tags: [Notifications]
+      summary: Create notification
+      responses:
+        '201':
+          description: Notification created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/notification-preferences:
+    get:
+      tags: [Notification Preferences]
+      summary: Get notification preferences
+      responses:
+        '200':
+          description: Notification preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/invitations:
+    get:
+      tags: [Invitations]
+      summary: List invitations
+      responses:
+        '200':
+          description: Invitations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+    post:
+      tags: [Invitations]
+      summary: Create invitation
+      responses:
+        '201':
+          description: Invitation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
+  /api/invitation-acceptance/{token}:
+    get:
+      tags: [Invitation Acceptance]
+      summary: Validate invitation token
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invitation validation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessBase'
     put:
       tags: [Projects]
       summary: Update project

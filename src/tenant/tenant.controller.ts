@@ -10,12 +10,6 @@ import {
   ConflictException,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
 import { RegisterTenantDto } from '../auth/dto/register-tenant.dto';
 import { UpdateGoogleSettingsDto } from '../auth/dto/update-google-settings.dto';
@@ -26,7 +20,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminRoleGuard } from '../notifications/guards/admin-role.guard';
 import type { RequestUser } from '../auth/interfaces/request-with-user.interface';
 
-@ApiTags('Tenants')
 @Controller('tenants')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) { }
@@ -34,54 +27,6 @@ export class TenantController {
   @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary: 'Register a new tenant',
-    description:
-      'Create a new tenant with an admin user, default roles, and permissions. This endpoint does not require authentication.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Tenant created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Tenant created successfully' },
-        data: {
-          type: 'object',
-          properties: {
-            tenant: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                name: { type: 'string' },
-                subdomain: { type: 'string', nullable: true },
-                createdAt: { type: 'string', format: 'date-time' },
-                updatedAt: { type: 'string', format: 'date-time' },
-              },
-            },
-            adminUser: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
-                tenantId: { type: 'string' },
-                createdAt: { type: 'string', format: 'date-time' },
-                updatedAt: { type: 'string', format: 'date-time' },
-                email_verified: { type: 'boolean' },
-              },
-            },
-            verificationRequired: { type: 'boolean', example: true },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict - Email or tenant name already exists',
-  })
   async register(@Body() registerTenantDto: RegisterTenantDto) {
     try {
       const result = await this.tenantService.createTenant({
@@ -132,31 +77,6 @@ export class TenantController {
   @Get(':id/settings/google')
   @UseGuards(JwtAuthGuard, AdminRoleGuard)
   @RequireEmailVerification()
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Get Google SSO settings for tenant',
-    description:
-      'Retrieve current Google SSO configuration for the specified tenant. Requires admin role.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Google SSO settings retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        googleSsoEnabled: { type: 'boolean', example: true },
-        googleAutoProvision: { type: 'boolean', example: false },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin role required',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Tenant not found',
-  })
   async getGoogleSettings(@Param('id') tenantId: string) {
     const tenant = await this.tenantService.findById(tenantId);
     return {
@@ -168,43 +88,6 @@ export class TenantController {
   @Patch(':id/settings/google')
   @UseGuards(JwtAuthGuard, AdminRoleGuard)
   @RequireEmailVerification()
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Update Google SSO settings for tenant',
-    description:
-      'Update Google SSO configuration for the specified tenant. Requires admin role.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Google SSO settings updated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Google settings updated successfully',
-        },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            googleSsoEnabled: { type: 'boolean' },
-            googleAutoProvision: { type: 'boolean' },
-            updatedAt: { type: 'string', format: 'date-time' },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin role required',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Tenant not found',
-  })
   async updateGoogleSettings(
     @Param('id') tenantId: string,
     @Body() updateDto: UpdateGoogleSettingsDto,
