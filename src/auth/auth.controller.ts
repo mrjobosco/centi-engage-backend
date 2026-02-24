@@ -14,7 +14,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GoogleAuthService } from './services/google-auth.service';
@@ -39,7 +38,6 @@ import { SkipEmailVerification } from './decorators/skip-email-verification.deco
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { User } from '@prisma/client';
 
-@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -74,51 +72,6 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for registration
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary: 'Register new tenant-less user',
-    description:
-      'Create a new user account without requiring a tenant. User can create or join tenant later.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'User registered successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'user_123' },
-            email: { type: 'string', example: 'user@example.com' },
-            firstName: { type: 'string', example: 'John' },
-            lastName: { type: 'string', example: 'Doe' },
-            tenantId: { type: 'null', example: null },
-            emailVerified: { type: 'boolean', example: false },
-          },
-        },
-        accessToken: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-        requiresVerification: {
-          type: 'boolean',
-          example: true,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid input data',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict - Email already registered',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.registerTenantlessUser(registerDto);
   }
@@ -127,61 +80,6 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for login
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'User login - supports both tenant-less and tenant-specific',
-    description:
-      'Authenticate user. If no tenant header provided, attempts tenant-less login.',
-  })
-  @ApiHeader({
-    name: 'x-tenant-id',
-    description: 'Tenant identifier (optional for tenant-less login)',
-    required: false,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Login successful',
-    schema: {
-      type: 'object',
-      properties: {
-        accessToken: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            email: { type: 'string' },
-            firstName: { type: 'string', nullable: true },
-            lastName: { type: 'string', nullable: true },
-            name: { type: 'string' },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' },
-          },
-        },
-        emailVerified: {
-          type: 'boolean',
-          example: false,
-        },
-        requiresVerification: {
-          type: 'boolean',
-          example: true,
-        },
-        hasTenant: {
-          type: 'boolean',
-          example: false,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid credentials',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async login(
     @Body() loginDto: LoginDto,
     @Headers('x-tenant-id') tenantId?: string,
@@ -192,21 +90,6 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Logout user',
-    description:
-      'Stateless logout endpoint for client cleanup. Token revocation is not persisted server-side.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Logout successful',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Logged out successfully' },
-      },
-    },
-  })
   async logout() {
     return { message: 'Logged out successfully' };
   }
@@ -214,36 +97,12 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Refresh access token',
-    description:
-      'Issues a new access token for an authenticated user. Should be called before token expiration.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Access token refreshed successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        accessToken: { type: 'string' },
-        expiresIn: { type: 'number', example: 900 },
-      },
-    },
-  })
   async refresh(@CurrentUser() user: User) {
     return this.authService.refreshAccessToken(user.id, user.tenantId);
   }
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Get authenticated user profile',
-    description: 'Returns profile details for the authenticated user.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Profile retrieved successfully',
-  })
   async profile(@CurrentUser() user: User) {
     return this.authService.getUserProfile(user.id, user.tenantId);
   }
@@ -252,15 +111,6 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Request password reset OTP',
-    description:
-      'Generates and sends a password reset OTP to the specified email address.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset OTP processed',
-  })
   async forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,
     @Req() req: Request,
@@ -298,21 +148,6 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Reset password with OTP',
-    description: 'Resets user password using an OTP delivered to their email.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Password reset successfully' },
-      },
-    },
-  })
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
     @Req() req: Request,
@@ -339,35 +174,6 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 requests per 15 minutes for OTP verification
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Verify email with OTP',
-    description:
-      'Verify user email address using the 6-digit OTP sent to their email. Marks the user as verified upon success.',
-  })
-  @ApiHeader({
-    name: 'x-tenant-id',
-    description: 'Tenant identifier (optional for tenant-less users)',
-    required: false,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Email verified successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Email verified successfully' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid OTP or user not found',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async verifyEmail(
     @Body() verifyEmailDto: VerifyEmailDto,
     @Req() req: Request,
@@ -398,34 +204,6 @@ export class AuthController {
   @SkipEmailVerification()
   @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 requests per 15 minutes for OTP verification
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Verify email with OTP (authenticated)',
-    description:
-      'Verify authenticated user email address using the 6-digit OTP sent to their email. Marks the user as verified upon success.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Email verified successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Email verified successfully' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid OTP or verification failed',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async verifyEmailAuthenticated(
     @Body() verifyEmailDto: VerifyEmailDto,
     @CurrentUser() user: User,
@@ -453,35 +231,6 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour for OTP resend
   @Post('resend-otp')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Resend OTP to email',
-    description:
-      'Resend a new OTP to the specified email address. Invalidates any existing OTP for that user.',
-  })
-  @ApiHeader({
-    name: 'x-tenant-id',
-    description: 'Tenant identifier',
-    required: true,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP sent successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'OTP sent successfully' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid email or user not found',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async resendOTP(
     @Body() resendOTPDto: ResendOTPDto,
     @Req() req: Request,
@@ -519,34 +268,6 @@ export class AuthController {
   @SkipEmailVerification()
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour for OTP resend
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Resend OTP (authenticated)',
-    description:
-      'Resend a new OTP to the authenticated user email address. Invalidates any existing OTP for that user.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP sent successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'OTP sent successfully' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Resend failed',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async resendOTPAuthenticated(@CurrentUser() user: User, @Req() req: Request) {
     const { ipAddress, userAgent } = this.extractRequestContext(req);
     const result = await this.emailOTPService.resendOTP(
@@ -567,38 +288,6 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute for OAuth initiation
   @Get('google')
-  @ApiOperation({
-    summary: 'Initiate Google OAuth - supports tenant-less registration',
-    description:
-      'Start Google OAuth flow. If no tenant header provided, creates tenant-less user.',
-  })
-  @ApiHeader({
-    name: 'x-tenant-id',
-    description: 'Tenant identifier (optional for tenant-less OAuth)',
-    required: false,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'OAuth flow initiated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authUrl: {
-          type: 'string',
-          example: 'https://accounts.google.com/oauth/authorize?...',
-        },
-        state: {
-          type: 'string',
-          example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Forbidden - Google SSO not enabled for tenant (tenant-specific flow only)',
-  })
   async googleAuth(@Headers('x-tenant-id') tenantId?: string) {
     if (tenantId) {
       // Verify tenant has Google SSO enabled (throws exception if disabled)
@@ -631,37 +320,6 @@ export class AuthController {
       },
     }),
   )
-  @ApiOperation({
-    summary: 'Complete Google OAuth flow',
-    description:
-      'Handle Google OAuth callback. Creates tenant-less user if no tenant context.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Authentication successful',
-    schema: {
-      type: 'object',
-      properties: {
-        accessToken: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid callback data',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid state or authorization code',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Forbidden - Google SSO not enabled (tenant-specific flow only)',
-  })
   async googleAuthCallback(@Query() callbackDto: GoogleCallbackDto) {
     const { code, state } = callbackDto;
 
@@ -702,32 +360,6 @@ export class AuthController {
   @Get('google/link')
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for account linking
-  @ApiOperation({
-    summary: 'Initiate Google account linking',
-    description:
-      'Initiates Google account linking flow for authenticated users. Returns authorization URL and state parameter.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Account linking flow initiated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authUrl: {
-          type: 'string',
-          example: 'https://accounts.google.com/oauth/authorize?...',
-        },
-        state: {
-          type: 'string',
-          example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
   async googleLink(@CurrentUser() user: User) {
     // Generate state with user ID for linking flow
     const state = await this.oauthStateService.generateState(user.id);
@@ -742,36 +374,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for linking callback
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Complete Google account linking',
-    description:
-      'Completes Google account linking flow. Links Google account to authenticated user.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Google account linked successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Google account linked successfully',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid callback data or email mismatch',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid state or authorization code',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict - Google account already linked to another user',
-  })
   async googleLinkCallback(
     @CurrentUser() user: User,
     @Body() callbackDto: GoogleLinkCallbackDto,
@@ -804,36 +406,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute for unlinking
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Unlink Google account',
-    description:
-      'Unlinks Google account from authenticated user. Requires at least one other authentication method.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Google account unlinked successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Google account unlinked successfully',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Cannot unlink only authentication method',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Not found - Google account not linked',
-  })
   async googleUnlink(@CurrentUser() user: User) {
     await this.googleAuthService.unlinkGoogleAccount(user.id);
     return { message: 'Google account unlinked successfully' };
@@ -841,39 +413,6 @@ export class AuthController {
 
   @Get('me/auth-methods')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Get user authentication methods',
-    description:
-      'Returns the available authentication methods for the authenticated user.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Authentication methods retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authMethods: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          example: ['password', 'google'],
-        },
-        needsPasswordSetup: {
-          type: 'boolean',
-          example: true,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Not found - User not found',
-  })
   async getAuthMethods(@CurrentUser() user: User) {
     const authMethods = await this.googleAuthService.getUserAuthMethods(
       user.id,
@@ -888,47 +427,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Set password for authenticated user',
-    description:
-      'Allows users who signed up via OAuth to set up a password for email/password authentication.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Password set successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Password set successfully',
-        },
-        authMethods: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          example: ['google', 'password'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid password or user already has password',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict - User already has a password set',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many requests - Rate limit exceeded',
-  })
   async setPassword(
     @CurrentUser() user: User,
     @Body() setPasswordDto: SetPasswordDto,
@@ -948,28 +446,6 @@ export class AuthController {
 
   @Get('me/needs-password-setup')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Check if user needs password setup',
-    description:
-      'Returns whether the authenticated user needs to set up a password.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Password setup status retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        needsPasswordSetup: {
-          type: 'boolean',
-          example: true,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Authentication required',
-  })
   async needsPasswordSetup(@CurrentUser() user: User) {
     const needsPasswordSetup = await this.authService.needsPasswordSetup(
       user.id,

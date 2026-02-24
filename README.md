@@ -12,6 +12,13 @@ For comprehensive documentation, visit our [Documentation Hub](./docs/README.md)
 - **[Development Guide](./docs/development/setup.md)** - Setup, testing, and deployment guides
 - **[Operations Guide](./docs/operations/)** - Monitoring, troubleshooting, and security
 
+### OpenAPI Contract Workflow
+
+- Canonical API contract: [`docs/api/openapi.yml`](./docs/api/openapi.yml)
+- Validate + bundle contract artifacts: `npm run openapi:validate`
+- Generated artifacts are written to `docs/api/generated/`.
+- Any API behavior change should include a matching OpenAPI update.
+
 ## 🎯 Project Purpose
 
 This starter provides a robust foundation for building multi-tenant SaaS applications with:

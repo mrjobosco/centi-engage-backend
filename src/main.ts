@@ -1,11 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import yaml from 'js-yaml';
+import swaggerUi from 'swagger-ui-express';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters';
-import { SanitizeResponseInterceptor } from './common/interceptors';
+import {
+  ApiResponseInterceptor,
+  SanitizeResponseInterceptor,
+} from './common/interceptors';
+
+function loadOpenApiDocument(): Record<string, unknown> {
+  const specPath = path.resolve(process.cwd(), 'docs/api/openapi.yml');
+  const specFile = fs.readFileSync(specPath, 'utf8');
+  const document = yaml.load(specFile);
+
+  if (!document || typeof document !== 'object') {
+    throw new Error(`Invalid OpenAPI spec at ${specPath}`);
+  }
+
+  return document as Record<string, unknown>;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -49,8 +67,11 @@ async function bootstrap() {
   // Apply global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Apply global response sanitization interceptor
-  app.useGlobalInterceptors(new SanitizeResponseInterceptor());
+  // Apply global response sanitization and envelope interceptors
+  app.useGlobalInterceptors(
+    new SanitizeResponseInterceptor(),
+    new ApiResponseInterceptor(),
+  );
 
   // Configure global validation pipe
   app.useGlobalPipes(
@@ -64,55 +85,14 @@ async function bootstrap() {
     }),
   );
 
-  // Set up Swagger/OpenAPI documentation
-  const config = new DocumentBuilder()
-    .setTitle('Multi-Tenant NestJS API')
-    .setDescription(
-      'A comprehensive, scalable, and secure multi-tenant SaaS backend with hybrid RBAC system, notification management, and OAuth integration. This API provides complete tenant isolation, role-based access control, and extensive notification capabilities.',
-    )
-    .setVersion('1.0.0')
-    .setContact(
-      'API Support',
-      'https://github.com/your-org/multi-tenant-nestjs',
-      'support@yourcompany.com',
-    )
-    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-    .addServer('http://localhost:3000', 'Development server')
-    .addServer('https://api.yourcompany.com', 'Production server')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description:
-          'Enter JWT token obtained from /auth/login or /auth/google/callback',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
-    .addApiKey(
-      {
-        type: 'apiKey',
-        name: configService.get<string>('tenant.headerName') || 'x-tenant-id',
-        in: 'header',
-        description:
-          'Tenant identifier - required for all tenant-scoped operations',
-      },
-      'tenant-id',
-    )
-    .addTag('Authentication', 'User authentication and OAuth flows')
-    .addTag('Users', 'User management and permissions')
-    .addTag('Roles', 'Role-based access control')
-    .addTag('Permissions', 'Permission management')
-    .addTag('Projects', 'Project management')
-    .addTag('Notifications', 'Notification system')
-    .addTag('Notification Preferences', 'User notification preferences')
-    .addTag('Tenants', 'Tenant management and configuration')
-    .build();
+  // Serve canonical OpenAPI spec from file
+  const openApiDocument = loadOpenApiDocument();
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/api/docs-json', (_req: unknown, res: { json: (value: unknown) => void }) => {
+    res.json(openApiDocument);
+  });
 
   // Configure graceful shutdown
   app.enableShutdownHooks();

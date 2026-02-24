@@ -3,10 +3,10 @@ name: Documentation
 on:
   push:
     branches: [main, develop]
-    paths: ['docs/**', '.github/workflows/docs.yml']
+    paths: ['docs/**', 'scripts/openapi-*.js', '.github/workflows/docs.yml']
   pull_request:
     branches: [main, develop]
-    paths: ['docs/**', '.github/workflows/docs.yml']
+    paths: ['docs/**', 'scripts/openapi-*.js', '.github/workflows/docs.yml']
 
 jobs:
   validate:
@@ -27,6 +27,9 @@ jobs:
 
       - name: Validate documentation
         run: npm run docs:validate
+
+      - name: Validate OpenAPI contract
+        run: npm run openapi:validate
 
       - name: Generate documentation
         run: npm run docs:build
